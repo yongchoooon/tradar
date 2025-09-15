@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Trademark Search</title>
+</head>
+<body>
+    <h1>Trademark Search</h1>
+    <form id="searchForm">
+        <div>
+            <label for="imageInput">Trademark Image:</label>
+            <input type="file" id="imageInput" accept="image/*" />
+        </div>
+        <div>
+            <label for="textInput">Trademark Text:</label>
+            <input type="text" id="textInput" />
+        </div>
+        <div>
+            <label for="classInput">Goods/Services Class:</label>
+            <input type="text" id="classInput" />
+        </div>
+        <div>
+            <button type="submit">Search</button>
+        </div>
+    </form>
+    <pre id="results"></pre>
+    <script>
+    const form = document.getElementById('searchForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('imageInput').files[0];
+        let imageBase64 = null;
+        if (file) {
+            imageBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(file);
+            });
+        }
+        const payload = {
+            text: document.getElementById('textInput').value || null,
+            class_code: document.getElementById('classInput').value || null,
+            image: imageBase64,
+            topn: 5
+        };
+        const res = await fetch('/search/trademark', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        document.getElementById('results').textContent = JSON.stringify(data, null, 2);
+    });
+    </script>
+</body>
+</html>
