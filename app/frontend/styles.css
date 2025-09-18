@@ -1,0 +1,169 @@
+/* Small customizations on top of Pico.css */
+:root {
+  --brand: #192c4d;          /* primary */
+  --brand-contrast: #ffffff; /* text on primary */
+  --brand-accent: #4d6aa1;   /* secondary accents */
+  --brand-muted: #e3eaf6;    /* light backgrounds */
+  --logo-size: 120px;        /* hero logo size */
+}
+
+/* Global accents */
+a, a:visited { color: var(--brand-accent); }
+.btn-primary, button[type="submit"], input[type="submit"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-contrast);
+}
+button.secondary { background: transparent; color: inherit; }
+header nav { margin-top: 0.5rem; }
+
+.search-card {
+  margin: 1rem 0 2rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--muted-border-color, #e5e7eb);
+  background: var(--card-bg, #fff);
+}
+
+.search-card .inputs label input {
+  font-size: 0.95rem;
+}
+
+.search-card .actions {
+  display: flex;
+  gap: .25rem;
+  justify-content: flex-start;
+  align-items: center;
+  margin: .25rem 0 0;
+}
+
+.btn-tiny {
+  --pico-form-element-spacing-vertical: .15rem;
+  --pico-form-element-spacing-horizontal: .4rem;
+  font-size: 0.85rem;
+  padding: .25rem .45rem;
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: .5rem 0 0.25rem;
+  flex-wrap: wrap;
+}
+
+.dropzone {
+  width: 100%;
+  max-width: 720px;
+  min-height: 200px;
+  max-height: 320px; /* 세로 최대 고정 */
+  border: 2px dashed var(--muted-border-color, #e5e7eb);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg, #fff);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+  flex: 1 1 auto;
+}
+
+.dropzone:hover { border-color: var(--brand); background: rgba(25,44,77,0.05); }
+
+.dropzone img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px; /* 세로 최대 고정 */
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Buttons on the right of image area */
+.actions-side {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  align-items: flex-end;
+}
+
+.btn-fixed { width: 140px; }
+.btn-equal { height: 40px; line-height: 1; }
+
+/* Center button labels horizontally and vertically */
+.btn-equal,
+.actions-side button,
+.search-card .actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.dropzone .placeholder { text-align: center; color: #6b7280; }
+.dropzone .placeholder small { display: block; margin-top: .25rem; }
+
+.result-card {
+  padding: 1rem;
+  border: 1px solid var(--muted-border-color, #e5e7eb);
+  border-radius: 12px;
+  background: var(--card-bg, #fff);
+}
+
+.result-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .5rem;
+}
+
+.result-card .badge {
+  background: var(--brand-muted);
+  color: var(--brand);
+  border-radius: 999px;
+  padding: .2rem .6rem;
+  font-size: .85rem;
+}
+
+.result-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: .75rem;
+}
+
+/* 5 columns x 2 rows grid (renders first 10) */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 1200px) {
+  .results-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 992px) {
+  .results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.hero { margin: .5rem 0 1rem; text-align: left; display: flex; gap: 1rem; align-items: center; }
+.hero .logo { width: var(--logo-size); height: var(--logo-size); object-fit: contain; }
+.hero .hero-text { display: flex; flex-direction: column; justify-content: center; }
+.hero .title { font-size: clamp(1.8rem, 3.2vw, 2.4rem); line-height: 1.2; margin: 0; color: var(--brand); }
+.hero .subtitle { font-size: clamp(0.95rem, 1.8vw, 1.1rem); line-height: 1.25; margin: 0; color: #6b7280; }
+
+/* Dark mode friendly defaults */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-bg: #0b0f19;
+    --muted-border-color: #1f2937;
+  }
+  .hero .subtitle { color: #9ca3af; }
+}
+
+/* Prevent wrapping for reset label */
+.btn-wide { min-width: 96px; white-space: nowrap; }

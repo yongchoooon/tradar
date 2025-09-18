@@ -1,56 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>Trademark Search</title>
-</head>
-<body>
-    <h1>Trademark Search</h1>
-    <form id="searchForm">
-        <div>
-            <label for="imageInput">Trademark Image:</label>
-            <input type="file" id="imageInput" accept="image/*" />
-        </div>
-        <div>
-            <label for="textInput">Trademark Text:</label>
-            <input type="text" id="textInput" />
-        </div>
-        <div>
-            <label for="classInput">Goods/Services Class:</label>
-            <input type="text" id="classInput" />
-        </div>
-        <div>
-            <button type="submit">Search</button>
-        </div>
-    </form>
-    <pre id="results"></pre>
-    <script>
-    const form = document.getElementById('searchForm');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const file = document.getElementById('imageInput').files[0];
-        let imageBase64 = null;
-        if (file) {
-            imageBase64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.readAsDataURL(file);
-            });
-        }
-        const payload = {
-            text: document.getElementById('textInput').value || null,
-            class_code: document.getElementById('classInput').value || null,
-            image: imageBase64,
-            topn: 5
-        };
-        const res = await fetch('/search/trademark', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        document.getElementById('results').textContent = JSON.stringify(data, null, 2);
-    });
-    </script>
-</body>
-</html>
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>T-RADAR</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="container">
+      <nav>
+        <ul>
+          <li><strong>T-RADAR</strong></li>
+        </ul>
+        <ul>
+          <li><a href="#" aria-label="GitHub" title="GitHub">🐙</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="container">
+      <div id="root"></div>
+    </main>
+
+    <!-- React via CDN (no build step) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" data-type="module" src="/app.jsx"></script>
+  </body>
+  </html>
