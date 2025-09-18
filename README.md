@@ -1,396 +1,318 @@
-# 상표 유사도/위험도 서비스 코딩 가이드 (파이프라인 기준)
+# 상표 유사도 검색 서비스 코딩 가이드 v2 (개정 파이프라인)
 
-## 0) 기술 스택 제안
+> 목표: **이미지 전체** 또는 **사용자 지정 영역(바운딩 박스)** 기반으로 비주얼/텍스트 유사 상표를 검색하고, 이미지와 텍스트 각각에 대해 **별도 Top-K** 결과를 반환한다. 초기 메타 필터링 없이 **전체 DB**에서 1차 검색 후 중복 제거 및 재랭킹을 수행한다.
+
+---
+
+## 개요
+- 입력: 단일 상표 이미지(Base64) + 선택적 바운딩 박스 + 상품/서비스류 코드
+- 처리: 서버가 원본/크롭 이미지를 생성하고 이미지/텍스트 임베딩으로 전체 상표 DB에서 후보를 검색
+- 출력: 이미지 유사 Top-K, 텍스트 유사 Top-K를 각각 반환하고 상태값(등록/거절 등)과 인접군 여부로 그룹핑
+- 운영: FastAPI 기반 마이크로서비스 + Celery 비동기 작업 + PostgreSQL/pgvector + OpenSearch 조합
+
+## 핵심 변경 사항 (v2)
+- [변경] 초기 메타 필터링 없이 **전체 DB**에서 1차 검색 수행
+- [추가] 바운딩 박스 업로드 시 서버가 **원본 1 + 크롭 N**까지 최대 3장의 쿼리 이미지 생성
+- [단순화] 재랭킹은 **이미지 유사도**와 **텍스트 유사도**만 사용
+- [출력] 이미지 Top-K, 텍스트 Top-K를 **분리**하여 반환하고 상태값, 인접군 여부에 따라 섹션을 나눔
+
+## 시스템 구성
+
+### 기술 스택 요약
 - **Backend**: FastAPI + SQLAlchemy + Pydantic
-- **Workers/Queue**: Celery + Redis
-- **DB**: PostgreSQL + pgvector 확장
-- **Search**: OpenSearch(=Elastic 호환) for BM25, PGVector for ANN
+- **Workers/Queue**: Celery + Redis (대용량 임베딩 처리)
+- **DB**: PostgreSQL + `pgvector`
+- **Search**: OpenSearch(BM25), PGVector(ANN)
 - **Object Store**: S3 호환(MinIO/AWS S3)
-- **OCR/Detection/Embedding**: PaddleOCR or EasyOCR, YOLOv8, ViT/CLIP, KoSentence-BERT
-- **Model 서빙**: onnxruntime-gpu
+- **Models(ONNX)**: YOLOv8(선택), ViT/CLIP(이미지 임베딩), KoSentence-BERT(텍스트 임베딩), OCR(PaddleOCR)
+- **Model Serving**: onnxruntime-gpu
+- **Frontend(선택)**: React + Konva 또는 `react-image-annotate`로 박스 드로잉
 - **Container**: Docker / docker-compose
-- **Logging/Obs.**: Prometheus + Grafana, OpenSearch Dashboards
+
+### 모델 및 서빙 전략
+- ViT 학습은 **Vienna 중분류 멀티레이블** 기반을 계획하고 검색은 코사인 유사도를 사용
+- 모델 레지스트리 테이블에 `name, version, task, onnx_key, dim`을 저장하고 onnxruntime-gpu 세션을 캐싱하여 배포
 
 ---
 
-## 1) 리포지토리 구조
-```
-repo/
-  docker-compose.yml
-  .env.example
-  app/
-    main.py
-    api/
-      __init__.py
-      routes_search.py
-      routes_ingest.py
-      routes_admin.py
-    core/
-      config.py
-      security.py
-      logging.py
-    models/               # SQLAlchemy ORM
-      base.py
-      trademark.py
-      asset.py
-      embedding.py
-      decision.py
-      registry.py
-    schemas/              # Pydantic
-      common.py
-      search.py
-      ingest.py
-      admin.py
-    services/
-      ocr_service.py
-      detect_service.py
-      text_embed_service.py
-      image_embed_service.py
-      vienna_classifier.py
-      bm25_client.py
-      vector_client.py
-      s3_client.py
-      scoring.py
-      highlight.py
-    pipelines/
-      ingest_pipeline.py
-      search_pipeline.py
-    workers/
-      celery_app.py
-      tasks.py
-    search/
-      opensearch_mapping.json
-      queries.py
-    registry/
-      loader.py           # ONNX 모델 로더
-    utils/
-      image.py
-      text.py
-      id.py
-  alembic/                # 마이그레이션
-  tests/
+## 엔드-투-엔드 파이프라인
+
+### 1. 요청 엔드포인트
+`POST /search/multimodal`
+```json
+{
+  "image_b64": "<base64>",
+  "boxes": [
+    {"x1":0.02,"y1":0.05,"x2":0.40,"y2":0.92},
+    {"x1":0.45,"y1":0.18,"x2":0.98,"y2":0.82}
+  ],
+  "goods_classes": ["30","43"],
+  "k": 20
+}
 ```
 
----
-
-## 2) Docker 구성 예시 (`docker-compose.yml`)
-- 서비스: `api`, `worker`, `postgres`, `opensearch`, `os-dash`, `minio`, `redis`
-- Postgres에 `pgvector` 확장 설치
-- OpenSearch는 단일 노드 개발 모드
-
----
-
-## 3) 데이터 스키마 (요지)
-### 3.1 테이블
-- `trademarks`
-  - `id PK`, `title`, `class_code`(e.g., "30류"), `vienna_codes`(int[]), `status`(live|expired|refused|withdrawn|pending), `app_no`, `reg_no`, `owner`, `source`, `published_at`, `created_at`
-- `assets`
-  - `id PK`, `trademark_id FK`, `image_url`, `pdf_url`, `thumb_url`
-- `embeddings`
-  - `id PK`, `trademark_id FK`, `type`(image|text), `dim`, `vec` **vector**
-  - 인덱스: `USING ivfflat (vec vector_cosine_ops) WITH (lists=100)`
-- `decisions`
-  - `id PK`, `trademark_id FK`, `type`(rejection|office_action|accept), `text`, `raw_url`, `created_at`
-- `risk_signals`
-  - `id PK`, `trademark_id FK`, `reason`(enum), `weight`, `detail`
-- `model_registry`
-  - `id PK`, `name`, `version`, `onnx_object_key`, `task`(yolo|vit|text-embed|vienna-cls), `meta`(json), `created_at`
-
-### 3.2 OpenSearch 인덱스
-- 인덱스명: `trademarks_text`
-- 필드: `title`(BM25), `goods_services`(BM25), `decision_text`(BM25), `class_code`(keyword), `vienna_codes`(keyword), `status`(keyword), `trademark_id`(keyword)
-- 한국어 형태소 분석기 적용 가능하면 설정
-
----
-
-## 4) 모델 로딩 및 서비스 인터페이스
-```python
-# registry/loader.py
-class ModelHandle:
-    def __init__(self, s3, name, version): ...
-    def session(self):  # onnxruntime.InferenceSession 반환
-        ...
-
-# services/text_embed_service.py
-class TextEmbedder:
-    def __init__(self, onnx_session): ...
-    def encode(self, text:str) -> np.ndarray: ...
-
-# services/image_embed_service.py
-class ImageEmbedder:
-    def __init__(self, onnx_session): ...
-    def encode(self, image:np.ndarray) -> np.ndarray: ...
-
-# services/detect_service.py (YOLO)
-# services/ocr_service.py (PaddleOCR)
-# services/vienna_classifier.py (ONNX 분류기)
-```
-
----
-
-## 5) 인입 파이프라인 (Ingest)
-1. **업로드**: 이미지/거절결정서 PDF/S3 키 수신 → S3 저장
-2. **OCR**: 표면 텍스트 추출 → `normalize(text)` 소문자, 자모 분리/공백 정리
-3. **Detection**: YOLO로 마크/로고 바운딩박스 → 크롭 이미지 생성
-4. **Embedding 생성**
-   - Text: title, OCR text → `TextEmbedder.encode`
-   - Image: 원본 또는 크롭 → `ImageEmbedder.encode`
-5. **분류/메타**
-   - Vienna 코드 예측, 상태/분류 메타 바인딩
-6. **저장**
-   - `trademarks`, `assets`, `embeddings` insert
-7. **색인**
-   - OpenSearch: `title`, `goods_services`, `decision_text` 색인
-   - PGVector: `embeddings.vec` upsert
-8. **비동기 처리**
-   - 2–7단계는 `Celery task`로 분리 (`tasks.ingest_trademark`)
+### 2. 입력 전처리
+1. 바운딩 박스 좌표 검증(0~1 정규화 또는 px → 정규화)
+2. 원본 이미지에서 박스 별 **서버 측 크롭** 생성
+3. **쿼리 이미지 셋 = {원본} ∪ {크롭들}** (최대 3장)
 
 ```python
-# pipelines/ingest_pipeline.py (요지)
-def run_ingest(input: IngestInput) -> str:
-    tid = upsert_trademark_meta(...)
-    img = load_image(input.image_path)
-    ocr = ocr_service.run(img)
-    norm_txt = normalize(ocr.text)
-    t_vec = text_embed.encode(norm_txt)
-    i_vec = image_embed.encode(img)
-    vienna = vienna_cls.predict(img)
-    save_all(tid, ..., t_vec, i_vec, vienna)
-    os_client.index_text(tid, title=..., goods_services=..., decision_text=...)
-    vec_client.upsert(tid, "text", t_vec)
-    vec_client.upsert(tid, "image", i_vec)
-    return tid
+from PIL import Image
+
+def crop_from_boxes(img: Image.Image, boxes):
+    W, H = img.size
+    crops = []
+    for b in boxes:
+        x1, y1, x2, y2 = denorm(b, W, H)
+        crops.append(img.crop((x1, y1, x2, y2)))
+    return crops
+
+def make_query_images(img_bytes: bytes, boxes: list[dict]) -> list[Image.Image]:
+    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+    crops = crop_from_boxes(img, boxes or [])
+    return [img] + crops[:2]  # 최대 3장
+```
+
+### 3. 임베딩 생성
+- 이미지: 각 쿼리 이미지 → ViT/CLIP ONNX → L2 정규화 벡터
+- 텍스트: OCR(원본 + 크롭) → 정규화 → KoSBERT ONNX → 벡터
+- BM25 질의 텍스트: OCR 결과를 결합해 구성
+
+```python
+def encode_images(images):
+    return [vit.encode(img) for img in images]
+
+def encode_texts(texts):
+    return text_model.encode(" ".join(texts))
+```
+
+### 4. 전체 DB 1차 검색
+- **Visual ANN**: 각 쿼리 이미지 임베딩으로 PGVector `LIMIT N0`
+  - 여러 크롭 결과는 **trademark_id** 기준으로 병합하고 `image_sim_raw = max(sim)`을 사용
+- **Text ANN**: 텍스트 임베딩으로 PGVector `LIMIT N0`
+- **BM25**: OpenSearch로 `title, goods_services, decision_text` 검색 `LIMIT N0`
+
+```sql
+SELECT trademark_id, 1 - (vec <=> :q) AS sim
+FROM embeddings
+WHERE type = 'image'
+ORDER BY vec <=> :q
+LIMIT :N0;
+```
+
+### 5. 후보 병합 및 스코어 집계
+- 세 소스 결과를 **trademark_id**로 병합하여 후보 맵 생성
+- `image_sim = max(sim_i over all query crops)`
+- `text_sim_vec = max(sim from text ANN)`
+- `text_sim_bm25 = normalize(bm25_score)` → 0~1 스케일
+- `text_sim = max(text_sim_vec, text_sim_bm25)`
+
+```python
+from collections import defaultdict
+
+def bm25_norm(score, min_s, max_s):
+    if max_s == min_s:
+        return 0.0
+    return (score - min_s) / (max_s - min_s)
+
+def merge_hits(img_hits_list, txt_hits, bm25_hits):
+    cand = defaultdict(lambda: {'image_sim': 0.0,
+                                'text_sim_vec': 0.0,
+                                'text_sim_bm25': 0.0})
+    for hits in img_hits_list:
+        for h in hits:
+            cand[h.id]['image_sim'] = max(cand[h.id]['image_sim'], h.sim)
+    for h in txt_hits:
+        cand[h.id]['text_sim_vec'] = max(cand[h.id]['text_sim_vec'], h.sim)
+    min_s = min((h['score'] for h in bm25_hits), default=0.0)
+    max_s = max((h['score'] for h in bm25_hits), default=1.0)
+    for h in bm25_hits:
+        cand[h['id']]['text_sim_bm25'] = max(
+            cand[h['id']]['text_sim_bm25'],
+            bm25_norm(h['score'], min_s, max_s),
+        )
+    for v in cand.values():
+        v['text_sim'] = max(v['text_sim_vec'], v['text_sim_bm25'])
+    return cand
+```
+
+### 6. Top-K 산출 및 응답 구성
+- `topk_by(candidates, key, k)`로 이미지/텍스트 Top-K 각각 계산
+- 메타데이터를 조회한 뒤 상태값(registered/refused/others)과 인접군 여부로 그룹핑
+- 반환 JSON은 이미지/텍스트 Top-K를 분리하고 각 섹션에서 상태/인접군 기준 정렬
+
+```python
+def topk_by(cand_map, key, k):
+    ids = sorted(cand_map.keys(), key=lambda i: cand_map[i][key], reverse=True)
+    return ids[:k]
+```
+
+```json
+{
+  "query": {"k": 20, "boxes": 2, "goods_classes": ["30","43"]},
+  "image_topk": {
+    "adjacent": [ { "id": "T1", "title": "STARBUCKS", "status": "registered",
+      "class_codes": ["30"], "app_no": "...", "image_sim": 0.83, "text_sim": 0.61, "thumb": "..." } ],
+    "non_adjacent": [ ... ],
+    "refused": [ ... ],
+    "registered": [ ... ]
+  },
+  "text_topk": {
+    "adjacent": [ ... ],
+    "non_adjacent": [ ... ],
+    "refused": [ ... ],
+    "registered": [ ... ]
+  }
+}
+```
+
+프런트엔드는 썸네일, 상표명, 상태, 클래스, 출원번호, `image_sim`, `text_sim`을 카드 형태로 노출하고, 클릭 시 상세 패널에서 서지/거절사유/Vienna 코드/추가 이미지를 보여준다.
+
+---
+
+## 메타데이터 조인 및 인접군 판정
+
+### 핵심 테이블 조인
+- `trademarks(id, title, status, class_codes, vienna_codes, app_no, reg_no, owner, dates…)`
+- `assets(id, trademark_id, thumb_url)`
+- 필요 시 `decisions(type, text)` 조인하여 거절 사유 요약 제공
+
+### 상품/서비스 인접군
+- 파일 경로: `app/data/goods_services/ko_goods_services.tsv`
+  - 컬럼: `nc_class, name_ko, similar_group_code`
+- 로딩 후 딕셔너리 캐싱, `similar_group_code`가 겹치면 인접군으로 간주
+
+```python
+def load_goods_groups(tsv_path):
+    import csv
+    mapping, groups = {}, {}
+    with open(tsv_path, newline='', encoding='utf-8') as f:
+        for nc, name, grp in csv.reader(f, delimiter='\t'):
+            mapping[nc] = {'name': name, 'group': grp}
+            groups.setdefault(grp, set()).add(nc)
+    return mapping, groups
+
+def is_adjacent(user_classes, target_classes, meta):
+    user_groups = {meta[c]['group'] for c in user_classes if c in meta}
+    target_groups = {meta[c]['group'] for c in target_classes if c in meta}
+    return len(user_groups & target_groups) > 0
+
+def group_by_status_and_goods(ids, meta, user_classes, goods_meta):
+    groups = {'registered': [], 'refused': [], 'others': [],
+              'adjacent': [], 'non_adjacent': []}
+    for i in ids:
+        m = meta[i]
+        if m['status'] == 'registered':
+            groups['registered'].append(i)
+        elif m['status'] == 'refused':
+            groups['refused'].append(i)
+        else:
+            groups['others'].append(i)
+        bucket = 'adjacent' if is_adjacent(user_classes, m['class_codes'], goods_meta) else 'non_adjacent'
+        groups[bucket].append(i)
+    return groups
 ```
 
 ---
 
-## 6) 검색 파이프라인 (Retrieval + Rerank)
-입력: `query_text`, `query_image`, `filters: {class_code, vienna_codes, status}`
-
-1. **전처리**
-   - 텍스트 `normalize`
-   - 이미지 있으면 임베딩 생성
-2. **1차 검색 (병렬)**
-   - **ANN(Vector)**
-     - `text_vec`로 텍스트 임베딩 Top-N
-     - `image_vec`로 이미지 임베딩 Top-N
-   - **BM25(Text)**
-     - OpenSearch로 `title`, `goods_services`, `decision_text` Top-N
-3. **필터링/중복제거**
-   - 동일 업체/출원번호 중복 제거
-   - 메타 필터: 동일 업종(분류), Vienna 코드 포함/불일치 감점, 상태 스코어링
-4. **재계산/가중합 스코어**
-   - 유사도 계산
-     - 이미지 코사인 `s_i`
-     - 텍스트 코사인 `s_t`
-     - 상품/서비스류 겹침 `s_c` (Jaccard, 편집거리 보정)
-     - 행정/거절 신호 `s_r` (거절유사 근거, 진행상태)
-   - 최종 스코어 `S = 0.5*s_i + 0.25*s_t + 0.15*s_c + 0.1*s_r`
-5. **상세정보 결합**
-   - 메타 RDB + OS에서 거절사유 본문 GET
-6. **Top-K 선택 및 하이라이트**
-   - 매칭 근거, 핵심 서지, 위험도 라벨링
+## 구현 스켈레톤
 
 ```python
-# services/scoring.py
-def final_score(si, st, sc, sr):
-    return 0.5*si + 0.25*st + 0.15*sc + 0.10*sr
+@router.post('/search/multimodal', response_model=SearchResponse)
+def search_multimodal(req: SearchRequest):
+    imgs = make_query_images(base64.b64decode(req.image_b64), req.boxes or [])
+    img_vecs = [img_embed.encode(im) for im in imgs]
+    ocr_texts = [ocr.run(im).text for im in imgs]
+    t_vec = text_embed.encode(' '.join(clean(t) for t in ocr_texts))
+    bm25_q = ' '.join(ocr_texts)
+
+    img_hits_list = [ann_search('image', v, topn=200) for v in img_vecs]
+    txt_hits = ann_search('text', t_vec, topn=200)
+    bm25_hits = os_client.search(bm25_q, topn=200)
+
+    cand = merge_hits(img_hits_list, txt_hits, bm25_hits)
+    topk_img_ids = topk_by(cand, 'image_sim', req.k)
+    topk_txt_ids = topk_by(cand, 'text_sim', req.k)
+
+    meta = fetch_meta(topk_img_ids + topk_txt_ids)
+    goods_meta, _ = load_goods_groups(TSV_PATH)
+
+    img_groups = group_by_status_and_goods(topk_img_ids, meta, req.goods_classes, goods_meta)
+    txt_groups = group_by_status_and_goods(topk_txt_ids, meta, req.goods_classes, goods_meta)
+
+    return build_response(req, cand, meta, img_groups, txt_groups)
 ```
 
 ```python
-# pipelines/search_pipeline.py (요지)
-def search(query: SearchInput) -> SearchOutput:
-    tvec = text_embed.encode(normalize(query.text)) if query.text else None
-    ivec = image_embed.encode(query.image) if query.image else None
-
-    cand_vec_t = vec_client.search("text", tvec, topn=200) if tvec is not None else []
-    cand_vec_i = vec_client.search("image", ivec, topn=200) if ivec is not None else []
-    cand_bm25  = os_client.search(query.text, topn=200) if query.text else []
-
-    merged = merge_dedupe([cand_vec_t, cand_vec_i, cand_bm25])
-    filtered = apply_filters(merged, query.filters)   # class_code, vienna, status
-    rescored = []
-    for c in filtered:
-        si = cosine(ivec, c.image_vec) if ivec is not None and c.image_vec is not None else 0
-        st = cosine(tvec, c.text_vec)  if tvec  is not None and c.text_vec  is not None else 0
-        sc = jaccard(query.goods_set, c.goods_set) if query.goods_set else approx_goods_overlap(query.text, c.goods_services)
-        sr = admin_reject_signal(c.decision_text, c.status)
-        S  = final_score(si, st, sc, sr)
-        rescored.append((c, S))
-    topk = take_topk(rescored, k=query.k)
-    return decorate_with_explanations(topk)
-```
-
----
-
-## 7) API 설계
-### 7.1 검색
-- `POST /search/trademark`
-  - Body:
-    ```json
-    {
-      "text": "STARBUCKS 30류 커피",
-      "image_b64": "...", 
-      "class_code": "30",
-      "vienna_codes": [0502],
-      "status_in": ["live","pending"],
-      "k": 20
-    }
-    ```
-  - Response:
-    ```json
-    {
-      "query": {...},
-      "results": [
-        {
-          "trademark_id": "T2024-0001",
-          "title": "STARBUCKS",
-          "class_code": "30",
-          "vienna_codes": [502],
-          "status": "live",
-          "scores": {"image":0.77,"text":0.69,"class_overlap":0.80,"admin_signal":0.35,"final":0.66},
-          "evidence": {
-            "highlights": {"title":["starbucks"], "decision_text":["혼동 우려"]},
-            "goods_overlap": ["커피","차","설탕"]
-          },
-          "assets": {"image_url":"s3://.../img.jpg"}
-        }
-      ]
-    }
-    ```
-
-### 7.2 인입/색인
-- `POST /ingest/trademark` — 이미지/메타 업로드 → `task_id` 반환
-- `GET  /ingest/status/{task_id}` — 파이프라인 진행률
-
-### 7.3 어드민
-- `POST /admin/models/register` — ONNX S3 업로드, 레지스트리 등록
-- `POST /admin/reindex` — 특정 trademark 재색인
-
----
-
-## 8) 서비스 컴포넌트 구현 체크리스트
-- [ ] S3 클라이언트 래퍼 (pre-signed URL 발급)
-- [ ] OpenSearch 클라이언트 및 인덱스 관리(mappings, analyzers)
-- [ ] PGVector 연결 및 ANN 인덱스 생성 (ivfflat, cosine)
-- [ ] OCR/YOLO/임베딩 ONNX 세션 초기화 모듈
-- [ ] 텍스트 정규화: 소문자, 자모/공백/특수문자 규칙, 영문 오타 교정 옵션
-- [ ] Vienna 코드 분류기 호출 및 신뢰도 임계값
-- [ ] 상품/서비스류 토큰화 및 Jaccard 계산기
-- [ ] 행정/거절 신호 스코어러 (`sr`): 상태 가중치 + 거절사유 패턴 매칭
-- [ ] 후보 병합/중복 제거 로직 (동일 출원·등록번호 우선 규칙)
-- [ ] 최종 랭킹, Top-K 슬라이스, 근거 하이라이트 생성
-- [ ] 에러/시간 초과 처리, 재시도, 서킷브레이커
-- [ ] 감사 로그: 입력/출력 요약, 모델 버전, 스코어 구성 요소
-
----
-
-## 9) 점수 설계 상세
-- `s_i`: 임베딩 코사인. 이미지가 없으면 0
-- `s_t`: 임베딩 코사인. 텍스트가 없으면 0
-- `s_c`: 상품/서비스 겹침. `Jaccard(goods_query, goods_target)` 또는 텍스트기반 추정
-- `s_r`: **행정/거절 신호**
-  - 상태 가중: `live:+0.3`, `pending:+0.2`, `refused:-0.2`, `withdrawn:-0.3`, `expired:-0.3`
-  - 거절사유 텍스트 규칙: “혼동 우려”, “식별력 부족”, “기만”, “저명표장” 등 키워드에 따라 ± 가중
-- **최종**: `S = 0.5*s_i + 0.25*s_t + 0.15*s_c + 0.10*s_r`
-
----
-
-## 10) 하이라이트/설명 생성
-- OpenSearch `highlight` 기능으로 `title`, `decision_text` 강조
-- 유사도 근거: 상위 top tokens, 가장 가까운 이미지 패치 유사도(선택)
-
----
-
-## 11) 배치 동기화 (옵션)
-- KIPRIS/공공데이터포털 덤프 → S3 적재 → `ingest_trademark` 일괄 실행
-- 스케줄러(Crontab/Celery beat)로 주간 업데이트
-
----
-
-## 12) 보안/권한
-- API Key 또는 OAuth2 Client Credentials
-- 업로드 URL은 pre-signed, 10분 만료
-- PII/민감 데이터 로그 금지, 샘플링 로깅
-
----
-
-## 13) 테스트 전략
-- 단위: 정규화, 임베딩 차원/범위, 스코어 함수
-- 통합: 소형 픽스처 DB/OS/PGVector로 end-to-end
-- 회귀: 모델 버전 변경 시 스코어 분포 비교
-
----
-
-## 14) 실행 순서 (개발용 스크립트)
-1. `docker compose up -d`
-2. `alembic upgrade head`
-3. `python -m app.registry.loader --warm_all`  # ONNX 예열
-4. `uvicorn app.main:app --reload`
-5. OpenSearch 인덱스 생성: `python scripts/create_index.py`
-6. 샘플 인입: `python scripts/ingest_sample.py`
-7. 검색 호출: `curl -X POST http://localhost:8000/search/trademark ...`
-
----
-
-## 15) 프런트엔드 연동 포맷 (Vue 예시)
-- 업로드 후 반환된 pre-signed URL로 이미지 PUT
-- `/search/trademark` 결과 카드:
-  - 썸네일, 최종 스코어, 분류/상태 배지
-  - 핵심 서지(출원/등록번호, 상태, 날짜, Vienna)
-  - 위험도 라벨과 근거 문장
-
----
-
-## 16) MVP 범위 제안
-- 텍스트 쿼리 + 이미지 쿼리 동시 지원
-- Top-K 결과와 근거, 간단 위험도 배지
-- 배치 인입은 CSV + 이미지 폴더 기준
-
----
-
-## 17) 코드 조각 모음
-
-### FastAPI 엔드포인트 요지
-```python
-# app/api/routes_search.py
-@router.post("/search/trademark", response_model=SearchResponse)
-def search_trademark(req: SearchRequest):
-    out = search_pipeline.search(req)
-    return out
-```
-
-### OpenSearch 질의 예
-```python
-def os_search(text, topn=200, filters=None):
-    must = [{"multi_match": {"query": text, "fields": ["title^2","goods_services","decision_text"]}}]
-    if filters and filters.class_code:
-        must.append({"term": {"class_code": filters.class_code}})
-    return client.search(index="trademarks_text",
-                         body={"size": topn, "query":{"bool":{"must":must}},
-                               "highlight":{"fields":{"title":{},"decision_text":{}}}})
-```
-
-### PGVector 검색 예
-```python
-def vec_search(kind, vec, topn=200):
-    sql = text("""
-      SELECT trademark_id, 1 - (vec <=> :q) AS score
+def ann_search(kind: str, vec: np.ndarray, topn: int) -> list[Hit]:
+    sql = text('''
+      SELECT trademark_id, 1 - (vec <=> :q) AS sim
       FROM embeddings
       WHERE type = :kind
       ORDER BY vec <=> :q
       LIMIT :k
-    """)
-    return session.execute(sql, {"q": vec.tolist(), "kind": kind, "k": topn}).fetchall()
+    ''')
+    return [Hit(*row) for row in session.execute(sql, {'q': vec.tolist(), 'kind': kind, 'k': topn})]
 ```
 
 ---
 
-## 18) 성능 팁
-- pgvector `lists` 튜닝, `ANALYZE`, `VACUUM` 주기화
-- OpenSearch `shard=1, replica=0` 개발 설정, 프로덕션은 분리
-- 임베딩 배치 계산 시 GPU 전용 워커 분리
+## DB 스키마 개요
+- `trademarks(id PK, title, status, class_codes text[], vienna_codes int[], app_no, reg_no, owner, source, published_at, created_at)`
+- `assets(id PK, trademark_id FK, image_url, thumb_url)`
+- `embeddings(id PK, trademark_id FK, type enum(image|text), dim int, vec vector)`
+  - 인덱스: `USING ivfflat (vec vector_cosine_ops) WITH (lists=100)`
+- `decisions(id PK, trademark_id FK, type enum(rejection|office_action|accept), text, created_at)`
+- `model_registry(id PK, name, version, onnx_object_key, task, dim, meta jsonb)`
+- `goods_groups(nc_class text PK, name_ko text, similar_group_code text)` ← TSV 로드 소스
 
 ---
 
-이대로 구현하면, 그림 속 파이프라인(텍스트/이미지 임베딩, BM25, 메타 필터, 가중합 재랭킹, 최종 Top-K/위험도 출력)을 코드 레벨로 바로 옮길 수 있습니다.
+## 프런트엔드 요구 사항
+- 원본 업로드 → **전체 검색** 또는 **영역 검색** 라디오 선택
+- 영역 검색 시 박스 드로잉 UI, 좌표를 정규화하여 전송
+- 결과 화면 구성
+  - 탭 1: **이미지 유사 Top-K**
+  - 탭 2: **텍스트 유사 Top-K**
+  - 각 탭에 **등록/거절** 섹션 분리
+  - 각 섹션에 **인접군/비인접군** 카드 리스트
+  - 카드 항목: 썸네일, 상표명, 상태, 클래스, 출원번호, `image_sim`, `text_sim`
+  - 카드 클릭 → 상세 모달
+
+---
+
+## 체크리스트
+- [ ] 바운딩 박스 서버 크롭 정확도 검증(px/정규화 혼용 처리)
+- [ ] OCR 품질 튜닝 및 글자 정규화
+- [ ] 임베딩 차원/정규화 일관성
+- [ ] BM25 스코어 정규화 방식 확정(분포 기반)
+- [ ] ANN topn, dedupe 정책, 동률 처리
+- [ ] 상태값 도메인 표준화
+- [ ] TSV 인접군 로더 캐싱 및 핫 리로드
+- [ ] 대용량 쿼리 타임아웃, 재시도, 지표 수집
+
+---
+
+## 테스트 전략
+- 단위: 박스 크롭, 스코어 병합, 인접군 판정
+- 통합: 원본 + 2 크롭 입력 → 이미지/텍스트 Top-K가 정확히 분리되는지 검증
+- 회귀: 모델 버전 교체 시 스코어 분포 모니터링
+
+---
+
+## 예시 요청
+```bash
+curl -X POST http://localhost:8000/search/multimodal \
+ -H 'Content-Type: application/json' \
+ -d '{
+   "image_b64": "...",
+   "boxes": [
+     {"x1": 0.02, "y1": 0.05, "x2": 0.40, "y2": 0.92},
+     {"x1": 0.45, "y1": 0.18, "x2": 0.98, "y2": 0.82}
+   ],
+   "goods_classes": ["30"],
+   "k": 20
+ }'
+```
+
+이 가이드는 v1 스택을 유지하면서 **바운딩 박스 기반 멀티 이미지 쿼리**, **초기 필터 제거**, **이미지/텍스트 별도 Top-K** 요구사항을 반영한다.
