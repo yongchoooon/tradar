@@ -1,230 +1,500 @@
-"""Multimodal search pipeline following the v2 design."""
+"""Multimodal search pipeline built on pgvector + OpenSearch."""
 
 from __future__ import annotations
 
 import base64
-import io
-from collections import defaultdict
-from typing import Iterable, List
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Sequence
 
 from app.schemas.search import (
-    BoundingBox,
     QueryInfo,
-    SearchGroups,
     SearchRequest,
     SearchResponse,
     SearchResult,
+    DebugInfo,
+    DebugRow,
+    ImageBlendDebugRow,
 )
 from app.services.bm25_client import BM25Client
-from app.services.catalog import bulk_by_ids
-from app.services.goods import is_adjacent, load_goods_groups
+from app.services.catalog import TrademarkRecord, bulk_by_ids
+from app.services.embedding_utils import normalize_accumulator
+# goods metadata currently not used for grouping; import retained for future use
+# from app.services.goods import load_goods_groups
 from app.services.image_embed_service import ImageEmbedder
-from app.services.ocr_service import OCRService
 from app.services.text_embed_service import TextEmbedder
+from app.services.text_variant_service import TextVariantService
 from app.services.vector_client import VectorClient
 
-_DEFAULT_TOPN = 50
+
+IMAGE_TOPN = 100
+TEXT_TOPN = 100
+DEFAULT_TOPK = 20
+MISC_LIMIT = 10
+DEBUG_LIMIT = 100
+
+IMAGE_WEIGHT_DINO = 0.5
+IMAGE_WEIGHT_METACLIP = 0.5
+
+PRIMARY_STATUSES = {
+    "등록",
+    "공고",
+    "registered",
+    "publication",
+    "public",
+    "notified",
+}
+
+
+@dataclass
+class ImageCandidate:
+    dino: float = 0.0
+    metaclip: float = 0.0
+
+    @property
+    def blended(self) -> float:
+        return _blend_scores(
+            [
+                (self.dino, IMAGE_WEIGHT_DINO),
+                (self.metaclip, IMAGE_WEIGHT_METACLIP),
+            ]
+        )
+
+
+@dataclass
+class TextCandidate:
+    metaclip: float = 0.0
+    bm25: float = 0.0
 
 
 class SearchPipeline:
+    """Coordinate ANN/BM25 retrieval and scoring."""
+
     def __init__(self) -> None:
         self._vector = VectorClient()
-        self._bm25 = BM25Client()
         self._img_embed = ImageEmbedder()
         self._txt_embed = TextEmbedder()
-        self._ocr = OCRService()
+        self._variants = TextVariantService()
+        try:
+            self._bm25: BM25Client | None = BM25Client()
+        except RuntimeError:
+            self._bm25 = None
 
     def search(self, req: SearchRequest) -> SearchResponse:
+        topk = req.k if req.k > 0 else DEFAULT_TOPK
+
         image_bytes = base64.b64decode(req.image_b64)
-        query_images = make_query_images(image_bytes, req.boxes)
+        image_embeddings = self._img_embed.encode(image_bytes)
+        dino_query = image_embeddings["dino"]
+        metaclip_query = image_embeddings["metaclip"]
 
-        image_vectors = [self._img_embed.encode(img) for img in query_images]
-        ocr_texts = [self._ocr.extract(img) for img in query_images]
+        dino_hits = self._vector.search_image("dino", dino_query, IMAGE_TOPN)
+        metaclip_hits = self._vector.search_image("metaclip", metaclip_query, IMAGE_TOPN)
+        image_candidates = self._score_image_candidates(
+            dino_hits, metaclip_hits, dino_query, metaclip_query
+        )
+
         manual_text = (req.text or "").strip()
-        text_pieces = []
-        if manual_text:
-            text_pieces.append(manual_text)
-        text_pieces.extend(text for text in ocr_texts if text)
-        joined_text = " ".join(text_pieces)
-        text_vector = self._txt_embed.encode(joined_text or manual_text)
+        variants = self._collect_variants(manual_text)
+        text_query = self._build_text_query_vector(manual_text, variants)
+        text_hits: List[dict] = []
+        if text_query is not None:
+            text_hits = self._vector.search_text(text_query, TEXT_TOPN)
+        bm25_hits = self._search_bm25(manual_text, variants)
+        text_candidates = self._score_text_candidates(text_hits, bm25_hits, text_query)
 
-        bm25_query = joined_text or ""
+        image_sorted_ids = _sorted_ids(
+            {tm_id: cand.blended for tm_id, cand in image_candidates.items()}
+        )
+        text_sorted_ids = _sorted_ids(
+            {tm_id: cand.metaclip for tm_id, cand in text_candidates.items()}
+        )
 
-        img_hits_list = [
-            self._vector.search("image", vec, topn=_DEFAULT_TOPN)
-            for vec in image_vectors
-        ]
-        txt_hits = self._vector.search("text", text_vector, topn=_DEFAULT_TOPN)
-        bm25_hits = self._bm25.search(bm25_query, topn=_DEFAULT_TOPN)
+        image_top_ids = image_sorted_ids[:topk]
+        text_top_ids = text_sorted_ids[:topk]
+        image_misc_candidate_ids = image_sorted_ids[topk : topk + MISC_LIMIT]
+        text_misc_candidate_ids = text_sorted_ids[topk : topk + MISC_LIMIT]
 
-        candidates = merge_hits(img_hits_list, txt_hits, bm25_hits)
+        required_ids = set(
+            image_top_ids
+            + text_top_ids
+            + image_misc_candidate_ids
+            + text_misc_candidate_ids
+        )
+        metadata = bulk_by_ids(required_ids)
 
-        topk_img_ids = topk_by(candidates, "image_sim", req.k)
-        topk_txt_ids = topk_by(candidates, "text_sim", req.k)
+        image_top = self._build_results(
+            image_top_ids, metadata, image_candidates, text_candidates
+        )
+        text_top = self._build_results(
+            text_top_ids, metadata, image_candidates, text_candidates
+        )
 
-        meta = bulk_by_ids(set(topk_img_ids + topk_txt_ids))
-        goods_meta, _ = load_goods_groups()
-        user_classes = set(req.goods_classes)
+        image_misc = self._build_misc_results(
+            image_misc_candidate_ids, metadata, image_candidates, text_candidates
+        )
+        text_misc = self._build_misc_results(
+            text_misc_candidate_ids, metadata, image_candidates, text_candidates
+        )
 
-        img_results = build_results(topk_img_ids, candidates, meta)
-        txt_results = build_results(topk_txt_ids, candidates, meta)
-
-        img_groups = group_results(img_results, user_classes, goods_meta)
-        txt_groups = group_results(txt_results, user_classes, goods_meta)
+        debug_info: DebugInfo | None = None
+        if req.debug:
+            debug_info = self._build_debug_info(
+                image_candidates=image_candidates,
+                text_candidates=text_candidates,
+                bm25_hits=bm25_hits,
+                image_sorted_ids=image_sorted_ids,
+                text_sorted_ids=text_sorted_ids,
+            )
 
         query_info = QueryInfo(
-            k=req.k,
-            boxes=len(req.boxes),
-            text=req.text,
+            k=topk,
+            text=manual_text,
             goods_classes=req.goods_classes,
             group_codes=req.group_codes,
+            variants=variants,
         )
         return SearchResponse(
             query=query_info,
-            image_topk=img_groups,
-            text_topk=txt_groups,
+            image_top=image_top,
+            image_misc=image_misc,
+            text_top=text_top,
+            text_misc=text_misc,
+            debug=debug_info,
         )
 
+    def _collect_variants(self, text: str) -> List[str]:
+        text = (text or "").strip()
+        if not text:
+            return []
+        variants = self._variants.generate(text)
+        seen = {text.lower()}
+        unique: List[str] = []
+        for cand in variants:
+            key = cand.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(cand)
+        return unique
 
-def make_query_images(image_bytes: bytes, boxes: List[BoundingBox]) -> List[bytes]:
-    crops: List[bytes] = []
-    if not boxes:
-        return [image_bytes]
+    def _build_text_query_vector(
+        self, text: str, variants: Sequence[str]
+    ) -> List[float] | None:
+        terms: List[str] = []
+        if text.strip():
+            terms.append(text)
+        for variant in variants:
+            if variant.strip():
+                terms.append(variant)
+        if not terms:
+            return None
 
-    try:
-        from PIL import Image
-    except Exception:  # pillow not available; fall back to duplicates
-        return [image_bytes] + [image_bytes for _ in boxes[:2]]
+        vectors = []
+        weights = []
+        for idx, term in enumerate(terms):
+            vectors.append(self._txt_embed.encode(term))
+            weights.append(1.0 if idx == 0 else 0.8)
 
-    with Image.open(io.BytesIO(image_bytes)) as img:
-        img = img.convert("RGB")
-        width, height = img.size
-        for box in boxes[:2]:  # 최대 2개 크롭 → 원본 포함 3개
-            x1, y1, x2, y2 = _denorm_box(box, width, height)
-            cropped = img.crop((x1, y1, x2, y2))
-            buf = io.BytesIO()
-            cropped.save(buf, format="PNG")
-            crops.append(buf.getvalue())
-    return [image_bytes] + crops
+        dim = len(vectors[0])
+        accum = [0.0] * dim
+        for vec, weight in zip(vectors, weights):
+            if len(vec) != dim:
+                raise ValueError("Mismatched text embedding dimensions")
+            for i, value in enumerate(vec):
+                accum[i] += value * weight
+        return normalize_accumulator(accum)
 
+    def _search_bm25(self, text: str, variants: Sequence[str]) -> List[dict]:
+        if not self._bm25:
+            return []
+        terms = [text.strip()] + [variant.strip() for variant in variants]
+        query = " ".join(term for term in terms if term)
+        if not query:
+            return []
+        return self._bm25.search(query, topn=TEXT_TOPN)
 
-def _denorm_box(box: BoundingBox, width: int, height: int) -> tuple[int, int, int, int]:
-    x1 = int(max(0.0, min(1.0, box.x1)) * width)
-    y1 = int(max(0.0, min(1.0, box.y1)) * height)
-    x2 = int(max(0.0, min(1.0, box.x2)) * width)
-    y2 = int(max(0.0, min(1.0, box.y2)) * height)
-    if x1 == x2:
-        x2 = min(width, x1 + 1)
-    if y1 == y2:
-        y2 = min(height, y1 + 1)
-    return x1, y1, x2, y2
+    def _score_image_candidates(
+        self,
+        dino_hits: List[dict],
+        metaclip_hits: List[dict],
+        dino_query: Sequence[float],
+        metaclip_query: Sequence[float],
+    ) -> Dict[str, ImageCandidate]:
+        candidates: Dict[str, ImageCandidate] = {}
+        for hit in dino_hits:
+            tm_id = hit.get("id")
+            if not tm_id:
+                continue
+            candidates.setdefault(tm_id, ImageCandidate())
 
+        for hit in metaclip_hits:
+            tm_id = hit.get("id")
+            if not tm_id:
+                continue
+            candidates.setdefault(tm_id, ImageCandidate())
 
-def merge_hits(
-    img_hits_list: List[List[dict]],
-    txt_hits: List[dict],
-    bm25_hits: List[dict],
-) -> dict:
-    candidates = defaultdict(
-        lambda: {
-            "image_sim": 0.0,
-            "text_sim_vec": 0.0,
-            "text_sim_bm25": 0.0,
-            "text_sim": 0.0,
-        }
-    )
+        candidate_ids = list(candidates.keys())
+        if not candidate_ids:
+            return candidates
 
-    for hits in img_hits_list:
-        for hit in hits:
-            tm_id = hit["id"]
-            candidates[tm_id]["image_sim"] = max(
-                candidates[tm_id]["image_sim"], hit["score"]
+        dino_vectors = self._vector.get_image_embeddings("dino", candidate_ids)
+        dino_scores = self._vector.cosine_scores(dino_query, dino_vectors)
+        for tm_id in candidate_ids:
+            cand = candidates.setdefault(tm_id, ImageCandidate())
+            cand.dino = dino_scores.get(tm_id, -1.0)
+
+        metaclip_vectors = self._vector.get_image_embeddings("metaclip", candidate_ids)
+        metaclip_scores = self._vector.cosine_scores(metaclip_query, metaclip_vectors)
+        for tm_id in candidate_ids:
+            cand = candidates.setdefault(tm_id, ImageCandidate())
+            cand.metaclip = metaclip_scores.get(tm_id, -1.0)
+
+        return candidates
+
+    def _score_text_candidates(
+        self,
+        vector_hits: List[dict],
+        bm25_hits: List[dict],
+        query_vector: Sequence[float] | None,
+    ) -> Dict[str, TextCandidate]:
+        candidates: Dict[str, TextCandidate] = {}
+        for hit in vector_hits:
+            tm_id = hit.get("id")
+            if not tm_id:
+                continue
+            candidates.setdefault(tm_id, TextCandidate())
+
+        for hit in bm25_hits:
+            tm_id = hit.get("id")
+            if not tm_id:
+                continue
+            cand = candidates.setdefault(tm_id, TextCandidate())
+            cand.bm25 = max(cand.bm25, float(hit.get("score") or 0.0))
+
+        if not candidates:
+            return candidates
+
+        if query_vector is not None:
+            ids = list(candidates.keys())
+            embeddings = self._vector.get_text_embeddings(ids)
+            scores = self._vector.cosine_scores(query_vector, embeddings)
+            for tm_id in ids:
+                cand = candidates.setdefault(tm_id, TextCandidate())
+                cand.metaclip = scores.get(tm_id, -1.0)
+
+        return candidates
+
+    def _build_results(
+        self,
+        ids: List[str],
+        metadata: Dict[str, TrademarkRecord],
+        image_candidates: Dict[str, ImageCandidate],
+        text_candidates: Dict[str, TextCandidate],
+    ) -> List[SearchResult]:
+        results: List[SearchResult] = []
+        for app_no in ids:
+            record = metadata.get(app_no)
+            if not record:
+                continue
+            image_cand = image_candidates.get(app_no, ImageCandidate())
+            text_cand = text_candidates.get(app_no, TextCandidate())
+            title = _display_title(record)
+            status = (record.status or '').strip() or '상태 미상'
+            results.append(
+                SearchResult(
+                    trademark_id=record.application_number,
+                    title=title,
+                    status=status,
+                    class_codes=record.class_codes,
+                    app_no=record.application_number,
+                    image_sim=round(image_cand.blended, 4),
+                    text_sim=round(text_cand.metaclip, 4),
+                    thumb_url=record.thumb_url,
+                    doi=record.doi,
+                )
             )
+        return results
 
-    for hit in txt_hits:
-        tm_id = hit["id"]
-        candidates[tm_id]["text_sim_vec"] = max(
-            candidates[tm_id]["text_sim_vec"], hit["score"]
+    def _build_misc_results(
+        self,
+        ids: List[str],
+        metadata: Dict[str, TrademarkRecord],
+        image_candidates: Dict[str, ImageCandidate],
+        text_candidates: Dict[str, TextCandidate],
+    ) -> List[SearchResult]:
+        misc: List[SearchResult] = []
+        for result in self._build_results(ids, metadata, image_candidates, text_candidates):
+            if _is_primary_status(result.status):
+                continue
+            misc.append(result)
+        return misc
+        
+    def _build_debug_info(
+        self,
+        image_candidates: Dict[str, ImageCandidate],
+        text_candidates: Dict[str, TextCandidate],
+        bm25_hits: Sequence[dict],
+        image_sorted_ids: Sequence[str],
+        text_sorted_ids: Sequence[str],
+    ) -> DebugInfo:
+        limit = DEBUG_LIMIT
+        image_dino_rows = _build_metric_debug_rows(
+            image_candidates, "dino", limit
+        )
+        image_metaclip_rows = _build_metric_debug_rows(
+            image_candidates, "metaclip", limit
+        )
+        text_metaclip_rows = _build_metric_debug_rows(
+            text_candidates, "metaclip", limit
+        )
+        text_bm25_rows = _rows_from_hits(bm25_hits, limit)
+
+        image_blended_rows = _build_image_blend_rows(
+            image_sorted_ids, image_candidates, limit
+        )
+        text_ranked_rows = _build_rows_from_ids(
+            text_sorted_ids, text_candidates, "metaclip", limit, rescale=False
         )
 
-    if bm25_hits:
-        scores = [hit["score"] for hit in bm25_hits]
-        min_s, max_s = min(scores), max(scores)
-    else:
-        min_s = max_s = 0.0
-
-    for hit in bm25_hits:
-        tm_id = hit["id"]
-        norm_score = bm25_norm(hit["score"], min_s, max_s)
-        candidates[tm_id]["text_sim_bm25"] = max(
-            candidates[tm_id]["text_sim_bm25"], norm_score
+        return DebugInfo(
+            image_dino=image_dino_rows,
+            image_metaclip=image_metaclip_rows,
+            text_metaclip=text_metaclip_rows,
+            text_bm25=text_bm25_rows,
+            image_blended=image_blended_rows,
+            text_ranked=text_ranked_rows,
         )
 
-    for payload in candidates.values():
-        payload["text_sim"] = max(
-            payload["text_sim_vec"], payload["text_sim_bm25"]
-        )
-    return candidates
+
+def _blend_scores(pairs: Iterable[tuple[float, float]]) -> float:
+    valid = [(score, weight) for score, weight in pairs if weight > 0.0]
+    if not valid:
+        return 0.0
+    weight_sum = sum(weight for _, weight in valid)
+    if weight_sum == 0.0:
+        return 0.0
+    return sum(score * weight for score, weight in valid) / weight_sum
 
 
-def bm25_norm(score: float, min_s: float, max_s: float) -> float:
-    if max_s == min_s:
-        return 0.0 if score == 0 else 1.0
-    return (score - min_s) / (max_s - min_s)
+def _sorted_ids(scores: Dict[str, float]) -> List[str]:
+    ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    return [tm_id for tm_id, score in ordered if score >= 0.0]
 
 
-def topk_by(candidates: dict, key: str, k: int) -> List[str]:
-    ordered = sorted(
-        candidates.items(), key=lambda item: item[1][key], reverse=True
-    )
-    filtered = [tm_id for tm_id, payload in ordered if payload[key] > 0]
-    return filtered[:k]
+def _is_primary_status(status: str) -> bool:
+    normalized = (status or "").strip().lower()
+    return normalized in {name.lower() for name in PRIMARY_STATUSES}
 
 
-def build_results(
-    ids: List[str],
-    scores: dict,
-    meta: dict,
-) -> List[SearchResult]:
-    results = []
-    for tm_id in ids:
-        record = meta.get(tm_id)
-        if not record:
+def _display_title(record: TrademarkRecord | None) -> str:
+    if not record:
+        return '(상표명 없음)'
+    title_ko = (record.title_korean or '').strip()
+    if title_ko and title_ko == record.application_number:
+        title_ko = ''
+    title_en = (record.title_english or '').strip()
+    if title_en and title_en == record.application_number:
+        title_en = ''
+    return title_ko or title_en or '(상표명 없음)'
+
+
+def _candidate_metric(candidate, metric: str) -> float:
+    if metric == "blended":
+        return float(candidate.blended)
+    return float(getattr(candidate, metric, 0.0) or 0.0)
+
+
+def _build_rows_from_ids(
+    ids: Sequence[str],
+    candidates: Dict[str, object],
+    metric: str,
+    limit: int,
+    *,
+    rescale: bool,
+) -> List[DebugRow]:
+    items: List[tuple[str, float]] = []
+    for tm_id in ids[:limit]:
+        cand = candidates.get(tm_id)
+        if not cand:
             continue
-        payload = scores[tm_id]
-        results.append(
-            SearchResult(
-                trademark_id=tm_id,
-                title=record.title,
-                status=record.status,
-                class_codes=record.class_codes,
-                app_no=record.app_no,
-                image_sim=round(payload["image_sim"], 4),
-                text_sim=round(payload["text_sim"], 4),
-                thumb_url=record.thumb_url,
+        score = _candidate_metric(cand, metric)
+        items.append((tm_id, score))
+    items.sort(key=lambda pair: pair[1], reverse=True)
+    return _rows_from_items(items, rescale=rescale)
+
+
+def _rows_from_hits(
+    hits: Sequence[dict], limit: int, *, rescale: bool = False
+) -> List[DebugRow]:
+    rows: List[DebugRow] = []
+    rank = 1
+    for hit in hits:
+        if rank > limit:
+            break
+        tm_id = hit.get("id")
+        if not tm_id:
+            continue
+        score = float(hit.get("score") or 0.0)
+        rows.append(
+            DebugRow(
+                rank=rank,
+                application_number=tm_id,
+                score=round(score, 4),
             )
         )
-    return results
+        rank += 1
+    return rows
 
 
-def group_results(
-    results: List[SearchResult],
-    user_classes: Iterable[str],
-    goods_meta: dict,
-) -> SearchGroups:
-    user_set = set(user_classes)
-    groups = SearchGroups()
-    for res in results:
-        target_set = set(res.class_codes)
-        if is_adjacent(user_set, target_set, goods_meta):
-            groups.adjacent.append(res)
-        else:
-            groups.non_adjacent.append(res)
+def _rows_from_items(
+    items: Sequence[tuple[str, float]], *, rescale: bool = False
+) -> List[DebugRow]:
+    rows: List[DebugRow] = []
+    for rank, (tm_id, score) in enumerate(items, start=1):
+        value = score
+        rows.append(
+            DebugRow(
+                rank=rank,
+                application_number=tm_id,
+                score=round(float(value), 4),
+            )
+        )
+    return rows
 
-        if res.status == "registered":
-            groups.registered.append(res)
-        elif res.status == "refused":
-            groups.refused.append(res)
-        else:
-            groups.others.append(res)
-    return groups
+
+def _build_metric_debug_rows(
+    candidates: Dict[str, object], metric: str, limit: int
+) -> List[DebugRow]:
+    items: List[tuple[str, float]] = []
+    for tm_id, candidate in candidates.items():
+        score = _candidate_metric(candidate, metric)
+        items.append((tm_id, score))
+    items.sort(key=lambda pair: pair[1], reverse=True)
+    return [
+        DebugRow(rank=idx + 1, application_number=tm_id, score=round(score, 4))
+        for idx, (tm_id, score) in enumerate(items[:limit])
+    ]
+
+
+def _build_image_blend_rows(
+    ids: Sequence[str],
+    candidates: Dict[str, ImageCandidate],
+    limit: int,
+) -> List[ImageBlendDebugRow]:
+    rows: List[ImageBlendDebugRow] = []
+    for rank, tm_id in enumerate(ids[:limit], start=1):
+        cand = candidates.get(tm_id)
+        if not cand:
+            continue
+        dino = cand.dino
+        metaclip = cand.metaclip
+        rows.append(
+            ImageBlendDebugRow(
+                rank=rank,
+                application_number=tm_id,
+                dino=round(dino, 4),
+                metaclip=round(metaclip, 4),
+                blended=round(cand.blended, 4),
+            )
+        )
+    return rows

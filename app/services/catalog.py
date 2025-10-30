@@ -1,98 +1,131 @@
-"""In-memory trademark catalogue used for tests and demos."""
+"""Catalog accessors backed by PostgreSQL."""
 
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass
-from typing import Dict, Iterable, List
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional
+from urllib.parse import quote
 
-from app.services.embedding_utils import hashed_embedding, tokenize
+from app.services import db
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+IMAGE_BASE_DIR_ENV = os.getenv('IMAGE_BASE_DIR')
+IMAGE_BASE_DIR = Path(IMAGE_BASE_DIR_ENV).resolve() if IMAGE_BASE_DIR_ENV else None
 
 
 @dataclass(frozen=True)
 class TrademarkRecord:
-    trademark_id: str
-    title: str
+    application_number: str
+    title_korean: str
+    title_english: str
     status: str
     class_codes: List[str]
-    app_no: str
     goods_services: str
-    decision_text: str
-    thumb_url: str
-    image_tokens: List[str]
-    text_tokens: List[str]
-
-    @property
-    def image_embedding(self) -> List[float]:
-        return hashed_embedding(self.image_tokens)
-
-    @property
-    def text_embedding(self) -> List[float]:
-        return hashed_embedding(self.text_tokens)
-
-
-_CATALOG: List[TrademarkRecord] = [
-    TrademarkRecord(
-        trademark_id="T001",
-        title="STARBUCKS",
-        status="registered",
-        class_codes=["30"],
-        app_no="10-2000-0001",
-        goods_services="커피, 차, 코코아 및 이와 관련된 음료",
-        decision_text="상표가 커피 전문점과 연관되어 등록 승인됨",
-        thumb_url="https://assets.example/starbucks.png",
-        image_tokens=["green", "mermaid", "coffee", "circle", "starbucks"],
-        text_tokens=tokenize("Starbucks coffee shop beverages mermaid logo"),
-    ),
-    TrademarkRecord(
-        trademark_id="T002",
-        title="STARBRIGHT",
-        status="refused",
-        class_codes=["30"],
-        app_no="10-2015-0030",
-        goods_services="커피, 과자, 빵",
-        decision_text="기존 등록상표와 유사하여 거절됨",
-        thumb_url="https://assets.example/starbright.png",
-        image_tokens=["yellow", "star", "text", "starbright"],
-        text_tokens=tokenize("Starbright coffee snack brand stylised star"),
-    ),
-    TrademarkRecord(
-        trademark_id="T003",
-        title="SUNNY MOON",
-        status="registered",
-        class_codes=["43"],
-        app_no="40-2018-1001",
-        goods_services="카페, 레스토랑 서비스",
-        decision_text="레스토랑 프랜차이즈로 등록",
-        thumb_url="https://assets.example/sunnymoon.png",
-        image_tokens=["sun", "moon", "cafe", "yellow", "blue"],
-        text_tokens=tokenize("Restaurant services cafe brunch sunny moon"),
-    ),
-    TrademarkRecord(
-        trademark_id="T004",
-        title="MOONLIGHT CAFE",
-        status="pending",
-        class_codes=["43"],
-        app_no="40-2020-0043",
-        goods_services="커피숍, 디저트 카페",
-        decision_text="심사 진행 중",
-        thumb_url="https://assets.example/moonlight.png",
-        image_tokens=["moon", "coffee", "cup", "night"],
-        text_tokens=tokenize("Moonlight cafe dessert coffee night"),
-    ),
-]
-
-
-def all_trademarks() -> List[TrademarkRecord]:
-    return list(_CATALOG)
-
-
-def by_id(trademark_id: str) -> TrademarkRecord:
-    for record in _CATALOG:
-        if record.trademark_id == trademark_id:
-            return record
-    raise KeyError(trademark_id)
+    doi: Optional[str]
+    image_path: Optional[str]
+    thumb_url: Optional[str]
 
 
 def bulk_by_ids(ids: Iterable[str]) -> Dict[str, TrademarkRecord]:
-    id_set = set(ids)
-    return {rec.trademark_id: rec for rec in _CATALOG if rec.trademark_id in id_set}
+    id_list = [tm_id for tm_id in ids if tm_id]
+    if not id_list:
+        return {}
+
+    with db.get_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT application_number,
+                   COALESCE(title_korean, ''),
+                   COALESCE(title_english, ''),
+                   COALESCE(status, ''),
+                   service_classes,
+                   COALESCE(goods_services, ''),
+                   doi,
+                   image_path
+            FROM trademarks
+            WHERE application_number = ANY(%s)
+            """,
+            (id_list,),
+        )
+        rows = cur.fetchall()
+
+    results: Dict[str, TrademarkRecord] = {}
+    for row in rows:
+        (
+            app_no,
+            title_ko,
+            title_en,
+            status,
+            service_classes,
+            goods_services,
+            doi,
+            image_path,
+        ) = row
+        results[app_no] = TrademarkRecord(
+            application_number=app_no,
+            title_korean=title_ko or "",
+            title_english=title_en or "",
+            status=status or "",
+            class_codes=_normalize_classes(service_classes),
+            goods_services=goods_services or "",
+            doi=doi,
+            image_path=image_path,
+            thumb_url=_resolve_thumb_url(image_path),
+        )
+    return results
+
+
+def _normalize_classes(raw) -> List[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    text = str(raw).strip()
+    if not text:
+        return []
+    try:
+        loaded = json.loads(text)
+    except json.JSONDecodeError:
+        loaded = None
+    if isinstance(loaded, list):
+        return [str(item).strip() for item in loaded if str(item).strip()]
+    if loaded is not None:
+        value = str(loaded).strip()
+        return [value] if value else []
+    if "," in text:
+        return [part.strip() for part in text.split(",") if part.strip()]
+    return [text]
+
+
+def _resolve_thumb_url(image_path: str | None) -> Optional[str]:
+    if not image_path:
+        return None
+    image_path = image_path.strip()
+    if not image_path:
+        return None
+    if image_path.startswith(('http://', 'https://')):
+        return image_path
+
+    path = Path(image_path)
+    candidates = []
+
+    if path.is_absolute():
+        candidates.append(path)
+    else:
+        if IMAGE_BASE_DIR:
+            candidates.append(IMAGE_BASE_DIR / path)
+        candidates.append(REPO_ROOT / path)
+        candidates.append((Path.home() / 'workspace') / path)
+
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve(strict=True)
+        except (FileNotFoundError, OSError):
+            continue
+        if resolved.is_file():
+            return f"/media?path={quote(str(resolved))}"
+    return None

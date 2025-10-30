@@ -27,6 +27,7 @@ class SearchRequest:
     goods_classes: List[str] = field(default_factory=list)
     group_codes: List[str] = field(default_factory=list)
     k: int = 20
+    debug: bool = False
 
 
 @pydantic_dataclass
@@ -39,28 +40,49 @@ class SearchResult:
     image_sim: float
     text_sim: float
     thumb_url: Optional[str] = None
+    doi: Optional[str] = None
 
 
 @pydantic_dataclass
-class SearchGroups:
-    adjacent: List[SearchResult] = field(default_factory=list)
-    non_adjacent: List[SearchResult] = field(default_factory=list)
-    registered: List[SearchResult] = field(default_factory=list)
-    refused: List[SearchResult] = field(default_factory=list)
-    others: List[SearchResult] = field(default_factory=list)
+class DebugRow:
+    rank: int
+    application_number: str
+    score: float
+
+
+@pydantic_dataclass
+class ImageBlendDebugRow:
+    rank: int
+    application_number: str
+    dino: float
+    metaclip: float
+    blended: float
+
+
+@pydantic_dataclass
+class DebugInfo:
+    image_dino: List[DebugRow] = field(default_factory=list)
+    image_metaclip: List[DebugRow] = field(default_factory=list)
+    text_metaclip: List[DebugRow] = field(default_factory=list)
+    text_bm25: List[DebugRow] = field(default_factory=list)
+    image_blended: List[ImageBlendDebugRow] = field(default_factory=list)
+    text_ranked: List[DebugRow] = field(default_factory=list)
 
 
 @pydantic_dataclass
 class QueryInfo:
     k: int
-    boxes: int
     text: Optional[str]
     goods_classes: List[str]
     group_codes: List[str]
+    variants: List[str] = field(default_factory=list)
 
 
 @pydantic_dataclass
 class SearchResponse:
     query: QueryInfo
-    image_topk: SearchGroups
-    text_topk: SearchGroups
+    image_top: List[SearchResult]
+    image_misc: List[SearchResult]
+    text_top: List[SearchResult]
+    text_misc: List[SearchResult]
+    debug: Optional[DebugInfo] = None
