@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence
 
 from app.schemas.search import (
     QueryInfo,
@@ -30,7 +30,7 @@ IMAGE_TOPN = 100
 TEXT_TOPN = 100
 DEFAULT_TOPK = 20
 MISC_LIMIT = 10
-DEBUG_LIMIT = 100
+DEBUG_LIMIT: Optional[int] = None  # None means show all debug rows
 
 IMAGE_WEIGHT_DINO = 0.5
 IMAGE_WEIGHT_METACLIP = 0.5
@@ -408,12 +408,13 @@ def _build_rows_from_ids(
     ids: Sequence[str],
     candidates: Dict[str, object],
     metric: str,
-    limit: int,
+    limit: Optional[int],
     *,
     rescale: bool,
 ) -> List[DebugRow]:
     items: List[tuple[str, float]] = []
-    for tm_id in ids[:limit]:
+    sliced_ids = ids if limit is None or limit < 0 else ids[:limit]
+    for tm_id in sliced_ids:
         cand = candidates.get(tm_id)
         if not cand:
             continue
@@ -424,12 +425,12 @@ def _build_rows_from_ids(
 
 
 def _rows_from_hits(
-    hits: Sequence[dict], limit: int, *, rescale: bool = False
+    hits: Sequence[dict], limit: Optional[int], *, rescale: bool = False
 ) -> List[DebugRow]:
     rows: List[DebugRow] = []
     rank = 1
     for hit in hits:
-        if rank > limit:
+        if limit is not None and limit >= 0 and rank > limit:
             break
         tm_id = hit.get("id")
         if not tm_id:
@@ -463,26 +464,29 @@ def _rows_from_items(
 
 
 def _build_metric_debug_rows(
-    candidates: Dict[str, object], metric: str, limit: int
+    candidates: Dict[str, object], metric: str, limit: Optional[int]
 ) -> List[DebugRow]:
     items: List[tuple[str, float]] = []
     for tm_id, candidate in candidates.items():
         score = _candidate_metric(candidate, metric)
         items.append((tm_id, score))
     items.sort(key=lambda pair: pair[1], reverse=True)
+    if limit is not None and limit >= 0:
+        items = items[:limit]
     return [
         DebugRow(rank=idx + 1, application_number=tm_id, score=round(score, 4))
-        for idx, (tm_id, score) in enumerate(items[:limit])
+        for idx, (tm_id, score) in enumerate(items)
     ]
 
 
 def _build_image_blend_rows(
     ids: Sequence[str],
     candidates: Dict[str, ImageCandidate],
-    limit: int,
+    limit: Optional[int],
 ) -> List[ImageBlendDebugRow]:
     rows: List[ImageBlendDebugRow] = []
-    for rank, tm_id in enumerate(ids[:limit], start=1):
+    sliced_ids = ids if limit is None or limit < 0 else ids[:limit]
+    for rank, tm_id in enumerate(sliced_ids, start=1):
         cand = candidates.get(tm_id)
         if not cand:
             continue

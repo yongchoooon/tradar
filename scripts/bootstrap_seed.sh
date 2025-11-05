@@ -6,8 +6,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/tradar}"
-METADATA_PATH="${1:-${REPO_ROOT}/data/samples/trademarks.json}"
-IMAGES_ROOT="${2:-${REPO_ROOT}/data/samples/images}"
+METADATA_PATH="${1:-${REPO_ROOT}/data/trademarks.json}"
+IMAGES_ROOT="${2:-${REPO_ROOT}/data/images}"
 IMAGE_BACKEND="${BOOTSTRAP_IMAGE_BACKEND:-${EMBED_BACKEND:-torch}}"
 TEXT_BACKEND="${BOOTSTRAP_TEXT_BACKEND:-${EMBED_BACKEND:-torch}}"
 METACLIP_MODEL="${BOOTSTRAP_METACLIP_MODEL:-${METACLIP_MODEL_NAME:-}}"
@@ -101,13 +101,6 @@ for attempt in $(seq 1 60); do
   fi
 done
 
-export OPENSEARCH_URL
-export OPENSEARCH_INDEX="${BOOTSTRAP_OPENSEARCH_INDEX:-tradar_trademarks}"
-export OPENSEARCH_SEARCH_FIELDS="${BOOTSTRAP_OPENSEARCH_FIELDS:-title_korean^2,title_english,aliases^0.5}"
-
-echo "[bootstrap-seed] Syncing OpenSearch index"
-bash "${REPO_ROOT}/scripts/sync_opensearch.sh"
-
 if [ -n "${LLM_API_KEY}" ]; then
   cat > "${REPO_ROOT}/.env" <<EOF
 OPENAI_API_KEY=${LLM_API_KEY}
@@ -153,5 +146,12 @@ if [ -f "${METADATA_PATH}" ]; then
 else
   echo "[bootstrap-seed] Metadata file not found at ${METADATA_PATH}; skipping seeding."
 fi
+
+export OPENSEARCH_URL
+export OPENSEARCH_INDEX="${BOOTSTRAP_OPENSEARCH_INDEX:-tradar_trademarks}"
+export OPENSEARCH_SEARCH_FIELDS="${BOOTSTRAP_OPENSEARCH_FIELDS:-title_korean^2,title_english,aliases^0.5}"
+
+echo "[bootstrap-seed] Syncing OpenSearch index"
+bash "${REPO_ROOT}/scripts/sync_opensearch.sh"
 
 echo "[bootstrap-seed] Done."

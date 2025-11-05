@@ -206,6 +206,12 @@ def build_records(
 
 def ensure_schema(conn: psycopg.Connection, records: Sequence[TextRecord]) -> None:
     text_dim = len(records[0].text_embedding_metaclip)
+    min_dim = int(os.getenv("VECTOR_DB_MIN_DIM", "32"))
+    if text_dim < min_dim:
+        raise RuntimeError(
+            "Embedding dimension is unexpectedly small. Only torch-based "
+            "embeddings are supported; check TEXT_EMBED_BACKEND settings."
+        )
     with conn.cursor() as cur:
         cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
         cur.execute(

@@ -67,25 +67,25 @@ bash scripts/sync_opensearch.sh
 
 이미지와 텍스트는 분리된 Top-K 리스트로 반환됩니다. 자세한 단계는 `markdown/search-pipeline.md`에 기록되어 있습니다.
 
-### 이미지 흐름 (기본 N=100, K=10)
+### 이미지 흐름 (기본 N=100, K=20)
 1. 입력 이미지를 MetaCLIP2/DINOv2로 임베딩
 2. pgvector에서 각각 ANN Top-N 후보 검색
 3. 각 후보에 대해 누락된 공간의 임베딩을 다시 읽어 코사인 유사도 계산
 4. DINO:MetaCLIP 0.5:0.5 가중 평균으로 최종 이미지 점수 산출 (pgvector `<#>` 반환값은 음수 내적이므로 `VectorClient`가 부호를 반전해 사용)
-5. Top-K를 선정하고 인접군/상태별로 그룹화
+5. Top-K를 선정합니다. 추후 `goods.is_adjacent`를 활용해 인접/비인접 그룹으로 재구성할 예정이며, 현재는 단일 리스트로 반환됩니다.
 
 ### 텍스트 흐름
 1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시)
 2. 모든 용어를 MetaCLIP2 벡터로 가중 평균, pgvector ANN Top-N 검색
 3. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색
 4. BM25 전용 후보는 텍스트 임베딩을 DB에서 읽어 코사인 유사도 계산 (동일하게 `<#>` 결과의 부호를 보정)
-5. MetaCLIP 유사도만으로 Top-K를 선정 후 그룹화
+5. MetaCLIP 유사도만으로 정렬해 Top-K를 선택합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
 
 ### 응답 필드
 - `image_top`, `text_top`: 각각 Top-K 리스트 (기본 20)
-- `image_misc`, `text_misc`: Top-K 이외 후보 중 상태가 `등록`/`공고`가 아닌 항목(최대 10)
+- `image_misc`, `text_misc`: Top-K 이외 후보 중 `등록`/`공고`가 아닌 상태를 가진 항목(최대 10)
 - `SearchResult`: `trademark_id`, `title`, `status`, `class_codes`, `app_no`, `image_sim`, `text_sim`, `thumb_url`
-- `QueryInfo`: `k`, `text`, `goods_classes`, `group_codes`, `variants`
+- `QueryInfo`: `k`, `text`, `goods_classes`, `group_codes`, `variants` (`goods_classes`/`group_codes`는 향후 인접군 분류를 위해 예약된 필드이며 현재 점수에는 영향을 주지 않음)
 
 ## 세션 부팅
 

@@ -261,10 +261,14 @@ function ResultCard({ item, variant }) {
   );
 }
 
-function ResultSection({ title, items = [], misc = [], variant }) {
+function ResultSection({ title, items = [], misc = [], variant, variants = [] }) {
+  const hasVariants = Array.isArray(variants) && variants.length > 0;
   return (
     <section className="results-section">
       <h3>{title}</h3>
+      {hasVariants && (
+        <p className="variants">LLM 유사어: {variants.join(', ')}</p>
+      )}
       {items.length ? (
         <div className="results-grid">
           {items.map((item) => (
@@ -368,7 +372,7 @@ function DebugPanel({ debug }) {
   return (
     <section className="debug-panel">
       <h3>디버그 정보</h3>
-      <p className="debug-subtitle">각 스코어 Top-100 후보와 최종 재랭킹 결과입니다.</p>
+      <p className="debug-subtitle">각 스코어 후보 전체와 최종 재랭킹 결과입니다.</p>
       <div className="debug-grid debug-grid--top">
         {tablesTop.map(renderTable)}
       </div>
@@ -432,7 +436,6 @@ function App() {
       const image = await fileToBase64(imageFile);
       await search({
         image_b64: image,
-        boxes: [],
         goods_classes: selectedClassCodes,
         group_codes: selectedGroupCodes,
         k: 20,
@@ -485,9 +488,6 @@ function App() {
               <p className="query-summary">
                 Top-{response.query?.k || 0} · 상표명 {response.query?.text || '미입력'} · 선택 류 {(response.query?.goods_classes || []).join(', ') || '없음'} · 유사군 {(response.query?.group_codes || []).join(', ') || '없음'}
               </p>
-              {response.query?.variants?.length ? (
-                <p className="variants">LLM 유사어: {response.query.variants.join(', ')}</p>
-              ) : null}
               <ResultSection
                 title="이미지 Top-20"
                 items={response.image_top || []}
@@ -499,6 +499,7 @@ function App() {
                 items={response.text_top || []}
                 misc={response.text_misc || []}
                 variant="text"
+                variants={response.query?.variants || []}
               />
               <DebugPanel debug={response.debug} />
             </>

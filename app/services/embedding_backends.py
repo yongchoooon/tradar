@@ -1,23 +1,17 @@
-"""Embedding backend selection for hashed demo and torch-based models."""
+"""Embedding backend selection for torch-based models."""
 
 from __future__ import annotations
 
 import io
-import os
 import logging
+import os
 from functools import lru_cache
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from PIL import Image, ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-from app.services.embedding_utils import (
-    byte_hashed_embedding,
-    hashed_embedding,
-    hashed_embedding_with_seed,
-    tokenize,
-)
 
 
 def _backend_choice(
@@ -32,33 +26,6 @@ def _backend_choice(
     if value:
         return value.lower()
     return default
-
-
-class _HashedImageBackend:
-    def encode(self, image_bytes: bytes) -> Dict[str, List[float]]:
-        return {
-            "dino": byte_hashed_embedding(image_bytes, "dino"),
-            "metaclip": byte_hashed_embedding(image_bytes, "metaclip"),
-        }
-
-    def encode_batch(self, images: Iterable[bytes]) -> List[Dict[str, List[float]]]:
-        return [self.encode(image) for image in images]
-
-
-class _HashedTextBackend:
-    def encode_text(self, text: str) -> List[float]:
-        tokens = tokenize(text) or ["blank"]
-        return hashed_embedding(tokens)
-
-    def encode_prompt(self, text: str) -> List[float]:
-        tokens = tokenize(text) or ["prompt"]
-        return hashed_embedding_with_seed(tokens, "metaclip_text")
-
-    def encode_batch(self, texts: Iterable[str]) -> List[List[float]]:
-        return [self.encode_text(text) for text in texts]
-
-    def encode_prompt_batch(self, texts: Iterable[str]) -> List[List[float]]:
-        return [self.encode_prompt(text) for text in texts]
 
 
 def _load_torch_modules():
@@ -139,6 +106,8 @@ class _TorchImageBackend:
 
     def encode(self, image_bytes: bytes) -> Dict[str, List[float]]:
         results = self.encode_batch([image_bytes])
+        if not results:
+            raise RuntimeError("Torch image backend failed to encode image bytes")
         return results[0]
 
     def encode_batch(self, images: Iterable[bytes]) -> List[Dict[str, List[float]]]:
@@ -190,10 +159,9 @@ class _TorchTextBackend:
         self._max_length = getattr(text_config, "max_position_embeddings", 77)
 
     def _encode(self, text: str) -> List[float]:
-        if not text.strip():
-            return hashed_embedding(["blank"])
+        prompt = text if text.strip() else " "
         inputs = self._metaclip_processor(
-            text=[text],
+            text=[prompt],
             return_tensors="pt",
             padding=True,
             truncation=True,
@@ -212,7 +180,7 @@ class _TorchTextBackend:
         return self._encode(text)
 
     def encode_batch(self, texts: Iterable[str]) -> List[List[float]]:
-        cleaned = [text if text.strip() else "" for text in texts]
+        cleaned = [text if text.strip() else " " for text in texts]
         if not cleaned:
             return []
         inputs = self._metaclip_processor(
@@ -234,39 +202,47 @@ class _TorchTextBackend:
 
 def get_image_backend(kind: str | None = None) -> object:
     choice = _backend_choice(kind, "IMAGE_EMBED_BACKEND", "EMBED_BACKEND", "torch")
-    if choice == "torch":
-        device = os.getenv("EMBED_DEVICE")
-        if not device:
-            try:
-                import torch  # type: ignore
-            except ImportError as exc:  # pragma: no cover - configuration issue
-                raise RuntimeError(
-                    "Torch backend requested but PyTorch is not installed."
-                ) from exc
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+    if choice != "torch":
+        raise RuntimeError(
+            "Unsupported IMAGE_EMBED_BACKEND value. Only 'torch' is allowed; "
+            "remove legacy hashed settings and ensure torch models are available."
+        )
 
-        metaclip_name = os.getenv("METACLIP_MODEL_NAME", "facebook/metaclip-2-worldwide-giant")
-        dinov2_name = os.getenv("DINOV2_MODEL_NAME", "facebook/dinov2-giant")
-        use_bfloat16 = os.getenv("METACLIP_DTYPE", "bfloat16").lower() in {"bf16", "bfloat16"}
-        use_float16 = os.getenv("DINOV2_DTYPE", "float16").lower() in {"float16", "fp16", "half"}
-        return _TorchImageBackend(metaclip_name, dinov2_name, device, use_bfloat16, use_float16)
-    return _HashedImageBackend()
+    device = os.getenv("EMBED_DEVICE")
+    if not device:
+        try:
+            import torch  # type: ignore
+        except ImportError as exc:  # pragma: no cover - configuration issue
+            raise RuntimeError(
+                "Torch image backend requires PyTorch. Install torch or set EMBED_DEVICE explicitly."
+            ) from exc
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    metaclip_name = os.getenv("METACLIP_MODEL_NAME", "facebook/metaclip-2-worldwide-giant")
+    dinov2_name = os.getenv("DINOV2_MODEL_NAME", "facebook/dinov2-giant")
+    use_bfloat16 = os.getenv("METACLIP_DTYPE", "bfloat16").lower() in {"bf16", "bfloat16"}
+    use_float16 = os.getenv("DINOV2_DTYPE", "float16").lower() in {"float16", "fp16", "half"}
+    return _TorchImageBackend(metaclip_name, dinov2_name, device, use_bfloat16, use_float16)
 
 
 def get_text_backend(kind: str | None = None) -> object:
     choice = _backend_choice(kind, "TEXT_EMBED_BACKEND", "EMBED_BACKEND", "torch")
-    if choice == "torch":
-        device = os.getenv("EMBED_DEVICE")
-        if not device:
-            try:
-                import torch  # type: ignore
-            except ImportError as exc:  # pragma: no cover
-                raise RuntimeError(
-                    "Torch backend requested but PyTorch is not installed."
-                ) from exc
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+    if choice != "torch":
+        raise RuntimeError(
+            "Unsupported TEXT_EMBED_BACKEND value. Only 'torch' is allowed; "
+            "remove legacy hashed settings and ensure torch models are available."
+        )
 
-        metaclip_name = os.getenv("METACLIP_MODEL_NAME", "facebook/metaclip-2-worldwide-giant")
-        use_bfloat16 = os.getenv("METACLIP_DTYPE", "bfloat16").lower() in {"bf16", "bfloat16"}
-        return _TorchTextBackend(metaclip_name, device, use_bfloat16)
-    return _HashedTextBackend()
+    device = os.getenv("EMBED_DEVICE")
+    if not device:
+        try:
+            import torch  # type: ignore
+        except ImportError as exc:  # pragma: no cover
+            raise RuntimeError(
+                "Torch text backend requires PyTorch. Install torch or set EMBED_DEVICE explicitly."
+            ) from exc
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    metaclip_name = os.getenv("METACLIP_MODEL_NAME", "facebook/metaclip-2-worldwide-giant")
+    use_bfloat16 = os.getenv("METACLIP_DTYPE", "bfloat16").lower() in {"bf16", "bfloat16"}
+    return _TorchTextBackend(metaclip_name, device, use_bfloat16)

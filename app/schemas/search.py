@@ -12,17 +12,8 @@ except Exception:  # fallback when Pydantic is unavailable
 
 
 @pydantic_dataclass
-class BoundingBox:
-    x1: float
-    y1: float
-    x2: float
-    y2: float
-
-
-@pydantic_dataclass
 class SearchRequest:
     image_b64: str
-    boxes: List[BoundingBox] = field(default_factory=list)
     text: Optional[str] = None
     goods_classes: List[str] = field(default_factory=list)
     group_codes: List[str] = field(default_factory=list)

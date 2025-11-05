@@ -9,7 +9,7 @@ KT Cloud 세션을 새로 생성할 때마다 아래 순서로 개발 환경을 
   ```bash
   bash scripts/bootstrap_seed.sh
   # 또는 사용자 데이터로 시딩
-  bash scripts/bootstrap_seed.sh /path/to/meta.json /path/to/images
+  bash scripts/bootstrap_seed.sh /path/to/trademarks.json /path/to/images
   ```
   - 기본 동작
     - `apt-get`으로 PostgreSQL/pgvector 설치
@@ -17,7 +17,7 @@ KT Cloud 세션을 새로 생성할 때마다 아래 순서로 개발 환경을 
     - `tradar` 데이터베이스와 `vector` 확장 생성
     - 충돌 가능 패키지(`transformer-engine`, `flash-attn`, `transformers`) 제거 후 `pip install -r requirements.txt`
     - 지정한 메타데이터/이미지로 벡터 DB 시딩
-    - OpenSearch 설치·기동 및 인덱스 동기화
+    - OpenSearch 설치·기동, 벡터 DB 시딩 완료 후 인덱스 동기화
     - Torch 백엔드를 기본 사용합니다. 환경변수 `BOOTSTRAP_METACLIP_MODEL`, `BOOTSTRAP_DINOV2_MODEL`, `BOOTSTRAP_EMBED_DEVICE`로 모델 경로나 디바이스를 조정할 수 있습니다.
 
 - **이미 시딩이 끝난 상태에서 세션을 다시 열었다면** 서비스를 기동하고 색인만 동기화합니다.
@@ -54,13 +54,13 @@ KT Cloud 세션을 새로 생성할 때마다 아래 순서로 개발 환경을 
    ```
    - `requirements.txt`는 GitHub에서 최신 `transformers`를 받아오고 `huggingface_hub[cli]`도 함께 설치합니다. 네트워크가 필요하며, 기존에 설치된 구버전 `transformers`는 자동으로 제거됩니다.
 5. **벡터 DB 시딩**
-   ```bash
-   python scripts/vector_db_prepare.py \
-     --metadata data/samples/trademarks.json \
-     --images-root data/samples/images \
-     --database-url postgresql://postgres:postgres@localhost:5432/tradar \
-     --truncate
-   ```
+  ```bash
+  python scripts/vector_db_prepare.py \
+    --metadata data/trademarks.json \
+    --images-root data/images \
+    --database-url postgresql://postgres:postgres@localhost:5432/tradar \
+    --truncate
+  ```
    - 실제 DINOv2/MetaCLIP2 임베딩을 생성하려면 Torch 모델 경로와 디바이스를 확인하고 필요 시 `--metaclip-model`, `--dinov2-model`, `--embed-device` 옵션으로 지정합니다 (백엔드는 기본적으로 Torch).
    - 예시 (CPU 실행):
      ```bash
@@ -76,6 +76,7 @@ KT Cloud 세션을 새로 생성할 때마다 아래 순서로 개발 환경을 
       --embed-device cpu
     ```
     - 메타데이터 파일에 개별 이미지의 절대 경로가 있는 경우(`image_paths`/`mark_image_paths` 등) `--images-root`와 무관하게 해당 경로를 그대로 사용합니다.
+    - 파라미터를 생략하면 기본값으로 `data/trademarks.json`, `data/images/`를 참조합니다.
 
 ---
 

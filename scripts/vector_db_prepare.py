@@ -308,6 +308,12 @@ def create_schema(conn: psycopg.Connection, records: Sequence[Record]) -> None:
     dino_dim = len(records[0].image_embedding_dino)
     metaclip_dim = len(records[0].image_embedding_metaclip)
     text_dim = len(records[0].text_embedding_metaclip)
+    min_dim = int(os.getenv("VECTOR_DB_MIN_DIM", "32"))
+    if dino_dim < min_dim or metaclip_dim < min_dim or text_dim < min_dim:
+        raise RuntimeError(
+            "Embedding dimension is unexpectedly small. Only torch-based "
+            "embeddings are supported; check IMAGE/TEXT_EMBED_BACKEND settings."
+        )
     with conn.cursor() as cur:
         cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
         cur.execute(

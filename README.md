@@ -21,7 +21,8 @@ bash scripts/bootstrap_seed.sh \
 - PostgreSQL/pgvector, OpenSearch 설치 및 기동
 - `requirements.txt` 설치
 - `scripts/vector_db_prepare.py`로 이미지·텍스트 임베딩 시딩
-- `scripts/sync_opensearch.sh`로 BM25 인덱스 동기화
+- `trademarks.json`/이미지 경로를 생략하면 기본값으로 `data/trademarks.json`, `data/images/`를 사용합니다.
+- `scripts/sync_opensearch.sh`로 BM25 인덱스 동기화 (벡터 시딩 이후 즉시 실행)
 
 ### 2. 세션 재개
 ```bash
@@ -36,7 +37,7 @@ bash scripts/bootstrap_session.sh
 bash scripts/run_api.sh
 ```
 - `.env`가 있다면 자동으로 로드합니다.
-- 기본 설정은 Torch 백엔드(`IMAGE/TEXT_EMBED_BACKEND=torch`), `METACLIP_MODEL_NAME`/`DINOV2_MODEL_NAME` 경로, `EMBED_DEVICE=cuda:0`를 사용합니다.
+- 기본 설정은 Torch 백엔드(`IMAGE/TEXT_EMBED_BACKEND=torch`), `METACLIP_MODEL_NAME`/`DINOV2_MODEL_NAME` 경로, `EMBED_DEVICE=cuda:0`를 사용합니다. 해시 기반 더미 백엔드는 제거되었습니다.
 - pgvector 검색은 inner product 연산(`<#>`)을 사용하므로, 실제 코사인과 동일한 값이 필요할 때는 결과에 음수를 곱한 후 사용합니다. (`VectorClient`가 이를 자동으로 처리합니다.)
 - `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY` 등은 필요에 맞게 override 하십시오.
 
