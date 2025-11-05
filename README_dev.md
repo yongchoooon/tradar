@@ -68,24 +68,35 @@ bash scripts/sync_opensearch.sh
 이미지와 텍스트는 분리된 Top-K 리스트로 반환됩니다. 자세한 단계는 `markdown/search-pipeline.md`에 기록되어 있습니다.
 
 ### 이미지 흐름 (기본 N=100, K=20)
-1. 입력 이미지를 MetaCLIP2/DINOv2로 임베딩
+1. 입력 이미지를 MetaCLIP2/DINOv2로 임베딩 (임베딩 결과는 LRU 캐시에 저장돼 동일 이미지 재검색 시 재사용)
 2. pgvector에서 각각 ANN Top-N 후보 검색
 3. 각 후보에 대해 누락된 공간의 임베딩을 다시 읽어 코사인 유사도 계산
-4. DINO:MetaCLIP 0.5:0.5 가중 평균으로 최종 이미지 점수 산출 (pgvector `<#>` 반환값은 음수 내적이므로 `VectorClient`가 부호를 반전해 사용)
-5. Top-K를 선정합니다. 추후 `goods.is_adjacent`를 활용해 인접/비인접 그룹으로 재구성할 예정이며, 현재는 단일 리스트로 반환됩니다.
+4. 기본 가중치는 DINO:MetaCLIP = 0.5:0.5이며, 재검색 프롬프트 사용 시 90/10 · 70/30 · 50/50 · 30/70 · 10/90 프리셋에 맞춰 동적으로 조정됩니다.
+5. 이미지 프롬프트가 제공되면 MetaCLIP 이미지 벡터와 프롬프트 텍스트 임베딩을 가중 평균해 새 질의를 구성합니다.
+6. Top-K를 선정합니다. 추후 `goods.is_adjacent`를 활용해 인접/비인접 그룹으로 재구성할 예정이며, 현재는 단일 리스트로 반환됩니다.
 
 ### 텍스트 흐름
 1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시)
-2. 모든 용어를 MetaCLIP2 벡터로 가중 평균, pgvector ANN Top-N 검색
-3. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색
-4. BM25 전용 후보는 텍스트 임베딩을 DB에서 읽어 코사인 유사도 계산 (동일하게 `<#>` 결과의 부호를 보정)
-5. MetaCLIP 유사도만으로 정렬해 Top-K를 선택합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
+2. 텍스트 프롬프트가 있으면 LLM 기반 `PromptInterpreter`가 추가 키워드/필터(접두어, 포함/제외 토큰)를 추출하며, 실패 시 프롬프트 문장을 보조 키워드로만 사용한다고 디버그 메시지로 알려줍니다.
+3. 원본 질의, 유사어, 프롬프트 키워드를 MetaCLIP2 텍스트 임베딩으로 변환한 뒤 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치 프리셋에 맞춰 재결합합니다.
+4. 재결합된 벡터로 pgvector ANN Top-N 검색을 수행하고, LLM에서 생성한 필터(예: 접두어)는 결과 재정렬 단계에서 적용합니다.
+5. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색
+6. BM25 전용 후보는 텍스트 임베딩을 DB에서 읽어 코사인 유사도 계산 (동일하게 `<#>` 결과의 부호를 보정)
+7. MetaCLIP 유사도와 프롬프트 필터를 반영해 Top-K를 선택합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
+
+### 프롬프트 재검색
+- 프런트엔드에서 "최우선"/"우선"/"균형"/"프롬프트 우선" 프리셋을 제공하며, 각각 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치로 이미지/텍스트 임베딩이 보정됩니다.
+- 이미지 프롬프트는 MetaCLIP 이미지 벡터만 재가중하며 DINO 비중도 동일한 비율로 조정합니다.
+- 텍스트 프롬프트는 LLM을 통해 추가 키워드·접두 조건을 추출하고, 실패 시 보조 검색어만 추가한 뒤 그 사실을 디버그 메시지에 남깁니다.
+- 재검색 요청에 `variants` 필드를 전달하면 기존 LLM 유사어를 그대로 재사용하고 TextVariantService를 재호출하지 않습니다.
+- 모든 재검색은 Top-N을 다시 질의하는 방식으로 동작하여 기존 후보에 국한되지 않습니다.
 
 ### 응답 필드
 - `image_top`, `text_top`: 각각 Top-K 리스트 (기본 20)
 - `image_misc`, `text_misc`: Top-K 이외 후보 중 `등록`/`공고`가 아닌 상태를 가진 항목(최대 10)
 - `SearchResult`: `trademark_id`, `title`, `status`, `class_codes`, `app_no`, `image_sim`, `text_sim`, `thumb_url`
 - `QueryInfo`: `k`, `text`, `goods_classes`, `group_codes`, `variants` (`goods_classes`/`group_codes`는 향후 인접군 분류를 위해 예약된 필드이며 현재 점수에는 영향을 주지 않음)
+- `DebugInfo.messages`: 재검색 가중치, 프롬프트 LLM 해석, 폴백 여부 등 텍스트 메시지를 배열로 반환합니다.
 
 ## 세션 부팅
 
@@ -96,9 +107,11 @@ bash scripts/sync_opensearch.sh
 ## 운영 팁
 
 - **LLM 사용**: `.env`에 `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED=true` 설정. 비용 로그는 `logs/openai_usage.csv`에 누적됩니다.
+- **프롬프트 LLM**: 재검색 프롬프트 전용 모델을 조정하려면 `PROMPT_LLM_MODEL`, `PROMPT_LLM_TEMPERATURE` 환경 변수를 사용하세요 (기본값은 `TRADEMARK_LLM_MODEL`/`0.1`).
 - **임베딩 모델 경로**: 기본값은 `/home/work/workspace/models/{metaclip,dinov2}`. 변경 시 `METACLIP_MODEL_NAME`, `DINOV2_MODEL_NAME` 환경변수를 사용하세요.
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.
 - **백엔드 선택**: FastAPI와 모든 시딩/부팅 스크립트는 Torch 백엔드를 기본 사용합니다. 더미(해시) 백엔드는 제거되었으며, 모델이 없을 경우 스크립트가 즉시 실패합니다.
+- **임베딩 캐시**: `PIPELINE_EMBED_CACHE_SIZE`(기본 128) 환경 변수로 이미지·텍스트 임베딩 LRU 캐시 크기를 조절해 재검색 성능을 최적화할 수 있습니다.
 
 ## 개발 지침
 

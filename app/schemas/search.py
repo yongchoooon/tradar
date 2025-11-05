@@ -19,6 +19,11 @@ class SearchRequest:
     group_codes: List[str] = field(default_factory=list)
     k: int = 20
     debug: bool = False
+    image_prompt: Optional[str] = None
+    image_prompt_mode: str = "balanced"
+    text_prompt: Optional[str] = None
+    text_prompt_mode: str = "balanced"
+    variants: Optional[List[str]] = None
 
 
 @pydantic_dataclass
@@ -58,6 +63,7 @@ class DebugInfo:
     text_bm25: List[DebugRow] = field(default_factory=list)
     image_blended: List[ImageBlendDebugRow] = field(default_factory=list)
     text_ranked: List[DebugRow] = field(default_factory=list)
+    messages: List[str] = field(default_factory=list)
 
 
 @pydantic_dataclass

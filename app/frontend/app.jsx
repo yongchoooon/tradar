@@ -2,6 +2,24 @@ const { useState, useMemo, useRef, useEffect } = React;
 
 const GOODS_LIMIT = 10;
 
+const cloneDeep = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
+
+const IMAGE_BLEND_OPTIONS = [
+  { value: 'primary_strong', label: '이미지 최우선', helper: '이미지 90% · 프롬프트 10%' },
+  { value: 'primary_focus', label: '이미지 우선', helper: '이미지 70% · 프롬프트 30%' },
+  { value: 'balanced', label: '균형', helper: '이미지 50% · 프롬프트 50%' },
+  { value: 'prompt_focus', label: '문장 우선', helper: '이미지 30% · 프롬프트 70%' },
+  { value: 'prompt_strong', label: '문장 최우선', helper: '이미지 10% · 프롬프트 90%' },
+];
+
+const TEXT_BLEND_OPTIONS = [
+  { value: 'primary_strong', label: '원문 최우선', helper: '원문 90% · 프롬프트 10%' },
+  { value: 'primary_focus', label: '원문 우선', helper: '원문 70% · 프롬프트 30%' },
+  { value: 'balanced', label: '균형', helper: '원문 50% · 프롬프트 50%' },
+  { value: 'prompt_focus', label: '프롬프트 우선', helper: '원문 30% · 프롬프트 70%' },
+  { value: 'prompt_strong', label: '프롬프트 최우선', helper: '원문 10% · 프롬프트 90%' },
+];
+
 function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, selectedGroups }) {
   const hasGroups = classItem.groups && classItem.groups.length > 0;
   if (!hasGroups) return null;
@@ -240,19 +258,23 @@ function ResultCard({ item, variant }) {
         )}
       </div>
       <div className="result-card__body">
-        <header>
-          <strong className="result-title">{item.title}</strong>
+        <header className="result-card__header">
+          <strong className="result-title" title={item.title}>{item.title}</strong>
           <span className={`status-badge ${statusClass}`}>{status || '상태 미상'}</span>
         </header>
-        <p className="result-meta">
-          <span>출원번호 <strong>{item.app_no}</strong></span>
+        <div className="result-divider" />
+        <div className="result-meta">
+          <span className="meta-item" title={item.app_no}>출원번호 {item.app_no}</span>
           {item.class_codes?.length ? (
-            <span>분류 {item.class_codes.join(', ')}</span>
-          ) : null}
+            <span className="meta-item" title={item.class_codes.join(', ')}>분류 {item.class_codes.join(', ')}</span>
+          ) : <span className="meta-item">분류 정보 없음</span>}
           {item.doi ? (
-            <a href={item.doi} className="doi-link" target="_blank" rel="noopener noreferrer">DOI 바로가기</a>
-          ) : null}
-        </p>
+            <a href={item.doi} className="meta-item meta-link" target="_blank" rel="noopener noreferrer">DOI 바로가기</a>
+          ) : (
+            <span className="meta-item">DOI 정보 없음</span>
+          )}
+        </div>
+        <div className="result-divider" />
         <footer>
           <span>{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
         </footer>
@@ -261,33 +283,76 @@ function ResultCard({ item, variant }) {
   );
 }
 
-function ResultSection({ title, items = [], misc = [], variant, variants = [] }) {
+function PromptBlendSelector({ label, options, value, onChange }) {
+  return (
+    <div className="prompt-panel__blend">
+      <span className="prompt-panel__blend-label">{label}</span>
+      <div className="prompt-panel__blend-options">
+        {options.map((option) => {
+          const isActive = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`prompt-blend-button ${isActive ? 'is-active' : ''}`}
+              onClick={() => onChange(option.value)}
+            >
+              <span>{option.label}</span>
+              <small>{option.helper}</small>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ResultSection({
+  title,
+  items = [],
+  misc = [],
+  variant,
+  variants = [],
+  loading = false,
+  loadingLabel,
+}) {
   const hasVariants = Array.isArray(variants) && variants.length > 0;
+  const overlayLabel = loadingLabel || '재검색 중…';
+
   return (
     <section className="results-section">
-      <h3>{title}</h3>
-      {hasVariants && (
-        <p className="variants">LLM 유사어: {variants.join(', ')}</p>
-      )}
-      {items.length ? (
-        <div className="results-grid">
-          {items.map((item) => (
-            <ResultCard key={`${variant}-top-${item.trademark_id}`} item={item} variant={variant} />
-          ))}
-        </div>
-      ) : (
-        <p className="empty">결과가 없습니다.</p>
-      )}
-      {misc.length ? (
-        <div className="results-misc">
-          <h4>기타 (등록/공고 외)</h4>
-          <div className="results-grid misc-grid">
-            {misc.map((item) => (
-              <ResultCard key={`${variant}-misc-${item.trademark_id}`} item={item} variant={variant} />
+      <div className="results-section__header">
+        <h3>{title}</h3>
+        {hasVariants && (
+          <p className="variants">LLM 유사어: {variants.join(', ')}</p>
+        )}
+      </div>
+      <div className="results-section__inner">
+        {items.length ? (
+          <div className="results-grid">
+            {items.map((item) => (
+              <ResultCard key={`${variant}-top-${item.trademark_id}`} item={item} variant={variant} />
             ))}
           </div>
-        </div>
-      ) : null}
+        ) : (
+          <p className="empty">결과가 없습니다.</p>
+        )}
+        {misc.length ? (
+          <div className="results-misc">
+            <h4>기타 (등록/공고 외)</h4>
+            <div className="results-grid misc-grid">
+              {misc.map((item) => (
+                <ResultCard key={`${variant}-misc-${item.trademark_id}`} item={item} variant={variant} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {loading && (
+          <div className="results-section__overlay">
+            <span>{overlayLabel}</span>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -324,7 +389,8 @@ function DebugPanel({ debug }) {
   const hasAny = [...tablesTop, ...tablesBottom].some(
     (table) => Array.isArray(table.rows) && table.rows.length > 0,
   );
-  if (!hasAny) return null;
+  const hasMessages = Array.isArray(debug.messages) && debug.messages.length > 0;
+  if (!hasAny && !hasMessages) return null;
 
   const renderTable = (table) => {
     if (!Array.isArray(table.rows) || !table.rows.length) return null;
@@ -379,6 +445,16 @@ function DebugPanel({ debug }) {
       <div className="debug-grid debug-grid--bottom">
         {tablesBottom.map(renderTable)}
       </div>
+      {hasMessages && (
+        <div className="debug-messages">
+          <h4>추가 메시지</h4>
+          <ul>
+            {debug.messages.map((msg, idx) => (
+              <li key={`debug-message-${idx}`}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
@@ -386,10 +462,18 @@ function DebugPanel({ debug }) {
 function App() {
   const [selectedGroups, setSelectedGroups] = useState({});
   const [response, setResponse] = useState(null);
+  const [baseResponse, setBaseResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [title, setTitle] = useState('');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [textPrompt, setTextPrompt] = useState('');
+  const [imageBlendMode, setImageBlendMode] = useState('balanced');
+  const [textBlendMode, setTextBlendMode] = useState('balanced');
+  const [lastImageBase64, setLastImageBase64] = useState('');
+  const [lastSearchText, setLastSearchText] = useState('');
+  const [loadingState, setLoadingState] = useState({ image: false, text: false });
 
   const toggleGroup = ({ checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
@@ -412,9 +496,13 @@ function App() {
     return Array.from(codes);
   }, [selectedGroups]);
 
-  const search = async (payload) => {
+  const search = async (payload, targets = { image: true, text: true }) => {
     setLoading(true);
     setError('');
+    setLoadingState({
+      image: Boolean(targets.image),
+      text: Boolean(targets.text),
+    });
     try {
       const res = await fetch('/search/multimodal', {
         method: 'POST',
@@ -424,10 +512,20 @@ function App() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setResponse(data);
+      if (payload.image_b64) {
+        setLastImageBase64(payload.image_b64);
+      }
+      if (typeof data?.query?.text === 'string') {
+        setLastSearchText(data.query.text);
+      }
+      if (targets.image && targets.text) {
+        setBaseResponse(cloneDeep(data));
+      }
     } catch (err) {
       setError(err?.message || '검색 중 문제가 발생했습니다');
     } finally {
       setLoading(false);
+      setLoadingState({ image: false, text: false });
     }
   };
 
@@ -441,11 +539,130 @@ function App() {
         k: 20,
         text: title.trim() || null,
         debug,
-      });
+        image_prompt: null,
+        image_prompt_mode: imageBlendMode,
+        text_prompt: null,
+        text_prompt_mode: textBlendMode,
+        variants: null,
+      }, { image: true, text: true });
     } catch (err) {
       console.error(err);
       alert('검색 요청 중 오류가 발생했습니다. 콘솔을 확인하세요.');
     }
+  };
+
+  const handleImageRerank = async (debug = false) => {
+    if (!lastImageBase64) {
+      alert('먼저 이미지 검색을 실행해주세요.');
+      return;
+    }
+    const baseText = (response?.query?.text ?? lastSearchText ?? title).trim();
+    const currentVariants = response?.query?.variants || null;
+    await search({
+      image_b64: lastImageBase64,
+      goods_classes: selectedClassCodes,
+      group_codes: selectedGroupCodes,
+      k: response?.query?.k || 20,
+      text: baseText || null,
+      debug,
+      image_prompt: imagePrompt.trim() || null,
+      image_prompt_mode: imageBlendMode,
+      text_prompt: null,
+      text_prompt_mode: textBlendMode,
+      variants: currentVariants,
+    }, { image: true, text: false });
+  };
+
+  const handleTextRerank = async (debug = false) => {
+    if (!lastImageBase64) {
+      alert('먼저 검색을 실행해주세요.');
+      return;
+    }
+    const baseText = (response?.query?.text ?? lastSearchText ?? title).trim();
+    const currentVariants = response?.query?.variants || null;
+    await search({
+      image_b64: lastImageBase64,
+      goods_classes: selectedClassCodes,
+      group_codes: selectedGroupCodes,
+      k: response?.query?.k || 20,
+      text: baseText || null,
+      debug,
+      image_prompt: null,
+      image_prompt_mode: imageBlendMode,
+      text_prompt: textPrompt.trim() || null,
+      text_prompt_mode: textBlendMode,
+      variants: currentVariants,
+    }, { image: false, text: true });
+  };
+
+  const buildResetDebug = (prevDebug, baseDebug, message, fields) => {
+    if (!prevDebug && !baseDebug) {
+      return undefined;
+    }
+    const nextDebug = prevDebug ? cloneDeep(prevDebug) : {};
+    if (baseDebug) {
+      fields.forEach((field) => {
+        if (field in baseDebug) {
+          nextDebug[field] = cloneDeep(baseDebug[field]);
+        }
+      });
+    }
+    nextDebug.messages = [...(nextDebug.messages ?? []), message];
+    return nextDebug;
+  };
+
+  const handleImageReset = () => {
+    if (!baseResponse || !response) {
+      return;
+    }
+    const baseClone = cloneDeep(baseResponse);
+    setResponse((prev) => {
+      if (!prev) {
+        return cloneDeep(baseClone);
+      }
+      return {
+        ...prev,
+        image_top: cloneDeep(baseClone.image_top) || [],
+        image_misc: cloneDeep(baseClone.image_misc) || [],
+        debug: buildResetDebug(
+          prev.debug,
+          baseClone.debug,
+          '이미지 결과를 초기 상태로 복원했습니다.',
+          ['image_dino', 'image_metaclip', 'image_blended'],
+        ),
+      };
+    });
+    setImagePrompt('');
+    setImageBlendMode('balanced');
+    setLoading(false);
+    setLoadingState({ image: false, text: false });
+  };
+
+  const handleTextReset = () => {
+    if (!baseResponse || !response) {
+      return;
+    }
+    const baseClone = cloneDeep(baseResponse);
+    setResponse((prev) => {
+      if (!prev) {
+        return cloneDeep(baseClone);
+      }
+      return {
+        ...prev,
+        text_top: cloneDeep(baseClone.text_top) || [],
+        text_misc: cloneDeep(baseClone.text_misc) || [],
+        debug: buildResetDebug(
+          prev.debug,
+          baseClone.debug,
+          '텍스트 결과를 초기 상태로 복원했습니다.',
+          ['text_metaclip', 'text_bm25', 'text_ranked'],
+        ),
+      };
+    });
+    setTextPrompt('');
+    setTextBlendMode('balanced');
+    setLoading(false);
+    setLoadingState({ image: false, text: false });
   };
 
   const resetForm = () => {
@@ -493,18 +710,128 @@ function App() {
                 items={response.image_top || []}
                 misc={response.image_misc || []}
                 variant="image"
+                loading={loadingState.image}
+                loadingLabel="이미지 결과 업데이트 중..."
               />
+              <form
+                className="prompt-panel"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleImageRerank(false);
+                }}
+              >
+                <label className="prompt-panel__label" htmlFor="image-rerank">이미지 재검색 프롬프트</label>
+                <PromptBlendSelector
+                  label="이미지 반영 비율"
+                  options={IMAGE_BLEND_OPTIONS}
+                  value={imageBlendMode}
+                  onChange={setImageBlendMode}
+                />
+                <div className="prompt-panel__content">
+                  <textarea
+                    id="image-rerank"
+                    placeholder="추가로 설명하고 싶은 내용을 입력하세요"
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleImageRerank(false);
+                      }
+                    }}
+                    rows={3}
+                  />
+                  <div className="prompt-panel__actions">
+                    <button
+                      type="submit"
+                      className="btn-secondary"
+                    >
+                      이미지 재검색
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-debug"
+                      onClick={() => handleImageRerank(true)}
+                    >
+                      이미지 재검색(디버그)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={handleImageReset}
+                      disabled={!baseResponse}
+                    >
+                      원래 이미지 결과
+                    </button>
+                  </div>
+                </div>
+              </form>
               <ResultSection
                 title="텍스트 Top-20"
                 items={response.text_top || []}
                 misc={response.text_misc || []}
                 variant="text"
                 variants={response.query?.variants || []}
+                loading={loadingState.text}
+                loadingLabel="텍스트 결과 업데이트 중..."
               />
+              <form
+                className="prompt-panel"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleTextRerank(false);
+                }}
+              >
+                <label className="prompt-panel__label" htmlFor="text-rerank">텍스트 재검색 프롬프트</label>
+                <PromptBlendSelector
+                  label="텍스트 반영 비율"
+                  options={TEXT_BLEND_OPTIONS}
+                  value={textBlendMode}
+                  onChange={setTextBlendMode}
+                />
+                <div className="prompt-panel__content">
+                  <textarea
+                    id="text-rerank"
+                    placeholder="추가 텍스트 프롬프트를 입력하세요"
+                    value={textPrompt}
+                    onChange={(e) => setTextPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleTextRerank(false);
+                      }
+                    }}
+                    rows={3}
+                  />
+                  <div className="prompt-panel__actions">
+                    <button
+                      type="submit"
+                      className="btn-secondary"
+                    >
+                      텍스트 재검색
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-debug"
+                      onClick={() => handleTextRerank(true)}
+                    >
+                      텍스트 재검색(디버그)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={handleTextReset}
+                      disabled={!baseResponse}
+                    >
+                      원래 텍스트 결과
+                    </button>
+                  </div>
+                </div>
+              </form>
               <DebugPanel debug={response.debug} />
             </>
           )}
-          {loading && (
+          {!response && loading && (
             <div className="search-overlay">
               <span>검색 중..</span>
             </div>
