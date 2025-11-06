@@ -675,7 +675,20 @@ function App() {
       <section className="hero">
         <img className="logo" src="/logo-tradar.png" alt="T-RADAR" />
         <div className="hero-text">
-          <h1 className="title">T-RADAR</h1>
+          <div className="hero-heading">
+            <h1 className="title">T-RADAR</h1>
+            <a
+              className="github-link hero-github"
+              href="https://github.com/yongchoooon/tradar"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub 저장소"
+              title="GitHub 저장소"
+            >
+              <span className="github-link__icon">⭐</span>
+              <span className="github-link__label">GitHub</span>
+            </a>
+          </div>
           <p className="subtitle">텍스트·이미지 기반 유사 상표 검색 서비스</p>
         </div>
       </section>
@@ -700,7 +713,7 @@ function App() {
         <h2>검색 결과</h2>
         {error && <p role="alert">{error}</p>}
         <div className="search-results__body">
-          {response && (
+          {response ? (
             <>
               <p className="query-summary">
                 Top-{response.query?.k || 0} · 상표명 {response.query?.text || '미입력'} · 선택 류 {(response.query?.goods_classes || []).join(', ') || '없음'} · 유사군 {(response.query?.group_codes || []).join(', ') || '없음'}
@@ -830,8 +843,15 @@ function App() {
               </form>
               <DebugPanel debug={response.debug} />
             </>
+          ) : (
+            <div className="search-placeholder">
+              <div className="search-placeholder__card">
+                <h3>검색을 시작해 주세요</h3>
+                <p>이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.</p>
+              </div>
+            </div>
           )}
-          {!response && loading && (
+          {loading && (
             <div className="search-overlay">
               <span>검색 중..</span>
             </div>
