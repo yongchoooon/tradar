@@ -1,6 +1,8 @@
 const { useState, useMemo, useRef, useEffect } = React;
 
 const GOODS_LIMIT = 10;
+const RESULT_PAGE_SIZE = 20;
+const RESULT_LIMIT = 200;
 
 const cloneDeep = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
 
@@ -307,6 +309,51 @@ function PromptBlendSelector({ label, options, value, onChange }) {
   );
 }
 
+function Pagination({ current = 1, total = 1, onChange }) {
+  if (total <= 1) return null;
+  const safeChange = (next) => {
+    if (!onChange) return;
+    const clamped = Math.min(Math.max(next, 1), total);
+    if (clamped !== current) {
+      onChange(clamped);
+    }
+  };
+  const pages = Array.from({ length: total }, (_, idx) => idx + 1);
+  return (
+    <nav className="pagination" aria-label="페이지 이동">
+      <div className="pagination__controls">
+        <button type="button" onClick={() => safeChange(1)} disabled={current === 1} aria-label="맨 앞으로">
+          «
+        </button>
+        <button type="button" onClick={() => safeChange(current - 1)} disabled={current === 1} aria-label="이전">
+          ‹
+        </button>
+      </div>
+      <div className="pagination__pages" role="group" aria-label="페이지 목록">
+        {pages.map((page) => (
+          <button
+            key={page}
+            type="button"
+            className={`pagination__page ${page === current ? 'is-active' : ''}`}
+            onClick={() => safeChange(page)}
+            aria-current={page === current ? 'page' : undefined}
+          >
+            {page}
+          </button>
+        ))}
+      </div>
+      <div className="pagination__controls">
+        <button type="button" onClick={() => safeChange(current + 1)} disabled={current === total} aria-label="다음">
+          ›
+        </button>
+        <button type="button" onClick={() => safeChange(total)} disabled={current === total} aria-label="맨 뒤로">
+          »
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 function ResultSection({
   title,
   items = [],
@@ -315,9 +362,21 @@ function ResultSection({
   variants = [],
   loading = false,
   loadingLabel,
+  page = 1,
+  pageSize = RESULT_PAGE_SIZE,
+  onPageChange,
 }) {
   const hasVariants = Array.isArray(variants) && variants.length > 0;
   const overlayLabel = loadingLabel || '재검색 중…';
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const startIdx = (safePage - 1) * pageSize;
+  const visibleItems = items.slice(startIdx, startIdx + pageSize);
+  const showPagination = totalItems > pageSize && typeof onPageChange === 'function';
+  const rangeLabel = totalItems
+    ? `${startIdx + 1}-${Math.min(totalItems, startIdx + pageSize)} / ${totalItems}`
+    : '0 / 0';
 
   return (
     <section className="results-section">
@@ -328,9 +387,9 @@ function ResultSection({
         )}
       </div>
       <div className="results-section__inner">
-        {items.length ? (
+        {visibleItems.length ? (
           <div className="results-grid">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <ResultCard key={`${variant}-top-${item.trademark_id}`} item={item} variant={variant} />
             ))}
           </div>
@@ -353,6 +412,9 @@ function ResultSection({
           </div>
         )}
       </div>
+      {showPagination && (
+        <Pagination current={safePage} total={totalPages} onChange={onPageChange} />
+      )}
     </section>
   );
 }
@@ -474,6 +536,7 @@ function App() {
   const [lastImageBase64, setLastImageBase64] = useState('');
   const [lastSearchText, setLastSearchText] = useState('');
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
+  const [pages, setPages] = useState({ image: 1, text: 1 });
 
   const toggleGroup = ({ checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
@@ -512,6 +575,10 @@ function App() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setResponse(data);
+      setPages((prev) => ({
+        image: targets.image ? 1 : prev.image,
+        text: targets.text ? 1 : prev.text,
+      }));
       if (payload.image_b64) {
         setLastImageBase64(payload.image_b64);
       }
@@ -536,7 +603,7 @@ function App() {
         image_b64: image,
         goods_classes: selectedClassCodes,
         group_codes: selectedGroupCodes,
-        k: 20,
+        k: RESULT_LIMIT,
         text: title.trim() || null,
         debug,
         image_prompt: null,
@@ -562,7 +629,7 @@ function App() {
       image_b64: lastImageBase64,
       goods_classes: selectedClassCodes,
       group_codes: selectedGroupCodes,
-      k: response?.query?.k || 20,
+      k: response?.query?.k || RESULT_LIMIT,
       text: baseText || null,
       debug,
       image_prompt: imagePrompt.trim() || null,
@@ -584,7 +651,7 @@ function App() {
       image_b64: lastImageBase64,
       goods_classes: selectedClassCodes,
       group_codes: selectedGroupCodes,
-      k: response?.query?.k || 20,
+      k: response?.query?.k || RESULT_LIMIT,
       text: baseText || null,
       debug,
       image_prompt: null,
@@ -636,6 +703,7 @@ function App() {
     setImageBlendMode('balanced');
     setLoading(false);
     setLoadingState({ image: false, text: false });
+    setPages((prev) => ({ ...prev, image: 1 }));
   };
 
   const handleTextReset = () => {
@@ -663,6 +731,7 @@ function App() {
     setTextBlendMode('balanced');
     setLoading(false);
     setLoadingState({ image: false, text: false });
+    setPages((prev) => ({ ...prev, text: 1 }));
   };
 
   const resetForm = () => {
@@ -719,12 +788,15 @@ function App() {
                 Top-{response.query?.k || 0} · 상표명 {response.query?.text || '미입력'} · 선택 류 {(response.query?.goods_classes || []).join(', ') || '없음'} · 유사군 {(response.query?.group_codes || []).join(', ') || '없음'}
               </p>
               <ResultSection
-                title="이미지 Top-20"
+                title={`이미지 후보 (${(response.image_top || []).length}건)`}
                 items={response.image_top || []}
                 misc={response.image_misc || []}
                 variant="image"
                 loading={loadingState.image}
                 loadingLabel="이미지 결과 업데이트 중..."
+                page={pages.image}
+                pageSize={RESULT_PAGE_SIZE}
+                onPageChange={(next) => setPages((prev) => ({ ...prev, image: next }))}
               />
               <form
                 className="prompt-panel"
@@ -780,13 +852,16 @@ function App() {
                 </div>
               </form>
               <ResultSection
-                title="텍스트 Top-20"
+                title={`텍스트 후보 (${(response.text_top || []).length}건)`}
                 items={response.text_top || []}
                 misc={response.text_misc || []}
                 variant="text"
                 variants={response.query?.variants || []}
                 loading={loadingState.text}
                 loadingLabel="텍스트 결과 업데이트 중..."
+                page={pages.text}
+                pageSize={RESULT_PAGE_SIZE}
+                onPageChange={(next) => setPages((prev) => ({ ...prev, text: next }))}
               />
               <form
                 className="prompt-panel"
