@@ -63,6 +63,29 @@ bash scripts/sync_opensearch.sh
 ```
 - `trademarks`의 기본 필드를 `OPENSEARCH_INDEX`(기본 `tradar_trademarks`)로 밀어 넣습니다.
 
+## 유사도 평가
+
+- 1:1 검증: `scripts/evaluate_similarity_pairs.py --pairs-json published_similar_pair_data_i_have.json`
+- 1:N 검증: `scripts/evaluate_similarity_pairs_ylist.py --pairs-json published_similar_pair_data_i_have_appearance_similarity_2125.json`
+
+두 스크립트 모두 FastAPI 검색 파이프라인을 직접 호출해 랭크 정보를 CSV/JSON으로 저장합니다. 특히 `evaluate_similarity_pairs_ylist.py`는 `y_list` 안의 여러 후보 중 가장 높은 랭크를 찾아 점수를 계산합니다.
+
+```
+python scripts/evaluate_similarity_pairs_ylist.py \
+  --pairs-json published_similar_pair_data_i_have_title_similarity_2125.json \
+  --k 100 \
+  --max-pairs 50 \
+  --debug-dump-dir debug_runs/title_eval \
+  --ks 1 5 10 20 50 100 \
+  --experiment-name title_eval
+```
+
+- `--k`는 파이프라인에서 가져올 후보 수이므로, 평가하고 싶은 가장 큰 K(예: 100) 이상으로 지정하세요.
+- `--max-pairs`를 지정하면 상위 N개 레이블만 빠르게 돌려 디버깅할 수 있습니다 (생략 시 전체 사용).
+- `--debug-dump-dir`를 주면 각 x→y_list 케이스마다 검색 결과/디버그 정보를 JSON으로 저장하므로, 실제 Top-K가 어떻게 나왔는지 손쉽게 확인할 수 있습니다 (상대 경로는 `--output-dir` 기준).
+- `--ks`는 요약 통계에 포함할 K 리스트이며 기본값이 `1 5 10 20 50 100`입니다.
+- 결과 CSV/요약 JSON은 `evaluation/` 디렉터리에 `similar_ylist_eval_*`(혹은 `similar_pairs_eval_*`) 이름으로 저장됩니다.
+
 ## 검색 파이프라인 요약
 
 이미지와 텍스트는 분리된 Top-K 리스트로 반환됩니다. 자세한 단계는 `markdown/search-pipeline.md`에 기록되어 있습니다.
@@ -71,7 +94,7 @@ bash scripts/sync_opensearch.sh
 1. 입력 이미지를 MetaCLIP2/DINOv2로 임베딩 (임베딩 결과는 LRU 캐시에 저장돼 동일 이미지 재검색 시 재사용)
 2. pgvector에서 각각 ANN Top-N 후보 검색
 3. 각 후보에 대해 누락된 공간의 임베딩을 다시 읽어 코사인 유사도 계산
-4. 기본 가중치는 DINO:MetaCLIP = 0.5:0.5이며, 재검색 프롬프트 사용 시 90/10 · 70/30 · 50/50 · 30/70 · 10/90 프리셋에 맞춰 동적으로 조정됩니다.
+4. 기본 스코어 가중치는 DINO:MetaCLIP = 0.5:0.5로 고정되며, 재검색 프롬프트를 사용해도 최종 점수 비율은 변하지 않고 MetaCLIP 질의 벡터만 프리셋(90/10 · 70/30 · 50/50 · 30/70 · 10/90)에 맞춰 섞입니다.
 5. 이미지 프롬프트가 제공되면 MetaCLIP 이미지 벡터와 프롬프트 텍스트 임베딩을 가중 평균해 새 질의를 구성합니다.
 6. Top-K를 선정합니다. 추후 `goods.is_adjacent`를 활용해 인접/비인접 그룹으로 재구성할 예정이며, 현재는 단일 리스트로 반환됩니다.
 
@@ -86,7 +109,7 @@ bash scripts/sync_opensearch.sh
 
 ### 프롬프트 재검색
 - 프런트엔드에서 "최우선"/"우선"/"균형"/"프롬프트 우선" 프리셋을 제공하며, 각각 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치로 이미지/텍스트 임베딩이 보정됩니다.
-- 이미지 프롬프트는 MetaCLIP 이미지 벡터만 재가중하며 DINO 비중도 동일한 비율로 조정합니다.
+- 이미지 프롬프트는 MetaCLIP 이미지 벡터만 재가중하며 DINO 스코어 비중은 항상 0.5로 유지됩니다 (MetaCLIP 질의 벡터만 프리셋 비율로 조정).
 - 텍스트 프롬프트는 LLM을 통해 추가 키워드·접두 조건을 추출하고, 실패 시 보조 검색어만 추가한 뒤 그 사실을 디버그 메시지에 남깁니다.
 - 재검색 요청에 `variants` 필드를 전달하면 기존 LLM 유사어를 그대로 재사용하고 TextVariantService를 재호출하지 않습니다.
 - 모든 재검색은 Top-N을 다시 질의하는 방식으로 동작하여 기존 후보에 국한되지 않습니다.

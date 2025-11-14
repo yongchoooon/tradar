@@ -527,6 +527,7 @@ function App() {
   const [baseResponse, setBaseResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [placeholderNotice, setPlaceholderNotice] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [title, setTitle] = useState('');
   const [imagePrompt, setImagePrompt] = useState('');
@@ -588,6 +589,7 @@ function App() {
       if (targets.image && targets.text) {
         setBaseResponse(cloneDeep(data));
       }
+      setPlaceholderNotice('');
     } catch (err) {
       setError(err?.message || '검색 중 문제가 발생했습니다');
     } finally {
@@ -596,7 +598,28 @@ function App() {
     }
   };
 
+  const handleImageFileUpdate = (file) => {
+    setImageFile(file);
+    if (file) {
+      setPlaceholderNotice('');
+    }
+  };
+
+  const focusImageUploader = () => {
+    const dropzone = document.querySelector('.dropzone');
+    if (!dropzone) return;
+    dropzone.classList.add('dropzone--pulse');
+    dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => dropzone.classList.remove('dropzone--pulse'), 1200);
+  };
+
   const executeSearch = async (debug = false) => {
+    if (!imageFile) {
+      setPlaceholderNotice('이미지를 먼저 선택하고 검색을 실행해 주세요.');
+      setError('');
+      focusImageUploader();
+      return;
+    }
     try {
       const image = await fileToBase64(imageFile);
       await search({
@@ -737,6 +760,7 @@ function App() {
   const resetForm = () => {
     setImageFile(null);
     setTitle('');
+    setPlaceholderNotice('');
   };
 
   return (
@@ -765,7 +789,7 @@ function App() {
         title={title}
         onTitleChange={setTitle}
         imageFile={imageFile}
-        onImageFileChange={setImageFile}
+        onImageFileChange={handleImageFileUpdate}
         onSubmit={executeSearch}
         onReset={resetForm}
       />
@@ -920,9 +944,20 @@ function App() {
             </>
           ) : (
             <div className="search-placeholder">
-              <div className="search-placeholder__card">
-                <h3>검색을 시작해 주세요</h3>
-                <p>이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.</p>
+              <div className={`search-placeholder__card ${placeholderNotice ? 'is-alert' : ''}`}>
+                <h3>{placeholderNotice ? '이미지 업로드가 필요합니다' : '검색을 시작해 주세요'}</h3>
+                <p>
+                  {placeholderNotice || '이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.'}
+                </p>
+                {placeholderNotice && (
+                  <button
+                    type="button"
+                    className="placeholder-action"
+                    onClick={focusImageUploader}
+                  >
+                    이미지 선택하러 가기
+                  </button>
+                )}
               </div>
             </div>
           )}

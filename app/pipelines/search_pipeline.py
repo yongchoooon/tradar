@@ -117,12 +117,11 @@ class SearchPipeline:
             prompt_vector = self._encode_text_cached(image_prompt)
             prompt_similarity = cosine(base_metaclip_query, prompt_vector)
             metaclip_query = _blend_vectors(base_metaclip_query, prompt_vector, image_primary_weight)
-            image_weights = (image_primary_weight, 1.0 - image_primary_weight)
             debug_messages.append(
-                f"Image prompt applied (mode={image_mode}, cosine={prompt_similarity:.4f})"
+                f"Image prompt applied (mode={image_mode}, cosine={prompt_similarity:.4f}, blend={image_primary_weight:.2f}/{1 - image_primary_weight:.2f})"
             )
         debug_messages.append(
-            f"Image weight preset '{image_mode}' -> DINO {image_weights[0]:.2f}, MetaCLIP {image_weights[1]:.2f}"
+            f"Image similarity weights fixed -> DINO {image_weights[0]:.2f}, MetaCLIP {image_weights[1]:.2f}"
         )
 
         dino_hits = self._vector.search_image("dino", dino_query, IMAGE_TOPN)

@@ -165,7 +165,7 @@ def build_records(
 
     source_items = list(raw_items)
     records: List[Record] = []
-    batch_size = int(os.getenv("VECTOR_DB_BATCH_SIZE", "64"))
+    batch_size = int(os.getenv("VECTOR_DB_BATCH_SIZE", "512"))
     total_items = len(source_items)
     iterator = (
         tqdm(range(0, total_items, batch_size), desc="Embedding trademarks", unit="item")

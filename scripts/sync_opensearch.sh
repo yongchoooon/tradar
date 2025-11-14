@@ -3,6 +3,13 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/tradar}"
+OPENSEARCH_URL="${OPENSEARCH_URL:-http://localhost:9200}"
+export DATABASE_URL
+export OPENSEARCH_URL
+export OPENSEARCH_INDEX="${OPENSEARCH_INDEX:-tradar_trademarks}"
+export OPENSEARCH_SEARCH_FIELDS="${OPENSEARCH_SEARCH_FIELDS:-title_korean^2,title_english,aliases^0.5}"
+
 : "${DATABASE_URL:?DATABASE_URL must be set (e.g. postgresql://user:pass@host:5432/tradar)}"
 : "${OPENSEARCH_URL:?OPENSEARCH_URL must be set (e.g. http://localhost:9200)}"
 : "${OPENSEARCH_INDEX:=tradar_trademarks}"
