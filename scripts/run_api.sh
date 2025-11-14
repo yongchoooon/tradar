@@ -28,6 +28,8 @@ fi
 : "${TRADEMARK_LLM_REASONING:=medium}"
 : "${MEDIA_ALLOWED_ROOTS:=/home/work/workspace/tradar-data:/home/work/workspace/tradar}"
 
+: "${TRADEMARK_LLM_DEBUG:=false}"
+
 export DATABASE_URL
 export IMAGE_EMBED_BACKEND
 export TEXT_EMBED_BACKEND
@@ -42,9 +44,10 @@ export TRADEMARK_LLM_API_KEY
 export TRADEMARK_LLM_MODEL
 export TRADEMARK_LLM_REASONING
 export MEDIA_ALLOWED_ROOTS
+export TRADEMARK_LLM_DEBUG
 
 if [ -n "${TRADEMARK_LLM_API_KEY}" ]; then
   export OPENAI_API_KEY="${TRADEMARK_LLM_API_KEY}"
 fi
 
-uvicorn app.main:app --reload "$@"
+uvicorn app.main:app --reload "$@" --host 0.0.0.0
