@@ -17,7 +17,6 @@ class TextVariantService:
     """
 
     _ALLOWED_PATTERN = re.compile(r"^[0-9A-Za-z가-힣\-\s'·]+$")
-    _NORMALIZE_PATTERN = re.compile(r"[\s\-_]+")
 
     def __init__(self) -> None:
         self._llm = get_llm_service()
@@ -77,14 +76,8 @@ class TextVariantService:
         if not cand_norm or cand_norm == base_norm:
             return False
 
-        if cand_norm.startswith(base_norm) and len(cand_norm) - len(base_norm) <= 1:
-            return False
-        if cand_norm.endswith(base_norm) and len(cand_norm) - len(base_norm) <= 1:
-            return False
-
         return True
 
     @classmethod
     def _normalize(cls, text: str) -> str:
-        collapsed = cls._NORMALIZE_PATTERN.sub("", text)
-        return collapsed.lower()
+        return text.strip().lower()

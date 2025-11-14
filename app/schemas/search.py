@@ -24,6 +24,7 @@ class SearchRequest:
     text_prompt: Optional[str] = None
     text_prompt_mode: str = "balanced"
     variants: Optional[List[str]] = None
+    use_llm_variants: bool = True
 
 
 @pydantic_dataclass

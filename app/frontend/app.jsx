@@ -538,6 +538,7 @@ function App() {
   const [lastSearchText, setLastSearchText] = useState('');
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
   const [pages, setPages] = useState({ image: 1, text: 1 });
+  const [useLlmVariants, setUseLlmVariants] = useState(false);
 
   const toggleGroup = ({ checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
@@ -634,6 +635,7 @@ function App() {
         text_prompt: null,
         text_prompt_mode: textBlendMode,
         variants: null,
+        use_llm_variants: useLlmVariants,
       }, { image: true, text: true });
     } catch (err) {
       console.error(err);
@@ -801,6 +803,15 @@ function App() {
         <button type="button" className="secondary btn-wide" onClick={resetForm}>초기화</button>
         <button type="button" className="btn-primary btn-wide" onClick={() => executeSearch(false)}>검색</button>
         <button type="button" className="btn-debug btn-wide" onClick={() => executeSearch(true)}>검색(디버그)</button>
+        <label className="llm-toggle" aria-label="LLM 유사어 사용 여부">
+          <input
+            id="llm-variants-checkbox"
+            type="checkbox"
+            checked={useLlmVariants}
+            onChange={(e) => setUseLlmVariants(e.target.checked)}
+          />
+          <span>LLM 유사어</span>
+        </label>
       </div>
       <section className="search-results">
         <h2>검색 결과</h2>

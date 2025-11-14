@@ -12,6 +12,9 @@ from typing import Iterable, List
 
 from openai import OpenAI, OpenAIError
 
+_HANGUL_RE = re.compile(r"[가-힣]")
+_LATIN_RE = re.compile(r"[A-Za-z]")
+
 
 def _is_truthy(value: str | None) -> bool:
     if value is None:
@@ -55,6 +58,7 @@ class TrademarkLLMSynonymService:
         if not self._api_key:
             self._enabled = False
         self._usage_log_path = self._ensure_usage_log()
+        self._debug = _is_truthy(os.getenv("TRADEMARK_LLM_DEBUG"))
 
     def available(self) -> bool:
         return self._enabled
@@ -66,37 +70,56 @@ class TrademarkLLMSynonymService:
         if not text:
             return []
 
-        try:
-            client = self._ensure_client()
-            prompt = self._build_prompt(text, limit)
-            response = client.responses.create(
-                model=self._model_id,
-                temperature=self._temperature,
-                max_output_tokens=512,
-                input=prompt,
-            )
-            self._log_usage(response)
-        except OpenAIError as exc:
-            raise RuntimeError(
-                f"LLM trademark variant generation failed for '{text}'."
-            ) from exc
+        client = self._ensure_client()
+        attempts = 0
+        max_attempts = 6
 
-        response_text = (response.output_text or "").strip()
-        content = response_text if response_text else self._first_text(response)
-        content = content or ""
-        parsed = self._parse_json_candidates(content)
-        rows = parsed if parsed else _split_variants(content)
-        variants = []
-        seen = set()
-        for entry in rows:
-            key = entry.lower()
-            if key == text.lower() or key in seen:
+        while attempts < max_attempts:
+            variants: List[str] = []
+            seen: set[str] = set()
+            try:
+                prompt = self._build_prompt(text, limit - len(variants))
+                self._debug_print("prompt", prompt)
+                response = client.responses.create(
+                    model=self._model_id,
+                    temperature=self._temperature,
+                    max_output_tokens=512,
+                    input=prompt,
+                )
+                self._log_usage(response)
+            except OpenAIError as exc:
+                attempts += 1
+                if attempts >= max_attempts:
+                    raise RuntimeError(
+                        f"LLM trademark variant generation failed for '{text}'."
+                    ) from exc
                 continue
-            variants.append(entry)
-            seen.add(key)
-            if len(variants) >= limit:
-                break
-        return variants
+
+            content = (response.output_text or "").strip()
+            if not content:
+                content = self._first_text(response)
+            self._debug_print("raw_output", content)
+            parsed = self._parse_json_candidates(content or "")
+            rows = parsed if parsed else _split_variants(content or "")
+            for entry in rows:
+                key = entry.lower()
+                if not entry or key == text.lower() or key in seen:
+                    continue
+                variants.append(entry)
+                seen.add(key)
+                if len(variants) >= limit:
+                    break
+
+            latin, hangul = self._split_languages(variants)
+            if not latin or not hangul:
+                attempts += 1
+                continue
+
+            return self._mix_languages(latin, hangul, limit)
+
+        raise RuntimeError(
+            f"LLM trademark variant generation failed for '{text}' (language diversity)."
+        )
 
     def _ensure_client(self) -> OpenAI:
         if self._client is None:
@@ -164,16 +187,17 @@ class TrademarkLLMSynonymService:
             + "\n출력 형식: 설명 없이 JSON 배열 하나만 반환하고 반드시 "
             + str(limit)
             + "개의 고유 문자열을 넣는다. 지침:"
-            " 1) 영어(로마자) 또는 한글만 사용한다."
+            " 1) 영어 또는 한글만 사용한다."
             " 2) 발음이 헷갈리게 들리거나 첫 음절이 동일/유사한 변형을 우선 생성한다"
             "(모음/자음 치환, 장·단음 변형, 하이픈·공백 조정, 반복, 영어-한글 음역 교차 포함)."
             " 3) 의미나 관념이 비슷한 조합은 상표 길이를 크게 바꾸지 않는 범위에서만 허용하며"
             " 일반 수요자가 직관적으로 떠올릴 수 있는 단어만 사용한다."
-            " 4) 'PRO', 'MAX', '360'처럼 기능성·등급을 강조하는 흔한 접미사나 숫자/약어를 덧붙이는 방식은 모두 금지한다 (규칙만 따르고 예시를 그대로 복사하지 말 것)."
-            " 5) 영어식 표기와 한글 음역 표기가 번갈아가며 배열되도록 순서를 구성한다."
-            " 6) 단순히 한 글자만 더하거나 뺀 결과, 무의미한 숫자 나열, 괄호·설명 문구는 금지."
-            " 7) 각 항목은 25자 이하이며 앞뒤 공백을 제거한다."
-            " 8) 원문과 완전히 동일한 표기는 출력하지 않는다."
+            " 4) 'PRO', 'MAX', '360'처럼 기능성·등급을 강조하는 흔한 접미사나 임의의 대문자·숫자를 덧붙이는 방식은 모두 금지한다 (규칙만 따르고 예시를 그대로 복사하지 말 것)."
+            " 5) 대신 철자 치환, 하이픈/공백 이동, 일부 음소 삭제, 대소문자/강조, 반복 문자 등 실제 사용자가 착각할 만한 음운적 변형을 다양하게 시도한다."
+            " 6) 영어식 표기와 한글 음역 표기가 번갈아가며 배열되도록 순서를 구성한다."
+            " 7) 무의미한 숫자 나열, 괄호·설명 문구는 금지."
+            " 8) 각 항목은 25자 이하이며 앞뒤 공백을 제거한다."
+            " 9) 원문과 완전히 동일한 표기는 출력하지 않는다."
         )
         return [
             {
@@ -216,6 +240,50 @@ class TrademarkLLMSynonymService:
         if isinstance(data, list):
             return [str(item).strip() for item in data if str(item).strip()]
         return []
+
+    def _split_languages(self, variants: List[str]) -> tuple[List[str], List[str]]:
+        latin: List[str] = []
+        hangul: List[str] = []
+        for variant in variants:
+            has_hangul = bool(_HANGUL_RE.search(variant))
+            has_latin = bool(_LATIN_RE.search(variant))
+            if has_hangul:
+                hangul.append(variant)
+            if has_latin:
+                latin.append(variant)
+        return latin, hangul
+
+    def _mix_languages(
+        self, latin: List[str], hangul: List[str], limit: int
+    ) -> List[str]:
+        result: List[str] = []
+        idx_lat = idx_han = 0
+        while len(result) < limit and (idx_lat < len(latin) or idx_han < len(hangul)):
+            if idx_lat < len(latin):
+                result.append(latin[idx_lat])
+                idx_lat += 1
+            if len(result) < limit and idx_han < len(hangul):
+                result.append(hangul[idx_han])
+                idx_han += 1
+
+        remainder = latin[idx_lat:] + hangul[idx_han:]
+        for item in remainder:
+            if len(result) >= limit:
+                break
+            result.append(item)
+        return result[:limit]
+
+    def _debug_print(self, label: str, payload) -> None:
+        if not self._debug:
+            return
+        try:
+            printable = payload
+            if isinstance(payload, list) or isinstance(payload, dict):
+                printable = json.dumps(payload, ensure_ascii=False, indent=2)
+            print(f"[LLM_SYNONYM_DEBUG] {label}: {printable}")
+        except Exception:
+            print(f"[LLM_SYNONYM_DEBUG] {label}: {payload}")
+
 
 
 

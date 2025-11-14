@@ -136,13 +136,15 @@ class SearchPipeline:
         )
 
         manual_text = (req.text or "").strip()
-        if req.variants:
+        if req.variants is not None:
             variants = [term for term in req.variants if (term or "").strip()]
             debug_messages.append(
                 f"Reusing provided variants ({len(variants)})"
             )
         else:
-            variants = self._collect_variants(manual_text)
+            variants = self._collect_variants(
+                manual_text, use_llm=req.use_llm_variants
+            )
 
         text_prompt = (req.text_prompt or "").strip()
         interpretation: PromptInterpretation | None = None
@@ -259,9 +261,9 @@ class SearchPipeline:
             debug=debug_info,
         )
 
-    def _collect_variants(self, text: str) -> List[str]:
+    def _collect_variants(self, text: str, use_llm: bool = True) -> List[str]:
         text = (text or "").strip()
-        if not text:
+        if not text or not use_llm:
             return []
         variants = self._variants.generate(text)
         seen = {text.lower()}
@@ -344,7 +346,7 @@ class SearchPipeline:
         weights = []
         for idx, term in enumerate(terms):
             vectors.append(self._encode_text_cached(term))
-            weights.append(1.0 if idx == 0 else 0.8)
+            weights.append(1.5 if idx == 0 else 0.6)
 
         dim = len(vectors[0])
         accum = [0.0] * dim
