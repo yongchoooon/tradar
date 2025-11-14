@@ -20,11 +20,10 @@ This script streams input and output to handle large files (~300k lines).
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import sys
 from pathlib import Path
-from typing import Iterable, Tuple, TextIO
+from typing import Iterable, Tuple
 
 
 DEFAULT_OUTPUT = Path("app/data/goods_services/ko_goods_services.tsv")

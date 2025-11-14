@@ -7,7 +7,7 @@ import hashlib
 import os
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence
 
 from app.schemas.search import (
     QueryInfo,

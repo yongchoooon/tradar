@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List, Sequence
+from typing import List, Sequence
 
 from app.services.embedding_backends import get_text_backend
 

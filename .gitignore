@@ -11,3 +11,4 @@ dist/
 data/
 !app/data/
 logs/
+evaluation/

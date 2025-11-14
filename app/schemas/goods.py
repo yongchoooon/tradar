@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import  field
 from typing import List
 
 try:  # pragma: no cover - 선택 의존성
