@@ -25,6 +25,7 @@
 
 ## 4. 필요 데이터 / 입력 요건
 - **T-RADAR 검색 결과**: `application_number`, `title_korean/english`, `status`, `service_classes`, `goods_services`, `image_sim`, `text_sim`, `thumb_url`.
+- **사용자 지정상품 선택**: 웹 UI에서 체크한 유사군 코드와 해당 그룹의 지정상품 이름 목록(최대 20개)을 그대로 전달해, LLM이 단순 코드가 아니라 실제 지정상품 설명을 참고할 수 있게 한다.
 - **의견제출통지서 REST API**
   - 엔드포인트에서 송달정보(송달번호, 송달일, 제출기한), 서지정보(출원번호, 지정류, 출원인, 담당 심사관), 거절사유별 블록(법조항, 사유 요약, 적용 지정상품, 선행사례/표장)과 최소한의 안내 문구를 JSON으로 받는다.
 - **거절결정서 REST API**
@@ -53,17 +54,18 @@
    - 출력: 조항별 이슈, 심사관 코멘트, 선행상표 매핑
 3. **Applicant Agent**: Examiner 출력에 기반하여 지정상품/서비스 차이, 발음/관념 비교, 선행사례와 차별성을 강조.
 4. **Examiner Rebuttal Agent**: Applicant 응답을 평가, 수용/반박 구분 및 필요 시 보정 조건 제안.
-5. **Reporter Agent**: 앞선 3턴을 요약하고 `issues: [{name, examiner, applicant, decision}]` 형태의 JSON과 UI 친화적 텍스트를 생성하되, 각 주장에 인용된 선행상표 ID·문서 출처 링크(API에서 제공되는 원문 URL)를 명시해 추적 가능성을 확보한다.
-6. **Scorer Agent**: Reporter 요약과 검색 점수를 기반으로 확률형 점수(등록 가능성, 침해 가능성 등)를 산출하고, 신뢰도 및 근거 설명을 추가하며 해당 근거가 어떤 선행사례/문서에서 비롯됐는지도 함께 표기한다.
+5. **Reporter Agent**: 앞선 3턴을 요약하고 `issues: [{name, examiner, applicant, decision}]` 형태의 요약을 JSON/텍스트로 생성하며, 각 주장에 인용된 선행상표 ID·문서 출처 링크(API 원문 URL)를 명시해 Explainability를 유지한다.
+6. **Scorer Agent**: Reporter 요약과 검색 점수, 사용자 상표 vs 선행상표 비교 컨텍스트, 선행상표 현재 상태를 기반으로 충돌 위험/등록 가능성 점수를 0~100 사이로 JSON으로 산출하고, 근거(`rationale`)와 참고 항목(`factors`)을 함께 반환한다. 휴리스틱 점수와 LLM 점수는 최종 점수 산출에 모두 사용되며 UI에도 노출된다.
 
 ## 6. 필요한 작업 / 산출물
 - LangGraph 프로젝트: `app/agents/simulation.py` 등 Python 모듈과 설정 파일.
 - 데이터 연동: 의견제출통지서/거절결정서 REST API 클라이언트를 구현해 필요한 시점에 데이터를 조회·캐싱하고, 필요 시 사례 검색용 벡터 인덱스를 구성.
 - 프롬프트 템플릿 및 법령 지식 베이스(`markdown/agent-prompts.md` 등).
 - FastAPI 엔드포인트 `/simulation/run`: LangGraph 실행을 트리거하는 비동기 작업을 생성해 `job_id`를 반환하고, `/simulation/stream/{job_id}`(SSE) 또는 `/simulation/status/{job_id}`로 작업 상태/결과를 조회한다. 진행 상황은 `simulation` 로거로도 확인할 수 있다.
-- 프론트엔드 UI: 심사관 vs 출원인 대화, 리포터 요약, 채점 카드 등을 표시하며 각 주장 하단에 인용된 선행상표/문서 링크를 노출해 Explainability를 유지.
+- 프론트엔드 UI: 심사관 vs 출원인 대화, 리포터 요약, 채점 카드 등을 표시하며 각 주장 하단에 인용된 선행상표/문서 링크를 노출해 Explainability를 유지. 모든 후보 정보를 모아 추가 LLM이 최종 Markdown 요약(전체 한 줄 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 생성하고, UI 상단에 고정된 형식으로 노출합니다.
 - 테스트: mock 상표 입력, deterministic LLM stub을 활용한 CI 검증.
 - 문서: README 업데이트 및 워크플로/데이터 요구사항 설명.
+- 디버그 모드: `시뮬레이션 실행(디버그)` 버튼을 누르면 후보별 `logs/simulation_debug/<timestamp>_<app_no>_context.json`(KIPRIS 정리)과 `..._llm.txt`(LLM 프롬프트/응답)가 생성된다.
 
 ## 7. 문서 유지
 - README 및 `markdown/agent_simulation.md`를 최신 상태로 유지하고, Agent 그래프/데이터 스키마 변경 시 즉시 업데이트한다.

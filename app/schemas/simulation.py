@@ -28,6 +28,11 @@ class SimulationSelection:
 @pydantic_dataclass
 class SimulationRequest:
     selections: List[SimulationSelection]
+    debug: bool = False
+    query_title: Optional[str] = None
+    user_goods_classes: List[str] = field(default_factory=list)
+    user_group_codes: List[str] = field(default_factory=list)
+    user_goods_names: List[str] = field(default_factory=list)
 
 
 @pydantic_dataclass
@@ -44,6 +49,13 @@ class SimulationCandidateResult:
     agent_summary: Optional[str] = None
     agent_risk: Optional[str] = None
     transcript: List[str] = field(default_factory=list)
+    heuristic_conflict_score: float = 0.0
+    heuristic_register_score: float = 0.0
+    llm_conflict_score: float = 0.0
+    llm_register_score: float = 0.0
+    llm_rationale: Optional[str] = None
+    llm_factors: List[str] = field(default_factory=list)
+    reporter_markdown: Optional[str] = None
 
 
 @pydantic_dataclass
@@ -53,7 +65,8 @@ class SimulationResponse:
     avg_conflict_score: float
     avg_register_score: float
     summary_text: str
-    candidates: List[SimulationCandidateResult]
+    overall_report: Optional[str] = None
+    candidates: List[SimulationCandidateResult] = field(default_factory=list)
 
 
 @pydantic_dataclass
@@ -67,3 +80,8 @@ class SimulationJobStatusResponse:
     status: str
     result: Optional[SimulationResponse] = None
     error: Optional[str] = None
+
+
+@pydantic_dataclass
+class SimulationConfigResponse:
+    model_name: str

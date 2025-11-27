@@ -29,8 +29,9 @@
 
 1. 프런트엔드에서 기본 이미지/텍스트 상위 5건(최대 40건) 출원번호를 `/simulation/run`으로 전송합니다.
 2. 백엔드는 `KIPRIS_ACCESS_KEY`로 IntermediateDocument OP/RE API를 호출하여 거절사유/추가사유/이미지/최종변동일자를 수집합니다.
-3. 수집된 텍스트를 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-4o-mini)로 대화/요약/위험 분석을 생성합니다.
-4. 유사도 기반 휴리스틱 점수와 에이전트 결과를 묶어 프런트엔드 패널에 요약과 상위 후보별 노트를 보여 줍니다. LangGraph 호출은 내부적으로 최대 4개 워커로 병렬 실행되어 지연을 줄입니다.
+3. 사용자 UI에서 선택한 상품류와 유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록도 함께 전달되어, 에이전트 프롬프트에 실사용자가 지정한 상품 설명을 그대로 노출합니다.
+4. 수집된 텍스트를 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-4o-mini)로 대화/요약/위험 분석을 생성합니다.
+5. 유사도 기반 휴리스틱 점수와 에이전트 결과를 묶어 프런트엔드 패널에 요약과 상위 후보별 노트를 보여 줍니다. LangGraph 호출은 내부적으로 최대 4개 워커로 병렬 실행되어 지연을 줄입니다.
 
 ### 비동기 처리
 
@@ -149,7 +150,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 
 ## 운영 팁
 
-- **LLM 사용**: `.env`에 `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED=true` 설정. 비용 로그는 `logs/openai_usage.csv`에 누적됩니다.
+- **LLM 사용**: `.env`에 `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED=true` 설정. 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 점수를 산출하고 휴리스틱 점수와 평균해 최종 점수를 도출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
 - **프롬프트 LLM**: 재검색 프롬프트 전용 모델을 조정하려면 `PROMPT_LLM_MODEL`, `PROMPT_LLM_TEMPERATURE` 환경 변수를 사용하세요 (기본값은 `TRADEMARK_LLM_MODEL`/`0.1`).
 - **임베딩 모델 경로**: 기본값은 `/home/work/workspace/models/{metaclip,dinov2}`. 변경 시 `METACLIP_MODEL_NAME`, `DINOV2_MODEL_NAME` 환경변수를 사용하세요.
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.

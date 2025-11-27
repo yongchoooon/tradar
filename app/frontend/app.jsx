@@ -51,6 +51,17 @@ const renderMarkdown = (text) => {
   return { __html: text.replace(/\n/g, '<br />') };
 };
 
+function MarkdownBlock({ text, className }) {
+  if (!text) return null;
+  const classes = ['markdown-block', className].filter(Boolean).join(' ');
+  return (
+    <div
+      className={classes}
+      dangerouslySetInnerHTML={renderMarkdown(text)}
+    />
+  );
+}
+
 function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, selectedGroups }) {
   const hasGroups = classItem.groups && classItem.groups.length > 0;
   if (!hasGroups) return null;
@@ -516,129 +527,331 @@ function SimulationPanel({
   maxSelection,
   status,
   onRun,
+  onCancel,
+  canCancel = false,
   result,
   error,
+  elapsedSeconds = 0,
+  modelName = '',
   docked = false,
 }) {
-  const isProcessing = status === 'queued' || status === 'loading';
+  const isProcessing = status === 'queued' || status === 'loading' || status === 'cancelling';
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
     'simulation-panel',
     status === 'complete' ? 'is-expanded' : '',
     docked ? 'simulation-panel--dock' : '',
-    hasResults ? 'is-visible' : 'is-hidden',
+    'is-visible',
   ].filter(Boolean).join(' ');
-  let statusContent = null;
-  if (status === 'queued') {
-    statusContent = (
-      <div className="simulation-panel__status">
-        <p>시뮬레이션 대기열에 등록했습니다…</p>
-        <small>잠시 후 자동으로 실행됩니다.</small>
+  const formatElapsed = (seconds) => {
+    const safeSeconds = Math.max(0, Number(seconds) || 0);
+    const minutes = Math.floor(safeSeconds / 60);
+    const secs = safeSeconds % 60;
+    return `${minutes}분 ${secs.toString().padStart(2, '0')}초`;
+  };
+  const shouldShowElapsed =
+    status === 'queued'
+    || status === 'loading'
+    || status === 'cancelling'
+    || (status === 'complete' && elapsedSeconds >= 0);
+  const progressSteps = [
+    { key: 'queued', label: '데이터 수집' },
+    { key: 'loading', label: 'LangGraph 분석' },
+    { key: 'complete', label: '리포트 요약' },
+  ];
+  const progressIndex = (() => {
+    if (status === 'complete') return 2;
+    if (status === 'loading' || status === 'cancelling') return 1;
+    if (status === 'queued') return 0;
+    if (status === 'error' || status === 'cancelled') return hasResults ? 2 : -1;
+    return hasResults ? 0 : -1;
+  })();
+  const statusMetaMap = {
+    idle: {
+      title: '시뮬레이션 준비 필요',
+      message: '검색 후 자동으로 상위 후보가 선택됩니다.',
+      tone: 'neutral',
+      icon: '🛈',
+    },
+    queued: {
+      title: '데이터를 불러오는 중',
+      message: 'KIPRIS 의견서와 거절결정서를 수집하고 있습니다.',
+      tone: 'waiting',
+      icon: '⏳',
+    },
+    loading: {
+      title: 'LangGraph 에이전트 실행 중',
+      message: '심사관↔출원인 대화를 시뮬레이션하고 점수를 계산하는 중입니다.',
+      tone: 'running',
+      icon: '⚙️',
+    },
+    cancelling: {
+      title: '취소 처리 중',
+      message: '백엔드 작업을 중단하고 있습니다.',
+      tone: 'warning',
+      icon: '⏹',
+    },
+    complete: {
+      title: '결과가 준비되었습니다',
+      message: '아래 요약과 후보별 세부 정보를 확인하세요.',
+      tone: 'complete',
+      icon: '✅',
+    },
+    error: {
+      title: '시뮬레이션에 실패했습니다',
+      message: '',
+      tone: 'danger',
+      icon: '⚠️',
+    },
+    cancelled: {
+      title: '시뮬레이션이 취소되었습니다',
+      message: '필요 시 다시 실행해 주세요.',
+      tone: 'warning',
+      icon: '⚠️',
+    },
+  };
+  const currentStatus = statusMetaMap[status] || statusMetaMap.idle;
+  const statusMessage = status === 'error'
+    ? (error || '잠시 후 다시 시도해 주세요.')
+    : currentStatus.message;
+  const statusContent = (
+    <div className={`simulation-panel__status-card simulation-panel__status-card--${currentStatus.tone}`}>
+      <div className="simulation-panel__status-head">
+        <span className="simulation-panel__status-icon" aria-hidden="true">{currentStatus.icon}</span>
+        <div>
+          <p className="simulation-panel__status-title">{currentStatus.title}</p>
+          <p className="simulation-panel__status-text">{statusMessage}</p>
+        </div>
       </div>
-    );
-  } else if (status === 'loading') {
-    statusContent = (
-      <div className="simulation-panel__status">
-        <p>시뮬레이션을 준비하고 있습니다…</p>
-        <small>조금만 기다려 주세요.</small>
-      </div>
-    );
-  } else if (status === 'error') {
-    statusContent = (
-      <div className="simulation-panel__status simulation-panel__status--error">
-        <p>시뮬레이션에 실패했습니다.</p>
-        <small>{error || '잠시 후 다시 시도해 주세요.'}</small>
-      </div>
-    );
-  } else if (status === 'complete' && result) {
-    statusContent = (
-      <div className="simulation-panel__status simulation-panel__status--complete">
-        <p dangerouslySetInnerHTML={renderMarkdown(result.summary_text)} />
-        <small>
-          평균 충돌 위험 {Number(result.avg_conflict_score ?? 0).toFixed(1)}점 · 평균 등록 가능성
-          {' '}
-          {Number(result.avg_register_score).toFixed(1)}점 · 높은 위험 {result.high_risk}건
-        </small>
-        <ul className="simulation-panel__list">
-          {result.candidates.slice(0, 3).map((item) => (
-            <li key={`sim-${item.application_number}-${item.variant}`}>
-              <div>
-                <strong>{item.title}</strong>
-                <span className="simulation-panel__list-meta">({item.application_number})</span>
-              </div>
-              <div className="simulation-panel__list-score">
-                충돌 {item.conflict_score}점 · 등록 {item.register_score}점
-              </div>
-              {item.agent_summary ? (
-                <p
-                  className="simulation-panel__list-summary"
-                  dangerouslySetInnerHTML={renderMarkdown(item.agent_summary)}
-                />
-              ) : (
-                item.notes.slice(0, 1).map((note, idx) => (
-                  <p key={`note-${item.application_number}-${idx}`}>{note}</p>
-                ))
-              )}
-              {item.agent_risk && (
-                <p
-                  className="simulation-panel__list-risk"
-                  dangerouslySetInnerHTML={renderMarkdown(item.agent_risk)}
-                />
-              )}
-              {item.transcript?.length ? (
-                <details className="simulation-panel__transcript">
-                  <summary>대화 기록</summary>
-                  <ul>
-                    {item.transcript.slice(0, 4).map((line, idx) => (
-                      <li
-                        key={`transcript-${item.application_number}-${idx}`}
-                        dangerouslySetInnerHTML={renderMarkdown(line)}
-                      />
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
+      {shouldShowElapsed && (
+        <span className="simulation-panel__elapsed">경과 시간 {formatElapsed(elapsedSeconds)}</span>
+      )}
+    </div>
+  );
+  const guidanceBlock = (
+    <div className="simulation-panel__instructions">
+      <p>
+        AI Agent가 KIPRIS 의견제출통지서·거절결정서를 참고해 충돌 위험과 등록 가능성을 추정합니다.
+      </p>
+      <ul>
+        <li>이미지/텍스트 상위 5건이 기본 선택되며 최대 {maxSelection}건까지 확장할 수 있습니다.</li>
+        <li>“시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.</li>
+        <li>완료 시 후보별 Markdown 요약과 LLM 근거, 대화 로그가 제공됩니다.</li>
+      </ul>
+    </div>
+  );
+  const variantLabels = { image: '이미지', text: '텍스트' };
 
   return (
     <aside className={panelClass} aria-label="상표 등록 가능성 시뮬레이션">
       <div className="simulation-panel__header">
         <p className="simulation-panel__tag">AI Agent</p>
         <h3>상표 등록 가능성 시뮬레이션</h3>
+        <p className="simulation-panel__model" aria-live="polite">
+          사용 모델: {modelName || '불러오는 중...'}
+        </p>
       </div>
       <p className="simulation-panel__description">
         {hasResults
-          ? '기본 설정: 이미지 상위 5건 + 텍스트 상위 5건이 자동으로 선택됩니다. 체크박스로 최대 40건까지 조정할 수 있습니다.'
-          : '검색을 실행하면 위험도가 높은 후보 10건을 자동으로 선택해 시뮬레이션을 준비합니다.'}
+          ? '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.'
+          : '검색을 먼저 실행하면 위험도가 높은 후보 10건을 자동으로 선택해줍니다.'}
       </p>
-      <ul className="simulation-panel__summary">
-        <li>선택된 이미지 후보 <strong>{imageCount}</strong>건</li>
-        <li>선택된 텍스트 후보 <strong>{textCount}</strong>건</li>
-        <li>총 <strong>{totalCount}</strong> / {maxSelection}</li>
-      </ul>
-      {result && status === 'complete' && (
-        <div className="simulation-panel__metrics">
-          <span>평균 충돌 위험 <strong>{Number(result.avg_conflict_score ?? 0).toFixed(1)}</strong>점</span>
-          <span>평균 등록 가능성 <strong>{Number(result.avg_register_score ?? 0).toFixed(1)}</strong>점</span>
+      <div className="simulation-panel__progress" aria-hidden={progressIndex < 0}>
+        {progressSteps.map((step, idx) => {
+          const stepClass = [
+            'simulation-panel__progress-step',
+            idx <= progressIndex ? 'is-active' : '',
+            idx < progressIndex ? 'is-complete' : '',
+          ].filter(Boolean).join(' ');
+          return (
+            <div key={step.key} className={stepClass}>
+              <span className="simulation-panel__progress-dot" />
+              <span className="simulation-panel__progress-label">{step.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      {statusContent}
+      {hasResults ? (
+        <div className="simulation-panel__summary-grid">
+          <div className="simulation-panel__summary-card">
+            <p>이미지 후보</p>
+            <strong>{imageCount}</strong>
+          </div>
+          <div className="simulation-panel__summary-card">
+            <p>텍스트 후보</p>
+            <strong>{textCount}</strong>
+          </div>
+          <div className="simulation-panel__summary-card">
+            <p>총 선택 수</p>
+            <strong>{totalCount} / {maxSelection}</strong>
+          </div>
+        </div>
+      ) : guidanceBlock}
+      {status !== 'loading' && status !== 'queued' && status !== 'cancelling' && (
+        <div className="simulation-panel__actions">
+          <button
+            type="button"
+            className="btn-primary simulation-panel__button"
+            onClick={() => onRun?.(false)}
+            disabled={buttonDisabled}
+          >
+            시뮬레이션 실행
+          </button>
+          <button
+            type="button"
+            className="btn-debug simulation-panel__button"
+            onClick={() => onRun?.(true)}
+            disabled={buttonDisabled}
+          >
+            시뮬레이션 실행(디버그)
+          </button>
         </div>
       )}
-      {status !== 'loading' && status !== 'queued' && (
+      {((status === 'queued' || status === 'loading' || status === 'cancelling') && canCancel) && (
         <button
           type="button"
-          className="btn-primary simulation-panel__button"
-          onClick={onRun}
-          disabled={buttonDisabled}
+          className="btn-outline simulation-panel__button"
+          onClick={onCancel}
         >
-          시뮬레이션 실행
+          실행 취소
         </button>
       )}
       <div className="simulation-panel__body">
-        {statusContent}
+        {result && status === 'complete' ? (
+          <>
+            <div className="simulation-panel__result-card">
+              <div className="simulation-panel__result-header">
+                <div>
+                  <h4>최종 요약</h4>
+                  <p className="simulation-panel__result-sub">AI Agent가 종합한 Markdown 리포트입니다.</p>
+                </div>
+                <div className="simulation-panel__result-metrics">
+                  <div className="simulation-panel__metric-pill is-risk">
+                    <span>평균 충돌 위험도</span>
+                    <strong>{Number(result.avg_conflict_score ?? 0).toFixed(1)}%</strong>
+                  </div>
+                  <div className="simulation-panel__metric-pill is-safe">
+                    <span>평균 등록 가능성</span>
+                    <strong>{Number(result.avg_register_score ?? 0).toFixed(1)}%</strong>
+                  </div>
+                  <div className="simulation-panel__metric-pill is-neutral">
+                    <span>높은 위험</span>
+                    <strong>{result.high_risk}건</strong>
+                  </div>
+                </div>
+              </div>
+              <MarkdownBlock
+                className="markdown-block--panel"
+                text={result.overall_report || result.summary_text}
+              />
+            </div>
+            <div className="simulation-panel__divider" />
+            <h4 className="simulation-panel__section-title">후보별 상세 분석</h4>
+            <ul className="simulation-panel__list">
+              {result.candidates.map((item) => (
+                <li key={`sim-${item.application_number}-${item.variant}`}>
+                  <details className="simulation-panel__case">
+                    <summary>
+                      <div className="simulation-panel__case-heading">
+                        <div>
+                          <span className={`simulation-panel__variant-badge simulation-panel__variant-badge--${item.variant}`}>
+                            {variantLabels[item.variant] || item.variant}
+                          </span>
+                          <strong>{item.title}</strong>
+                          <span className="simulation-panel__list-meta">{item.application_number}</span>
+                        </div>
+                        <div className="simulation-panel__score-pills">
+                          <span className="simulation-panel__score-pill is-risk">
+                            <label>충돌 위험</label>
+                            <strong>{item.conflict_score?.toFixed ? item.conflict_score.toFixed(1) : item.conflict_score}%</strong>
+                          </span>
+                          <span className="simulation-panel__score-pill is-safe">
+                            <label>등록 가능</label>
+                            <strong>{item.register_score?.toFixed ? item.register_score.toFixed(1) : item.register_score}%</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </summary>
+                    <div className="simulation-panel__case-body">
+                      <div className="simulation-panel__score-details">
+                        <div>
+                          <span>휴리스틱</span>
+                          <strong>
+                            {item.heuristic_conflict_score?.toFixed ? item.heuristic_conflict_score.toFixed(1) : item.heuristic_conflict_score}%
+                          </strong>
+                          <strong>
+                            {item.heuristic_register_score?.toFixed ? item.heuristic_register_score.toFixed(1) : item.heuristic_register_score}%
+                          </strong>
+                        </div>
+                        <div>
+                          <span>LLM</span>
+                          <strong>
+                            {item.llm_conflict_score?.toFixed ? item.llm_conflict_score.toFixed(1) : item.llm_conflict_score}%
+                          </strong>
+                          <strong>
+                            {item.llm_register_score?.toFixed ? item.llm_register_score.toFixed(1) : item.llm_register_score}%
+                          </strong>
+                        </div>
+                      </div>
+                      {item.reporter_markdown ? (
+                        <MarkdownBlock
+                          className="markdown-block--panel"
+                          text={item.reporter_markdown}
+                        />
+                      ) : item.agent_summary ? (
+                        <MarkdownBlock
+                          className="markdown-block--panel"
+                          text={item.agent_summary}
+                        />
+                      ) : null}
+                      {item.agent_risk && (
+                        <MarkdownBlock
+                          className="markdown-block--panel markdown-block--accent"
+                          text={item.agent_risk}
+                        />
+                      )}
+                      {item.llm_rationale && (
+                        <div className="simulation-panel__rationale">
+                          <p className="simulation-panel__section-label">LLM 근거</p>
+                          <MarkdownBlock
+                            className="markdown-block--panel"
+                            text={item.llm_rationale}
+                          />
+                        </div>
+                      )}
+                      {item.llm_factors?.length ? (
+                        <div className="simulation-panel__rationale">
+                          <p className="simulation-panel__section-label">참고 요소</p>
+                          <ul className="simulation-panel__factor-list">
+                            {item.llm_factors.slice(0, 4).map((factor, idx) => (
+                              <li key={`factor-${item.application_number}-${idx}`}>{factor}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {item.transcript?.length ? (
+                        <details className="simulation-panel__transcript">
+                          <summary>대화 기록 (상위 4턴)</summary>
+                          <ul>
+                            {item.transcript.slice(0, 4).map((line, idx) => (
+                              <li
+                                key={`transcript-${item.application_number}-${idx}`}
+                                dangerouslySetInnerHTML={renderMarkdown(line)}
+                              />
+                            ))}
+                          </ul>
+                        </details>
+                      ) : null}
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : status === 'complete' ? (
+          <p className="simulation-panel__placeholder">결과를 불러오는 중입니다.</p>
+        ) : null}
       </div>
     </aside>
   );
@@ -770,7 +983,61 @@ function App() {
   const [simulationResult, setSimulationResult] = useState(null);
   const [simulationJobId, setSimulationJobId] = useState(null);
   const [simulationError, setSimulationError] = useState('');
+  const [simulationStartTime, setSimulationStartTime] = useState(null);
+  const [simulationElapsed, setSimulationElapsed] = useState(0);
+  const [simulationModel, setSimulationModel] = useState('');
   const simulationEventRef = useRef(null);
+
+  useEffect(() => {
+    let ignore = false;
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/simulation/config');
+        if (!res.ok) {
+          throw new Error('failed');
+        }
+        const data = await res.json();
+        if (!ignore) {
+          setSimulationModel(data?.model_name || '');
+        }
+      } catch (err) {
+        if (!ignore) {
+          setSimulationModel('');
+        }
+      }
+    };
+    fetchConfig();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const isProcessing = simulationStatus === 'queued' || simulationStatus === 'loading';
+    let timer = null;
+    if (isProcessing) {
+      const baseStart = simulationStartTime ?? Date.now();
+      if (simulationStartTime === null) {
+        setSimulationStartTime(baseStart);
+        setSimulationElapsed(0);
+      } else {
+        setSimulationElapsed(Math.floor((Date.now() - baseStart) / 1000));
+      }
+      timer = window.setInterval(() => {
+        setSimulationElapsed(Math.floor((Date.now() - (simulationStartTime ?? baseStart)) / 1000));
+      }, 1000);
+    } else if (
+      simulationStartTime !== null
+      && (simulationStatus === 'complete' || simulationStatus === 'error')
+    ) {
+      setSimulationElapsed(Math.floor((Date.now() - simulationStartTime) / 1000));
+    }
+    return () => {
+      if (timer) {
+        window.clearInterval(timer);
+      }
+    };
+  }, [simulationStatus, simulationStartTime]);
 
   const toggleGroup = ({ checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
@@ -833,6 +1100,8 @@ function App() {
         setSimulationResult(null);
         setSimulationJobId(null);
         setSimulationError('');
+        setSimulationStartTime(null);
+        setSimulationElapsed(0);
         closeSimulationStream();
       }
       setPlaceholderNotice('');
@@ -859,6 +1128,14 @@ function App() {
     window.setTimeout(() => dropzone.classList.remove('dropzone--pulse'), 1200);
   };
 
+  const focusGoodsPanel = () => {
+    const panel = document.querySelector('.goods-panel');
+    if (!panel) return;
+    panel.classList.add('goods-panel--pulse');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => panel.classList.remove('goods-panel--pulse'), 1200);
+  };
+
   const selectedImageCount = Object.keys(simulationSelection.image || {}).length;
   const selectedTextCount = Object.keys(simulationSelection.text || {}).length;
   const totalSimulationSelected = selectedImageCount + selectedTextCount;
@@ -876,6 +1153,24 @@ function App() {
     const images = mapItems(simulationSelection.image, 'image');
     const texts = mapItems(simulationSelection.text, 'text');
     return [...images, ...texts];
+  };
+
+  const buildSelectedGoodsNames = () => {
+    const rows = [];
+    Object.values(selectedGroups || {}).forEach((entry) => {
+      if (!entry || !Array.isArray(entry.names) || entry.names.length === 0) {
+        return;
+      }
+      const cleanedNames = entry.names
+        .map((name) => (typeof name === 'string' ? name.trim() : ''))
+        .filter(Boolean);
+      if (!cleanedNames.length) {
+        return;
+      }
+      const prefix = entry.groupCode ? `(${entry.groupCode}) ` : '';
+      rows.push(`${prefix}${cleanedNames.join(', ')}`);
+    });
+    return rows;
   };
 
   const closeSimulationStream = () => {
@@ -907,6 +1202,12 @@ function App() {
           setSimulationStatus('error');
           setSimulationError(data.error || '시뮬레이션에 실패했습니다.');
           setSimulationJobId(null);
+          closeSimulationStream();
+        } else if (status === 'cancelled') {
+          setSimulationStatus('cancelled');
+          setSimulationResult(data.result || null);
+          setSimulationJobId(null);
+          setSimulationError('사용자가 시뮬레이션을 취소했습니다.');
           closeSimulationStream();
         } else if (status === 'not_found') {
           setSimulationStatus('error');
@@ -958,10 +1259,12 @@ function App() {
     setSimulationResult(null);
     setSimulationJobId(null);
     setSimulationError('');
+    setSimulationStartTime(null);
+    setSimulationElapsed(0);
     closeSimulationStream();
   };
 
-  const handleSimulationRun = async () => {
+  const handleSimulationRun = async (debug = false) => {
     if (!response) {
       alert('먼저 검색을 실행해 주세요.');
       return;
@@ -976,7 +1279,16 @@ function App() {
       setSimulationResult(null);
       setSimulationError('');
       setSimulationJobId(null);
-      const payload = { selections: buildSimulationSelections() };
+      setSimulationStartTime(Date.now());
+      setSimulationElapsed(0);
+      const payload = {
+        selections: buildSimulationSelections(),
+        debug,
+        query_title: (response?.query?.text ?? title ?? '').trim() || null,
+        user_goods_classes: response?.query?.goods_classes || [],
+        user_group_codes: response?.query?.group_codes || [],
+        user_goods_names: buildSelectedGoodsNames(),
+      };
       const res = await fetch('/simulation/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -998,6 +1310,24 @@ function App() {
     }
   };
 
+  const handleSimulationCancel = async () => {
+    if (!simulationJobId) {
+      return;
+    }
+    try {
+      setSimulationStatus('cancelling');
+      const res = await fetch(`/simulation/cancel/${simulationJobId}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setSimulationError('시뮬레이션 취소 중 오류가 발생했습니다.');
+    }
+  };
+
   useEffect(() => () => closeSimulationStream(), []);
 
   const executeSearch = async (debug = false) => {
@@ -1005,6 +1335,11 @@ function App() {
       setPlaceholderNotice('이미지를 먼저 선택하고 검색을 실행해 주세요.');
       setError('');
       focusImageUploader();
+      return;
+    }
+    if (selectedGroupCodes.length === 0) {
+      setPlaceholderNotice('상품/서비스류를 선택해 주세요.');
+      focusGoodsPanel();
       return;
     }
     try {
@@ -1152,7 +1487,8 @@ function App() {
   };
 
   return (
-    <>
+    <div className="app-shell">
+      <div className="search-column">
       <section className="hero">
         <img className="logo" src="/logo-tradar.png" alt="T-RADAR" />
         <div className="hero-text">
@@ -1203,10 +1539,9 @@ function App() {
         <h2>검색 결과</h2>
         {error && <p role="alert">{error}</p>}
         <div className="search-results__body">
-          <div className="results-layout">
-            <div className="results-main">
-              {response ? (
-                <>
+          <div className="results-main">
+            {response ? (
+              <>
               <p className="query-summary">
                 Top-{response.query?.k || 0} · 상표명 {response.query?.text || '미입력'} · 선택 류 {(response.query?.goods_classes || []).join(', ') || '없음'} · 유사군 {(response.query?.group_codes || []).join(', ') || '없음'}
               </p>
@@ -1352,41 +1687,37 @@ function App() {
                 </div>
               </form>
               <DebugPanel debug={response.debug} />
-                </>
-              ) : (
-                <div className="search-placeholder">
+              </>
+            ) : (
+              <div className="search-placeholder">
               <div className={`search-placeholder__card ${placeholderNotice ? 'is-alert' : ''}`}>
-                <h3>{placeholderNotice ? '이미지 업로드가 필요합니다' : '검색을 시작해 주세요'}</h3>
+                <h3>
+                  {placeholderNotice === '상품/서비스류를 선택해 주세요.'
+                    ? '상품/서비스류 선택이 필요합니다'
+                    : placeholderNotice ? '이미지 업로드가 필요합니다' : '검색을 시작해 주세요'}
+                </h3>
                 <p>
-                  {placeholderNotice || '이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.'}
+                  {placeholderNotice
+                    || '이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.'}
                 </p>
                 {placeholderNotice && (
                   <button
                     type="button"
                     className="placeholder-action"
-                    onClick={focusImageUploader}
+                    onClick={
+                      placeholderNotice === '상품/서비스류를 선택해 주세요.'
+                        ? focusGoodsPanel
+                        : focusImageUploader
+                    }
                   >
-                    이미지 선택하러 가기
+                    {placeholderNotice === '상품/서비스류를 선택해 주세요.'
+                      ? '상품/서비스류 선택하러 가기'
+                      : '이미지 선택하러 가기'}
                   </button>
                 )}
               </div>
-                </div>
-              )}
-            </div>
-            <div className="simulation-panel-slot">
-            <SimulationPanel
-              hasResults={Boolean(response)}
-              imageCount={selectedImageCount}
-              textCount={selectedTextCount}
-              totalCount={totalSimulationSelected}
-              maxSelection={SIMULATION_MAX_SELECTION}
-              status={simulationStatus}
-              onRun={handleSimulationRun}
-              result={simulationResult}
-              error={simulationError}
-              docked
-            />
-          </div>
+              </div>
+            )}
           </div>
           {loading && (
             <div className="search-overlay">
@@ -1395,7 +1726,28 @@ function App() {
           )}
         </div>
       </section>
-    </>
+      </div>
+      <div className="simulation-column">
+        <SimulationPanel
+          hasResults={Boolean(response)}
+          imageCount={selectedImageCount}
+          textCount={selectedTextCount}
+          totalCount={totalSimulationSelected}
+          maxSelection={SIMULATION_MAX_SELECTION}
+          status={simulationStatus}
+          onRun={handleSimulationRun}
+          onCancel={handleSimulationCancel}
+          canCancel={Boolean(
+            simulationJobId && ['queued', 'loading', 'cancelling'].includes(simulationStatus)
+          )}
+          result={simulationResult}
+          error={simulationError}
+          elapsedSeconds={simulationElapsed}
+          modelName={simulationModel}
+          docked
+        />
+      </div>
+    </div>
   );
 }
 
