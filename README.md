@@ -9,6 +9,7 @@
 - **OpenSearch**: BM25 텍스트 후보 확장, 재검색 프롬프트 필터링
 - **PyTorch 백엔드**: MetaCLIP2 · DINOv2 임베딩 생성 (CUDA/CPU 선택)
 - **LLM 보조 기능**: 상표명 유사어·프롬프트 해석(선택)으로 검색 보정
+- **AI Agent 시뮬레이션**: KIPRIS REST API + LangGraph 기반 에이전트가 등록 가능성과 충돌 위험을 분석
 
 전체 플로우와 운영 가이드는 [`README_dev.md`](README_dev.md)에 상세히 정리되어 있습니다.
 
@@ -36,6 +37,24 @@ python scripts/vector_db_prepare_text_only.py --metadata data/trademarks_append.
 3. 이미지/텍스트 결과를 각각 Top-K로 노출하고, 디버그 패널에서 후보별 점수와 프롬프트 메시지를 확인
 
 LLM 기반 유사어와 프롬프트 해석은 UI 토글로 온/오프할 수 있으며, 모든 동작은 `markdown/search-pipeline.md`에 그림과 함께 설명되어 있습니다.
+
+## AI Agent 기반 등록 가능성 시뮬레이션
+
+검색 결과 카드에서 기본으로 선택된 이미지/텍스트 상위 5건(최대 40건까지 조정 가능)을 기준으로 다음 단계를 수행합니다.
+
+1. 선택된 출원번호를 이용해 KIPRIS REST API(의견제출통지서/거절결정서, 추가 거절 내용, 이미지 등)를 호출합니다.
+2. 수집된 문서 내용을 정규화한 뒤 LangGraph 위에 구성한 `심사관 → 출원인 → 심사관 재응답 → 리포터 → 채점자` 에이전트 체인에 전달합니다.
+3. 에이전트가 생성한 대화/요약/위험 평가와 유사도 기반 점수를 조합해 `/simulation/run` API 응답을 구성하고, 프런트엔드 패널에서 요약/상세 정보를 보여 줍니다.
+4. `/simulation/run`은 비동기 작업을 생성해 `job_id`를 반환하며, 프런트엔드는 `/simulation/stream/{job_id}`(SSE) 또는 `/simulation/status/{job_id}`로 완료 여부와 결과를 확인합니다.
+
+### 필요한 환경 변수
+
+- `KIPRIS_ACCESS_KEY`: KIPRIS IntermediateDocument REST API 키
+- `OPENAI_API_KEY`: LangGraph 에이전트가 사용할 LLM 키 (기본 `gpt-4o-mini`)
+- `SIMULATION_LLM_MODEL`, `SIMULATION_LLM_TEMPERATURE` (선택): 에이전트 모델/온도 조정
+- 시뮬레이션은 백그라운드로 실행되므로, 브라우저는 상태 조회 API를 통해 진행 상황을 확인합니다.
+
+상세 플로우와 사용 방법은 [`README_dev.md`](README_dev.md)와 [`markdown/agent_simulation.md`](markdown/agent_simulation.md)에 정리되어 있습니다.
 
 ## 문서 모음
 

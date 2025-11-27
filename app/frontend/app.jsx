@@ -3,6 +3,27 @@ const { useState, useMemo, useRef, useEffect } = React;
 const GOODS_LIMIT = 10;
 const RESULT_PAGE_SIZE = 20;
 const RESULT_LIMIT = 200;
+const SIMULATION_DEFAULT_PER_VARIANT = 5;
+const SIMULATION_MAX_SELECTION = 40;
+
+const getResultKey = (item) => (
+  item?.application_number
+  ?? item?.applicationNumber
+  ?? item?.trademark_id
+  ?? item?.app_no
+  ?? item?.id
+);
+
+const buildSelectionMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) => {
+  const map = {};
+  items.slice(0, limit).forEach((item) => {
+    const key = getResultKey(item);
+    if (key) {
+      map[key] = item;
+    }
+  });
+  return map;
+};
 
 const cloneDeep = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
 
@@ -21,6 +42,14 @@ const TEXT_BLEND_OPTIONS = [
   { value: 'prompt_focus', label: '프롬프트 우선', helper: '원문 30% · 프롬프트 70%' },
   { value: 'prompt_strong', label: '프롬프트 최우선', helper: '원문 10% · 프롬프트 90%' },
 ];
+
+const renderMarkdown = (text) => {
+  if (!text) return { __html: '' };
+  if (window.marked && typeof window.marked.parse === 'function') {
+    return { __html: window.marked.parse(text) };
+  }
+  return { __html: text.replace(/\n/g, '<br />') };
+};
 
 function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, selectedGroups }) {
   const hasGroups = classItem.groups && classItem.groups.length > 0;
@@ -245,14 +274,42 @@ function TrademarkSearchForm({
   );
 }
 
-function ResultCard({ item, variant }) {
+function ResultCard({
+  item,
+  variant,
+  selectable = false,
+  checked = false,
+  onToggleSelection,
+  canSelectMore = true,
+  highlighted = false,
+}) {
   const status = (item.status || '').trim();
   const statusClass = STATUS_MAP[status.toLowerCase()] || 'status-default';
   const simLabel = variant === 'image' ? '이미지 유사도' : '텍스트 유사도';
   const simValue = variant === 'image' ? item.image_sim : item.text_sim;
+  const showSelector = selectable && typeof onToggleSelection === 'function';
+  const disableToggle = showSelector && !checked && !canSelectMore;
+  const cardClass = ['result-card', highlighted ? 'is-highlighted' : ''].filter(Boolean).join(' ');
+  const handleImageClick = () => {
+    if (item.doi) {
+      window.open(item.doi, '_blank', 'noopener,noreferrer');
+    }
+  };
   return (
-    <article className="result-card">
-      <div className="result-card__thumb">
+    <article className={cardClass}>
+      <div
+        className={`result-card__thumb ${item.doi ? 'is-clickable' : ''}`}
+        role={item.doi ? 'button' : undefined}
+        tabIndex={item.doi ? 0 : undefined}
+        onClick={item.doi ? handleImageClick : undefined}
+        onKeyDown={(e) => {
+          if (item.doi && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            handleImageClick();
+          }
+        }}
+        aria-label={item.doi ? `${item.title} DOI로 이동` : undefined}
+      >
         {item.thumb_url ? (
           <img src={item.thumb_url} alt={`${item.title} 미리보기`} loading="lazy" />
         ) : (
@@ -270,15 +327,20 @@ function ResultCard({ item, variant }) {
           {item.class_codes?.length ? (
             <span className="meta-item" title={item.class_codes.join(', ')}>분류 {item.class_codes.join(', ')}</span>
           ) : <span className="meta-item">분류 정보 없음</span>}
-          {item.doi ? (
-            <a href={item.doi} className="meta-item meta-link" target="_blank" rel="noopener noreferrer">DOI 바로가기</a>
-          ) : (
-            <span className="meta-item">DOI 정보 없음</span>
-          )}
         </div>
         <div className="result-divider" />
-        <footer>
-          <span>{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
+        <footer className="result-card__footer">
+          <span className="result-card__sim-label">{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
+          {showSelector && (
+            <label className="result-card__select" aria-label="시뮬레이션 대상 선택">
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={disableToggle}
+                onChange={(e) => onToggleSelection?.(e.target.checked)}
+              />
+            </label>
+          )}
         </footer>
       </div>
     </article>
@@ -365,6 +427,12 @@ function ResultSection({
   page = 1,
   pageSize = RESULT_PAGE_SIZE,
   onPageChange,
+  selectable = false,
+  selectionMap = null,
+  onToggleSelection,
+  totalSelected = 0,
+  selectionLimit = SIMULATION_MAX_SELECTION,
+  highlightMap = null,
 }) {
   const hasVariants = Array.isArray(variants) && variants.length > 0;
   const overlayLabel = loadingLabel || '재검색 중…';
@@ -382,6 +450,9 @@ function ResultSection({
     <section className="results-section">
       <div className="results-section__header">
         <h3>{title}</h3>
+        {highlightMap && Object.keys(highlightMap).length > 0 && (
+          <span className="results-section__badge">가장 유사한 상위 5개 상표</span>
+        )}
         {hasVariants && (
           <p className="variants">LLM 유사어: {variants.join(', ')}</p>
         )}
@@ -390,7 +461,16 @@ function ResultSection({
         {visibleItems.length ? (
           <div className="results-grid">
             {visibleItems.map((item) => (
-              <ResultCard key={`${variant}-top-${item.trademark_id}`} item={item} variant={variant} />
+              <ResultCard
+                key={`${variant}-top-${item.trademark_id}`}
+                item={item}
+                variant={variant}
+                selectable={selectable}
+                checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
+                canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
+                onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
+                highlighted={Boolean(highlightMap && highlightMap[getResultKey(item)])}
+              />
             ))}
           </div>
         ) : (
@@ -401,7 +481,16 @@ function ResultSection({
             <h4>기타 (등록/공고 외)</h4>
             <div className="results-grid misc-grid">
               {misc.map((item) => (
-                <ResultCard key={`${variant}-misc-${item.trademark_id}`} item={item} variant={variant} />
+                <ResultCard
+                  key={`${variant}-misc-${item.trademark_id}`}
+                  item={item}
+                  variant={variant}
+                  selectable={selectable}
+                  checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
+                  canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
+                  onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
+                  highlighted={Boolean(highlightMap && highlightMap[getResultKey(item)])}
+                />
               ))}
             </div>
           </div>
@@ -416,6 +505,142 @@ function ResultSection({
         <Pagination current={safePage} total={totalPages} onChange={onPageChange} />
       )}
     </section>
+  );
+}
+
+function SimulationPanel({
+  hasResults,
+  imageCount,
+  textCount,
+  totalCount,
+  maxSelection,
+  status,
+  onRun,
+  result,
+  error,
+  docked = false,
+}) {
+  const isProcessing = status === 'queued' || status === 'loading';
+  const buttonDisabled = !hasResults || !totalCount || isProcessing;
+  const panelClass = [
+    'simulation-panel',
+    status === 'complete' ? 'is-expanded' : '',
+    docked ? 'simulation-panel--dock' : '',
+    hasResults ? 'is-visible' : 'is-hidden',
+  ].filter(Boolean).join(' ');
+  let statusContent = null;
+  if (status === 'queued') {
+    statusContent = (
+      <div className="simulation-panel__status">
+        <p>시뮬레이션 대기열에 등록했습니다…</p>
+        <small>잠시 후 자동으로 실행됩니다.</small>
+      </div>
+    );
+  } else if (status === 'loading') {
+    statusContent = (
+      <div className="simulation-panel__status">
+        <p>시뮬레이션을 준비하고 있습니다…</p>
+        <small>조금만 기다려 주세요.</small>
+      </div>
+    );
+  } else if (status === 'error') {
+    statusContent = (
+      <div className="simulation-panel__status simulation-panel__status--error">
+        <p>시뮬레이션에 실패했습니다.</p>
+        <small>{error || '잠시 후 다시 시도해 주세요.'}</small>
+      </div>
+    );
+  } else if (status === 'complete' && result) {
+    statusContent = (
+      <div className="simulation-panel__status simulation-panel__status--complete">
+        <p dangerouslySetInnerHTML={renderMarkdown(result.summary_text)} />
+        <small>
+          평균 충돌 위험 {Number(result.avg_conflict_score ?? 0).toFixed(1)}점 · 평균 등록 가능성
+          {' '}
+          {Number(result.avg_register_score).toFixed(1)}점 · 높은 위험 {result.high_risk}건
+        </small>
+        <ul className="simulation-panel__list">
+          {result.candidates.slice(0, 3).map((item) => (
+            <li key={`sim-${item.application_number}-${item.variant}`}>
+              <div>
+                <strong>{item.title}</strong>
+                <span className="simulation-panel__list-meta">({item.application_number})</span>
+              </div>
+              <div className="simulation-panel__list-score">
+                충돌 {item.conflict_score}점 · 등록 {item.register_score}점
+              </div>
+              {item.agent_summary ? (
+                <p
+                  className="simulation-panel__list-summary"
+                  dangerouslySetInnerHTML={renderMarkdown(item.agent_summary)}
+                />
+              ) : (
+                item.notes.slice(0, 1).map((note, idx) => (
+                  <p key={`note-${item.application_number}-${idx}`}>{note}</p>
+                ))
+              )}
+              {item.agent_risk && (
+                <p
+                  className="simulation-panel__list-risk"
+                  dangerouslySetInnerHTML={renderMarkdown(item.agent_risk)}
+                />
+              )}
+              {item.transcript?.length ? (
+                <details className="simulation-panel__transcript">
+                  <summary>대화 기록</summary>
+                  <ul>
+                    {item.transcript.slice(0, 4).map((line, idx) => (
+                      <li
+                        key={`transcript-${item.application_number}-${idx}`}
+                        dangerouslySetInnerHTML={renderMarkdown(line)}
+                      />
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <aside className={panelClass} aria-label="상표 등록 가능성 시뮬레이션">
+      <div className="simulation-panel__header">
+        <p className="simulation-panel__tag">AI Agent</p>
+        <h3>상표 등록 가능성 시뮬레이션</h3>
+      </div>
+      <p className="simulation-panel__description">
+        {hasResults
+          ? '기본 설정: 이미지 상위 5건 + 텍스트 상위 5건이 자동으로 선택됩니다. 체크박스로 최대 40건까지 조정할 수 있습니다.'
+          : '검색을 실행하면 위험도가 높은 후보 10건을 자동으로 선택해 시뮬레이션을 준비합니다.'}
+      </p>
+      <ul className="simulation-panel__summary">
+        <li>선택된 이미지 후보 <strong>{imageCount}</strong>건</li>
+        <li>선택된 텍스트 후보 <strong>{textCount}</strong>건</li>
+        <li>총 <strong>{totalCount}</strong> / {maxSelection}</li>
+      </ul>
+      {result && status === 'complete' && (
+        <div className="simulation-panel__metrics">
+          <span>평균 충돌 위험 <strong>{Number(result.avg_conflict_score ?? 0).toFixed(1)}</strong>점</span>
+          <span>평균 등록 가능성 <strong>{Number(result.avg_register_score ?? 0).toFixed(1)}</strong>점</span>
+        </div>
+      )}
+      {status !== 'loading' && status !== 'queued' && (
+        <button
+          type="button"
+          className="btn-primary simulation-panel__button"
+          onClick={onRun}
+          disabled={buttonDisabled}
+        >
+          시뮬레이션 실행
+        </button>
+      )}
+      <div className="simulation-panel__body">
+        {statusContent}
+      </div>
+    </aside>
   );
 }
 
@@ -539,6 +764,13 @@ function App() {
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
   const [pages, setPages] = useState({ image: 1, text: 1 });
   const [useLlmVariants, setUseLlmVariants] = useState(false);
+  const [simulationSelection, setSimulationSelection] = useState({ image: {}, text: {} });
+  const [simulationDefaults, setSimulationDefaults] = useState({ image: {}, text: {} });
+  const [simulationStatus, setSimulationStatus] = useState('idle');
+  const [simulationResult, setSimulationResult] = useState(null);
+  const [simulationJobId, setSimulationJobId] = useState(null);
+  const [simulationError, setSimulationError] = useState('');
+  const simulationEventRef = useRef(null);
 
   const toggleGroup = ({ checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
@@ -589,6 +821,19 @@ function App() {
       }
       if (targets.image && targets.text) {
         setBaseResponse(cloneDeep(data));
+        setSimulationSelection({
+          image: buildSelectionMap(data.image_top || []),
+          text: buildSelectionMap(data.text_top || []),
+        });
+        setSimulationDefaults({
+          image: buildHighlightMap(data.image_top || []),
+          text: buildHighlightMap(data.text_top || []),
+        });
+        setSimulationStatus('idle');
+        setSimulationResult(null);
+        setSimulationJobId(null);
+        setSimulationError('');
+        closeSimulationStream();
       }
       setPlaceholderNotice('');
     } catch (err) {
@@ -613,6 +858,147 @@ function App() {
     dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
     window.setTimeout(() => dropzone.classList.remove('dropzone--pulse'), 1200);
   };
+
+  const selectedImageCount = Object.keys(simulationSelection.image || {}).length;
+  const selectedTextCount = Object.keys(simulationSelection.text || {}).length;
+  const totalSimulationSelected = selectedImageCount + selectedTextCount;
+
+  const buildSimulationSelections = () => {
+    const mapItems = (items = {}, variant) => Object.values(items || {}).map((item) => ({
+      application_number: item.app_no,
+      title: item.title,
+      variant,
+      image_sim: item.image_sim,
+      text_sim: item.text_sim,
+      status: item.status,
+      class_codes: item.class_codes || [],
+    }));
+    const images = mapItems(simulationSelection.image, 'image');
+    const texts = mapItems(simulationSelection.text, 'text');
+    return [...images, ...texts];
+  };
+
+  const closeSimulationStream = () => {
+    if (simulationEventRef.current) {
+      simulationEventRef.current.close();
+      simulationEventRef.current = null;
+    }
+  };
+
+  const startSimulationStream = (jobId) => {
+    closeSimulationStream();
+    const source = new EventSource(`/simulation/stream/${jobId}`);
+    simulationEventRef.current = source;
+    source.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data || '{}');
+        const status = (data.status || '').toLowerCase();
+        if (status === 'pending' || status === 'queued') {
+          setSimulationStatus('queued');
+        } else if (status === 'running') {
+          setSimulationStatus('loading');
+        } else if (status === 'complete' && data.result) {
+          setSimulationStatus('complete');
+          setSimulationResult(data.result);
+          setSimulationJobId(null);
+          setSimulationError('');
+          closeSimulationStream();
+        } else if (status === 'failed') {
+          setSimulationStatus('error');
+          setSimulationError(data.error || '시뮬레이션에 실패했습니다.');
+          setSimulationJobId(null);
+          closeSimulationStream();
+        } else if (status === 'not_found') {
+          setSimulationStatus('error');
+          setSimulationError('작업을 찾을 수 없습니다.');
+          setSimulationJobId(null);
+          closeSimulationStream();
+        }
+      } catch (err) {
+        console.error(err);
+        setSimulationStatus('error');
+        setSimulationError('상태 스트림 처리 중 오류가 발생했습니다.');
+        setSimulationJobId(null);
+        closeSimulationStream();
+      }
+    };
+    source.onerror = () => {
+      setSimulationStatus('error');
+      setSimulationError('스트림 연결이 종료되었습니다.');
+      setSimulationJobId(null);
+      closeSimulationStream();
+    };
+  };
+
+  const toggleSimulationSelection = (variant, item, checked) => {
+    const key = getResultKey(item);
+    if (!key) return;
+    setSimulationSelection((prev) => {
+      const nextVariantMap = { ...(prev[variant] || {}) };
+      const otherVariantMap = prev[variant === 'image' ? 'text' : 'image'] || {};
+      if (checked) {
+        if (!nextVariantMap[key]) {
+          const total = Object.keys(nextVariantMap).length + Object.keys(otherVariantMap).length;
+          if (total >= SIMULATION_MAX_SELECTION) {
+            alert(`시뮬레이션에 포함할 상표는 최대 ${SIMULATION_MAX_SELECTION}개까지 가능합니다.`);
+            return prev;
+          }
+          nextVariantMap[key] = item;
+        }
+      } else if (nextVariantMap[key]) {
+        delete nextVariantMap[key];
+      }
+      const next = {
+        ...prev,
+        [variant]: nextVariantMap,
+      };
+      return next;
+    });
+    setSimulationStatus('idle');
+    setSimulationResult(null);
+    setSimulationJobId(null);
+    setSimulationError('');
+    closeSimulationStream();
+  };
+
+  const handleSimulationRun = async () => {
+    if (!response) {
+      alert('먼저 검색을 실행해 주세요.');
+      return;
+    }
+    if (!totalSimulationSelected) {
+      alert('시뮬레이션에 포함할 상표를 선택해 주세요.');
+      return;
+    }
+    try {
+      closeSimulationStream();
+      setSimulationStatus('queued');
+      setSimulationResult(null);
+      setSimulationError('');
+      setSimulationJobId(null);
+      const payload = { selections: buildSimulationSelections() };
+      const res = await fetch('/simulation/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (!data?.job_id) {
+        throw new Error('작업 ID를 받지 못했습니다.');
+      }
+      setSimulationJobId(data.job_id);
+      startSimulationStream(data.job_id);
+    } catch (err) {
+      console.error(err);
+      setSimulationStatus('error');
+      setSimulationError('시뮬레이션 실행 중 오류가 발생했습니다.');
+    }
+  };
+
+  useEffect(() => () => closeSimulationStream(), []);
 
   const executeSearch = async (debug = false) => {
     if (!imageFile) {
@@ -817,8 +1203,10 @@ function App() {
         <h2>검색 결과</h2>
         {error && <p role="alert">{error}</p>}
         <div className="search-results__body">
-          {response ? (
-            <>
+          <div className="results-layout">
+            <div className="results-main">
+              {response ? (
+                <>
               <p className="query-summary">
                 Top-{response.query?.k || 0} · 상표명 {response.query?.text || '미입력'} · 선택 류 {(response.query?.goods_classes || []).join(', ') || '없음'} · 유사군 {(response.query?.group_codes || []).join(', ') || '없음'}
               </p>
@@ -832,6 +1220,12 @@ function App() {
                 page={pages.image}
                 pageSize={RESULT_PAGE_SIZE}
                 onPageChange={(next) => setPages((prev) => ({ ...prev, image: next }))}
+                selectable
+                selectionMap={simulationSelection.image}
+                onToggleSelection={(item, checked) => toggleSimulationSelection('image', item, checked)}
+                totalSelected={totalSimulationSelected}
+                selectionLimit={SIMULATION_MAX_SELECTION}
+                highlightMap={simulationDefaults.image}
               />
               <form
                 className="prompt-panel"
@@ -897,6 +1291,12 @@ function App() {
                 page={pages.text}
                 pageSize={RESULT_PAGE_SIZE}
                 onPageChange={(next) => setPages((prev) => ({ ...prev, text: next }))}
+                selectable
+                selectionMap={simulationSelection.text}
+                onToggleSelection={(item, checked) => toggleSimulationSelection('text', item, checked)}
+                totalSelected={totalSimulationSelected}
+                selectionLimit={SIMULATION_MAX_SELECTION}
+                highlightMap={simulationDefaults.text}
               />
               <form
                 className="prompt-panel"
@@ -952,9 +1352,9 @@ function App() {
                 </div>
               </form>
               <DebugPanel debug={response.debug} />
-            </>
-          ) : (
-            <div className="search-placeholder">
+                </>
+              ) : (
+                <div className="search-placeholder">
               <div className={`search-placeholder__card ${placeholderNotice ? 'is-alert' : ''}`}>
                 <h3>{placeholderNotice ? '이미지 업로드가 필요합니다' : '검색을 시작해 주세요'}</h3>
                 <p>
@@ -970,8 +1370,24 @@ function App() {
                   </button>
                 )}
               </div>
+                </div>
+              )}
             </div>
-          )}
+            <div className="simulation-panel-slot">
+            <SimulationPanel
+              hasResults={Boolean(response)}
+              imageCount={selectedImageCount}
+              textCount={selectedTextCount}
+              totalCount={totalSimulationSelected}
+              maxSelection={SIMULATION_MAX_SELECTION}
+              status={simulationStatus}
+              onRun={handleSimulationRun}
+              result={simulationResult}
+              error={simulationError}
+              docked
+            />
+          </div>
+          </div>
           {loading && (
             <div className="search-overlay">
               <span>검색 중..</span>
@@ -998,3 +1414,13 @@ const STATUS_MAP = {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
+const buildHighlightMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) => {
+  const map = {};
+  items.slice(0, limit).forEach((item) => {
+    const key = getResultKey(item);
+    if (key) {
+      map[key] = true;
+    }
+  });
+  return map;
+};

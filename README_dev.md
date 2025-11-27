@@ -23,6 +23,26 @@
 - **OpenSearch**: BM25 텍스트 후보 확장을 담당합니다.
 - **OpenAI GPT-4o-mini**: 상표명 유사어를 생성합니다 (`TRADEMARK_LLM_ENABLED=true` 일 때).
 - **FastAPI**: `/search/multimodal`에서 이미지·텍스트 결과를 각각 Top-K로 반환합니다.
+- **LangGraph + KIPRIS REST**: `/simulation/run`에서 선택된 선행상표의 의견제출통지서/거절결정서를 호출하고 에이전트 기반으로 등록 가능성을 평가합니다.
+
+### 시뮬레이션 파이프라인 요약
+
+1. 프런트엔드에서 기본 이미지/텍스트 상위 5건(최대 40건) 출원번호를 `/simulation/run`으로 전송합니다.
+2. 백엔드는 `KIPRIS_ACCESS_KEY`로 IntermediateDocument OP/RE API를 호출하여 거절사유/추가사유/이미지/최종변동일자를 수집합니다.
+3. 수집된 텍스트를 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-4o-mini)로 대화/요약/위험 분석을 생성합니다.
+4. 유사도 기반 휴리스틱 점수와 에이전트 결과를 묶어 프런트엔드 패널에 요약과 상위 후보별 노트를 보여 줍니다. LangGraph 호출은 내부적으로 최대 4개 워커로 병렬 실행되어 지연을 줄입니다.
+
+### 비동기 처리
+
+- `/simulation/run`은 요청을 큐에 넣고 `job_id`를 반환합니다. FastAPI `BackgroundTasks`가 별도 스레드에서 KIPRIS 호출 → LangGraph 실행을 수행합니다.
+- 클라이언트는 `/simulation/stream/{job_id}` SSE 스트림 또는 `/simulation/status/{job_id}`를 통해 `pending/running/complete/failed` 상태와 결과(`SimulationResponse`)를 확인합니다.
+- 작업 정보는 메모리 내 `SimulationJobManager`가 관리하며, 서버 재시작 시 초기화되므로 장기 저장이 필요한 경우 외부 스토리지를 추가해야 합니다.
+
+필수 환경 변수:
+- `.env`에 `KIPRIS_ACCESS_KEY`, `OPENAI_API_KEY`를 설정하고 FastAPI가 자동으로 `load_dotenv()`로 읽어옵니다.
+- 선택적으로 `SIMULATION_LLM_MODEL`, `SIMULATION_LLM_TEMPERATURE`, `SIMULATION_LLM_TEMPERATURE`로 모델/온도를 조정할 수 있습니다.
+
+참고: 시뮬레이션 호출은 외부 REST API를 동기적으로 호출하므로, 한 번에 많은 상표를 선택하면 응답 시간이 길어질 수 있습니다. 네트워크 탭과 FastAPI 로그(`simulation` 로거)를 통해 진행 상황을 확인할 수 있습니다.
 
 ## 데이터 시딩
 
@@ -135,6 +155,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.
 - **백엔드 선택**: FastAPI와 모든 시딩/부팅 스크립트는 Torch 백엔드를 기본 사용합니다. 더미(해시) 백엔드는 제거되었으며, 모델이 없을 경우 스크립트가 즉시 실패합니다.
 - **임베딩 캐시**: `PIPELINE_EMBED_CACHE_SIZE`(기본 128) 환경 변수로 이미지·텍스트 임베딩 LRU 캐시 크기를 조절해 재검색 성능을 최적화할 수 있습니다.
+- **.env 로딩**: FastAPI 기동 시 `python-dotenv`가 프로젝트 루트의 `.env`를 자동 로드합니다. `KIPRIS_ACCESS_KEY`, `OPENAI_API_KEY` 등 시크릿은 이 파일에 정의하면 됩니다.
 
 ## 개발 지침
 
