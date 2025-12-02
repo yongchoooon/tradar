@@ -43,6 +43,7 @@ class SimulationEngine:
         self,
         request: SimulationRequest,
         cancel_checker: Optional[Callable[[], bool]] = None,
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> SimulationResponse:
         if not request.selections:
             raise ValueError("선택된 상표가 없습니다.")
@@ -56,9 +57,19 @@ class SimulationEngine:
         user_goods = list(getattr(request, "user_goods_classes", []) or [])
         user_groups = list(getattr(request, "user_group_codes", []) or [])
         user_goods_names = list(getattr(request, "user_goods_names", []) or [])
+        if progress_callback:
+            try:
+                progress_callback("collecting")
+            except Exception:  # pragma: no cover - defensive
+                pass
         doc_map = await self._gather_documents(trimmed)
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
+        if progress_callback:
+            try:
+                progress_callback("simulating")
+            except Exception:  # pragma: no cover - defensive
+                pass
         sem = asyncio.Semaphore(self.MAX_WORKERS)
 
         async def evaluate_with_limit(selection: SimulationSelection) -> SimulationCandidateResult:
@@ -373,5 +384,10 @@ _engine = SimulationEngine()
 async def run_simulation_async(
     request: SimulationRequest,
     cancel_checker: Optional[Callable[[], bool]] = None,
+    progress_callback: Optional[Callable[[str], None]] = None,
 ) -> SimulationResponse:
-    return await _engine.run(request, cancel_checker=cancel_checker)
+    return await _engine.run(
+        request,
+        cancel_checker=cancel_checker,
+        progress_callback=progress_callback,
+    )

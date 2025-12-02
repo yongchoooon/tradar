@@ -12,3 +12,5 @@ data/
 !app/data/
 logs/
 evaluation/
+
+node_modules/

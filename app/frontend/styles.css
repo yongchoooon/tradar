@@ -1269,6 +1269,8 @@ main.container {
   padding-left: 1.2rem;
   color: #4b5563;
   font-size: 0.88rem;
+  list-style: disc;
+  list-style-position: outside;
 }
 
 .simulation-panel__section-title {
@@ -1447,14 +1449,28 @@ main.container {
   margin: 0.6rem 0;
 }
 
+.markdown-block ul,
+.markdown-block ol {
+  padding-left: 1.25rem !important;
+  margin: 0.35rem 0 0.5rem 0.25rem;
+  list-style-position: outside !important;
+}
+
 .markdown-block ul {
-  padding-left: 1.1rem;
-  margin: 0.4rem 0;
-  list-style: disc;
+  list-style-type: disc !important;
+}
+
+.markdown-block ol {
+  list-style-type: decimal !important;
 }
 
 .markdown-block li {
   margin-bottom: 0.2rem;
+}
+
+.markdown-block li::marker {
+  color: var(--brand, #203a7b);
+  font-weight: 600;
 }
 
 .markdown-block--panel {

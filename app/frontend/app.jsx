@@ -1,4 +1,11 @@
-const { useState, useMemo, useRef, useEffect } = React;
+import React, { useState, useMemo, useRef, useEffect, Fragment } from 'https://esm.sh/react@18.2.0?dev';
+import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client?dev';
+import { unified } from 'https://esm.sh/unified@11.0.4?dev';
+import remarkParse from 'https://esm.sh/remark-parse@10.0.1?deps=unified@11.0.4';
+import remarkGfm from 'https://esm.sh/remark-gfm@3.0.1?deps=unified@11.0.4,remark-parse@10.0.1';
+import remarkRehype from 'https://esm.sh/remark-rehype@10.1.0?deps=unified@11.0.4';
+import rehypeReact from 'https://esm.sh/rehype-react@8.0.0?deps=unified@11.0.4,react@18.2.0';
+import * as jsxRuntime from 'https://esm.sh/react@18.2.0/jsx-runtime?dev';
 
 const GOODS_LIMIT = 10;
 const RESULT_PAGE_SIZE = 20;
@@ -27,6 +34,17 @@ const buildSelectionMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) =
 
 const cloneDeep = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
 
+const normalizeMarkdown = (value) => {
+  if (!value) return '';
+  const normalized = value
+    .replace(/\r\n/g, '\n')
+    .replace(/^([ \t]*)[·•▪◦‣⁃⦁●]\s+/gm, '$1- ');
+  return normalized
+    .split('\n')
+    .map((line) => line.replace(/^\s+/g, ''))
+    .join('\n');
+};
+
 const IMAGE_BLEND_OPTIONS = [
   { value: 'primary_strong', label: '이미지 최우선', helper: '이미지 90% · 프롬프트 10%' },
   { value: 'primary_focus', label: '이미지 우선', helper: '이미지 70% · 프롬프트 30%' },
@@ -43,23 +61,35 @@ const TEXT_BLEND_OPTIONS = [
   { value: 'prompt_strong', label: '프롬프트 최우선', helper: '원문 10% · 프롬프트 90%' },
 ];
 
-const renderMarkdown = (text) => {
-  if (!text) return { __html: '' };
-  if (window.marked && typeof window.marked.parse === 'function') {
-    return { __html: window.marked.parse(text) };
-  }
-  return { __html: text.replace(/\n/g, '<br />') };
-};
-
 function MarkdownBlock({ text, className }) {
+  const [content, setContent] = useState(null);
+
+  useEffect(() => {
+    if (!text) {
+      setContent(null);
+      return;
+    }
+    const normalized = normalizeMarkdown(text);
+    unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeReact, {
+        ...jsxRuntime,
+        Fragment,
+      })
+      .process(normalized)
+      .then((file) => {
+        setContent(file.result);
+      })
+      .catch(() => {
+        setContent(normalized);
+      });
+  }, [text]);
+
   if (!text) return null;
   const classes = ['markdown-block', className].filter(Boolean).join(' ');
-  return (
-    <div
-      className={classes}
-      dangerouslySetInnerHTML={renderMarkdown(text)}
-    />
-  );
+  return <div className={classes}>{content}</div>;
 }
 
 function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, selectedGroups }) {
@@ -535,7 +565,7 @@ function SimulationPanel({
   modelName = '',
   docked = false,
 }) {
-  const isProcessing = status === 'queued' || status === 'loading' || status === 'cancelling';
+  const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
     'simulation-panel',
@@ -550,22 +580,24 @@ function SimulationPanel({
     return `${minutes}분 ${secs.toString().padStart(2, '0')}초`;
   };
   const shouldShowElapsed =
-    status === 'queued'
-    || status === 'loading'
-    || status === 'cancelling'
+    ['collecting', 'loading', 'cancelling'].includes(status)
     || (status === 'complete' && elapsedSeconds >= 0);
   const progressSteps = [
-    { key: 'queued', label: '데이터 수집' },
+    { key: 'collecting', label: '데이터를 불러오는 중' },
     { key: 'loading', label: 'LangGraph 분석' },
-    { key: 'complete', label: '리포트 요약' },
+    { key: 'complete', label: '요약 완료' },
   ];
-  const progressIndex = (() => {
-    if (status === 'complete') return 2;
-    if (status === 'loading' || status === 'cancelling') return 1;
-    if (status === 'queued') return 0;
-    if (status === 'error' || status === 'cancelled') return hasResults ? 2 : -1;
-    return hasResults ? 0 : -1;
-  })();
+  const stepOrder = progressSteps.map((step) => step.key);
+  let progressIndex = stepOrder.indexOf(status);
+  if (progressIndex < 0) {
+    if (status === 'cancelling') {
+      progressIndex = stepOrder.indexOf('collecting');
+    } else if (['error', 'cancelled'].includes(status)) {
+      progressIndex = stepOrder.indexOf('loading');
+    } else if (hasResults) {
+      progressIndex = 0;
+    }
+  }
   const statusMetaMap = {
     idle: {
       title: '시뮬레이션 준비 필요',
@@ -573,15 +605,15 @@ function SimulationPanel({
       tone: 'neutral',
       icon: '🛈',
     },
-    queued: {
+    collecting: {
       title: '데이터를 불러오는 중',
-      message: 'KIPRIS 의견서와 거절결정서를 수집하고 있습니다.',
+      message: 'KIPRIS 의견제출통지서와 거절결정서를 수집·정리하는 단계입니다.',
       tone: 'waiting',
-      icon: '⏳',
+      icon: '📄',
     },
     loading: {
       title: 'LangGraph 에이전트 실행 중',
-      message: '심사관↔출원인 대화를 시뮬레이션하고 점수를 계산하는 중입니다.',
+      message: '수집된 자료를 바탕으로 에이전트 시뮬레이션이 진행 중입니다.',
       tone: 'running',
       icon: '⚙️',
     },
@@ -628,17 +660,18 @@ function SimulationPanel({
       )}
     </div>
   );
+  const guidanceMarkdown = [
+    'AI Agent가 KIPRIS 의견제출통지서·거절결정서를 참고해 충돌 위험과 등록 가능성을 추정합니다.',
+    '',
+    `- 이미지/텍스트 상위 5건이 기본 선택되며 최대 ${maxSelection}건까지 확장할 수 있습니다.`,
+    '- “시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.',
+    '- 완료 시 후보별 Markdown 요약과 LLM 근거, 대화 로그가 제공됩니다.',
+  ].join('\n');
   const guidanceBlock = (
-    <div className="simulation-panel__instructions">
-      <p>
-        AI Agent가 KIPRIS 의견제출통지서·거절결정서를 참고해 충돌 위험과 등록 가능성을 추정합니다.
-      </p>
-      <ul>
-        <li>이미지/텍스트 상위 5건이 기본 선택되며 최대 {maxSelection}건까지 확장할 수 있습니다.</li>
-        <li>“시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.</li>
-        <li>완료 시 후보별 Markdown 요약과 LLM 근거, 대화 로그가 제공됩니다.</li>
-      </ul>
-    </div>
+    <MarkdownBlock
+      className="simulation-panel__instructions"
+      text={guidanceMarkdown}
+    />
   );
   const variantLabels = { image: '이미지', text: '텍스트' };
 
@@ -688,7 +721,7 @@ function SimulationPanel({
           </div>
         </div>
       ) : guidanceBlock}
-      {status !== 'loading' && status !== 'queued' && status !== 'cancelling' && (
+      {![ 'collecting', 'loading', 'cancelling' ].includes(status) && (
         <div className="simulation-panel__actions">
           <button
             type="button"
@@ -708,7 +741,7 @@ function SimulationPanel({
           </button>
         </div>
       )}
-      {((status === 'queued' || status === 'loading' || status === 'cancelling') && canCancel) && (
+      {( ['collecting', 'loading', 'cancelling'].includes(status) && canCancel) && (
         <button
           type="button"
           className="btn-outline simulation-panel__button"
@@ -835,10 +868,9 @@ function SimulationPanel({
                           <summary>대화 기록 (상위 4턴)</summary>
                           <ul>
                             {item.transcript.slice(0, 4).map((line, idx) => (
-                              <li
-                                key={`transcript-${item.application_number}-${idx}`}
-                                dangerouslySetInnerHTML={renderMarkdown(line)}
-                              />
+                              <li key={`transcript-${item.application_number}-${idx}`}>
+                                <MarkdownBlock text={line} />
+                              </li>
                             ))}
                           </ul>
                         </details>
@@ -1013,7 +1045,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const isProcessing = simulationStatus === 'queued' || simulationStatus === 'loading';
+    const isProcessing = ['collecting', 'loading'].includes(simulationStatus);
     let timer = null;
     if (isProcessing) {
       const baseStart = simulationStartTime ?? Date.now();
@@ -1189,8 +1221,10 @@ function App() {
         const data = JSON.parse(event.data || '{}');
         const status = (data.status || '').toLowerCase();
         if (status === 'pending' || status === 'queued') {
-          setSimulationStatus('queued');
-        } else if (status === 'running') {
+          setSimulationStatus('collecting');
+        } else if (status === 'collecting') {
+          setSimulationStatus('collecting');
+        } else if (status === 'simulating' || status === 'running') {
           setSimulationStatus('loading');
         } else if (status === 'complete' && data.result) {
           setSimulationStatus('complete');
@@ -1275,7 +1309,7 @@ function App() {
     }
     try {
       closeSimulationStream();
-      setSimulationStatus('queued');
+      setSimulationStatus('collecting');
       setSimulationResult(null);
       setSimulationError('');
       setSimulationJobId(null);
@@ -1738,7 +1772,7 @@ function App() {
           onRun={handleSimulationRun}
           onCancel={handleSimulationCancel}
           canCancel={Boolean(
-            simulationJobId && ['queued', 'loading', 'cancelling'].includes(simulationStatus)
+            simulationJobId && ['collecting', 'loading', 'cancelling'].includes(simulationStatus)
           )}
           result={simulationResult}
           error={simulationError}
@@ -1764,7 +1798,7 @@ const STATUS_MAP = {
   '심사중': 'status-pending',
 };
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById('root'));
 root.render(<App />);
 const buildHighlightMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) => {
   const map = {};

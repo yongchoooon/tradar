@@ -63,10 +63,22 @@ class SimulationJobManager:
         if record.cancelled:
             self._set_cancelled(job_id)
             return
-        self._update_status(job_id, "running")
+        self._update_status(job_id, "collecting")
         try:
             cancel_checker = lambda: self.is_cancelled(job_id)
-            result = await run_simulation_async(record.request, cancel_checker=cancel_checker)
+
+            def progress_callback(phase: str) -> None:
+                if self.is_cancelled(job_id):
+                    return
+                if phase not in {"collecting", "simulating"}:
+                    return
+                self._update_status(job_id, phase)
+
+            result = await run_simulation_async(
+                record.request,
+                cancel_checker=cancel_checker,
+                progress_callback=progress_callback,
+            )
             if self.is_cancelled(job_id):
                 self._set_cancelled(job_id)
                 return
