@@ -1,12 +1,14 @@
 # Frontend 구조 개요
 
+본 프로젝트의 프런트엔드는 `frontend/` 디렉터리에 위치한 Vite + React SPA입니다. `npm run dev`로 개발 서버를 띄우고 `npm run build`로 정적 자산을 생성합니다.
+
 ## 엔드포인트 요약
 - 멀티모달 검색: `POST /search/multimodal`
 - 상품/서비스류 추천: `GET /goods/search`
 - 이미지 프록시: `GET /media?path=...`
 
 ## 루트 컴포넌트
-- 파일: `app/frontend/app.jsx`
+- 파일: `frontend/src/App.jsx`
 - 전역 상태: `selectedGroups`, `response`, `loading`, `error`
 - 검색 요청 시 `k=20`으로 고정해 Top-K를 요청합니다.
 
@@ -47,7 +49,7 @@
 4. 오류 발생 시 `error` 메시지를 상단에 노출합니다.
 
 ## 스타일 가이드
-- 기본 스타일은 Pico.css, 세부 커스터마이징은 `app/frontend/styles.css`
+- 기본 스타일은 Vite 템플릿 + `frontend/src/index.css`
 - 검색 폼, 드롭존, 결과 카드 모두 동일한 박스 그림자를 사용해 레이아웃 일관성 유지
 - 반응형: 768px 이하에서는 결과 카드를 한 줄에 하나만 표시하도록 그리드 조정
 

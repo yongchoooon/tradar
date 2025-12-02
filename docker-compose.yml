@@ -1,10 +1,21 @@
 version: '3.8'
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: tradar
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     working_dir: /app
     volumes:
       - .:/app
@@ -12,4 +23,23 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tradar
+    depends_on:
+      - db
 
+  frontend:
+    image: node:18-bullseye
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CI=1
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

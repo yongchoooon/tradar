@@ -50,6 +50,45 @@ requirements = {
     "psycopg": ("psycopg", "psycopg[binary]==3.2.*", ("3", "2")),
 }
 
+ensure_node_runtime() {
+  local required_major=18
+  local node_major=""
+  if command -v node >/dev/null 2>&1; then
+    node_major=$(node -e "console.log(process.versions.node.split('.')[0])" 2>/dev/null || true)
+  fi
+
+  if [ -n "${node_major}" ] && [ "${node_major}" -ge "${required_major}" ]; then
+    echo "[resume] Detected Node.js ${node_major}.x"
+  else
+    if [ ! -d "${HOME}/.nvm" ]; then
+      if ! command -v curl >/dev/null 2>&1; then
+        echo "[resume] curl not found; cannot install nvm/Node.js automatically" >&2
+        return 1
+      fi
+      echo "[resume] Installing nvm (Node Version Manager)"
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    fi
+
+    export NVM_DIR="$HOME/.nvm"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+      # shellcheck disable=SC1090
+      . "$NVM_DIR/nvm.sh"
+    else
+      echo "[resume] nvm installation not found at $NVM_DIR" >&2
+      return 1
+    fi
+
+    echo "[resume] Installing Node.js ${required_major}.x via nvm"
+    nvm install ${required_major}
+    nvm use ${required_major}
+  fi
+
+  if [ -d "${REPO_ROOT}/frontend" ]; then
+    echo "[resume] Installing frontend npm dependencies"
+    (cd "${REPO_ROOT}/frontend" && npm install)
+  fi
+}
+
 def version_prefix_matches(installed: str, expected_prefix: tuple[str, ...]) -> bool:
     parts = installed.split(".")
     if len(parts) < len(expected_prefix):
@@ -340,6 +379,7 @@ echo "[resume] Syncing OpenSearch index"
 cd "${REPO_ROOT}"
 install_python_requirements
 ensure_python_dependencies
+ensure_node_runtime || true
 bash scripts/sync_opensearch.sh
 
 echo "[resume] Session services ready"

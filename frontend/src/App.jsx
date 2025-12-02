@@ -1,11 +1,19 @@
-import React, { useState, useMemo, useRef, useEffect, Fragment } from 'https://esm.sh/react@18.2.0?dev';
-import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client?dev';
-import { unified } from 'https://esm.sh/unified@11.0.4?dev';
-import remarkParse from 'https://esm.sh/remark-parse@10.0.1?deps=unified@11.0.4';
-import remarkGfm from 'https://esm.sh/remark-gfm@3.0.1?deps=unified@11.0.4,remark-parse@10.0.1';
-import remarkRehype from 'https://esm.sh/remark-rehype@10.1.0?deps=unified@11.0.4';
-import rehypeReact from 'https://esm.sh/rehype-react@8.0.0?deps=unified@11.0.4,react@18.2.0';
-import * as jsxRuntime from 'https://esm.sh/react@18.2.0/jsx-runtime?dev';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import {
+  FiInfo,
+  FiFileText,
+  FiRefreshCcw,
+  FiStopCircle,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiXCircle,
+  FiSearch,
+  FiTerminal,
+  FiPlayCircle,
+} from 'react-icons/fi';
+import logo from './assets/logo-tradar.png';
 
 const GOODS_LIMIT = 10;
 const RESULT_PAGE_SIZE = 20;
@@ -27,6 +35,17 @@ const buildSelectionMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) =
     const key = getResultKey(item);
     if (key) {
       map[key] = item;
+    }
+  });
+  return map;
+};
+
+const buildHighlightMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) => {
+  const map = {};
+  items.slice(0, limit).forEach((item) => {
+    const key = getResultKey(item);
+    if (key) {
+      map[key] = true;
     }
   });
   return map;
@@ -62,34 +81,23 @@ const TEXT_BLEND_OPTIONS = [
 ];
 
 function MarkdownBlock({ text, className }) {
-  const [content, setContent] = useState(null);
-
-  useEffect(() => {
+  const html = useMemo(() => {
     if (!text) {
-      setContent(null);
-      return;
+      return '';
     }
     const normalized = normalizeMarkdown(text);
-    unified()
-      .use(remarkParse)
-      .use(remarkGfm)
-      .use(remarkRehype)
-      .use(rehypeReact, {
-        ...jsxRuntime,
-        Fragment,
-      })
-      .process(normalized)
-      .then((file) => {
-        setContent(file.result);
-      })
-      .catch(() => {
-        setContent(normalized);
-      });
+    const parsed = marked(normalized, { breaks: true, gfm: true });
+    return DOMPurify.sanitize(parsed);
   }, [text]);
 
   if (!text) return null;
-  const classes = ['markdown-block', className].filter(Boolean).join(' ');
-  return <div className={classes}>{content}</div>;
+  const classes = ['markdown-block', 'markdown-body', className].filter(Boolean).join(' ');
+  return (
+    <div
+      className={classes}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
 
 function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, selectedGroups }) {
@@ -191,7 +199,10 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button type="submit" className="btn-primary">검색</button>
+        <button type="submit" className="action-button action-button--primary goods-search__submit">
+          <FiSearch aria-hidden="true" />
+          <span>검색</span>
+        </button>
       </form>
       {error && <p role="alert" className="goods-error">{error}</p>}
       {loading && <p>검색 중입니다…</p>}
@@ -220,7 +231,7 @@ function PreviewImage({ file }) {
   if (!url) {
     return (
       <div className="placeholder">
-        <span>이미지를 선택하세요</span>
+        <span className="placeholder__title">이미지를 선택하세요</span>
         <small>클릭하여 파일 선택</small>
       </div>
     );
@@ -272,6 +283,8 @@ function TrademarkSearchForm({
     onReset?.();
   };
 
+  const dropzoneClass = ['dropzone', imageFile ? '' : 'dropzone--empty'].filter(Boolean).join(' ');
+
   return (
     <section className="search-section">
       <h2>상표 검색</h2>
@@ -296,7 +309,7 @@ function TrademarkSearchForm({
             onChange={(e) => onImageFileChange?.(e.target.files?.[0] || null)}
           />
           <div
-            className="dropzone"
+            className={dropzoneClass}
             role="button"
             tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
@@ -351,11 +364,13 @@ function ResultCard({
         }}
         aria-label={item.doi ? `${item.title} DOI로 이동` : undefined}
       >
-        {item.thumb_url ? (
-          <img src={item.thumb_url} alt={`${item.title} 미리보기`} loading="lazy" />
-        ) : (
-          <div className="thumb-placeholder">이미지 없음</div>
-        )}
+        <div className="result-card__thumb-inner">
+          {item.thumb_url ? (
+            <img src={item.thumb_url} alt={`${item.title} 미리보기`} loading="lazy" />
+          ) : (
+            <div className="thumb-placeholder">이미지 없음</div>
+          )}
+        </div>
       </div>
       <div className="result-card__body">
         <header className="result-card__header">
@@ -603,43 +618,43 @@ function SimulationPanel({
       title: '시뮬레이션 준비 필요',
       message: '검색 후 자동으로 상위 후보가 선택됩니다.',
       tone: 'neutral',
-      icon: '🛈',
+      icon: FiInfo,
     },
     collecting: {
       title: '데이터를 불러오는 중',
       message: 'KIPRIS 의견제출통지서와 거절결정서를 수집·정리하는 단계입니다.',
       tone: 'waiting',
-      icon: '📄',
+      icon: FiFileText,
     },
     loading: {
       title: 'LangGraph 에이전트 실행 중',
       message: '수집된 자료를 바탕으로 에이전트 시뮬레이션이 진행 중입니다.',
       tone: 'running',
-      icon: '⚙️',
+      icon: FiRefreshCcw,
     },
     cancelling: {
       title: '취소 처리 중',
       message: '백엔드 작업을 중단하고 있습니다.',
       tone: 'warning',
-      icon: '⏹',
+      icon: FiStopCircle,
     },
     complete: {
       title: '결과가 준비되었습니다',
       message: '아래 요약과 후보별 세부 정보를 확인하세요.',
       tone: 'complete',
-      icon: '✅',
+      icon: FiCheckCircle,
     },
     error: {
       title: '시뮬레이션에 실패했습니다',
       message: '',
       tone: 'danger',
-      icon: '⚠️',
+      icon: FiAlertTriangle,
     },
     cancelled: {
       title: '시뮬레이션이 취소되었습니다',
       message: '필요 시 다시 실행해 주세요.',
       tone: 'warning',
-      icon: '⚠️',
+      icon: FiXCircle,
     },
   };
   const currentStatus = statusMetaMap[status] || statusMetaMap.idle;
@@ -649,7 +664,12 @@ function SimulationPanel({
   const statusContent = (
     <div className={`simulation-panel__status-card simulation-panel__status-card--${currentStatus.tone}`}>
       <div className="simulation-panel__status-head">
-        <span className="simulation-panel__status-icon" aria-hidden="true">{currentStatus.icon}</span>
+        <span
+          className={`simulation-panel__status-icon ${status === 'loading' ? 'is-rotating' : ''}`}
+          aria-hidden="true"
+        >
+          {currentStatus.icon ? React.createElement(currentStatus.icon, { 'aria-hidden': true }) : null}
+        </span>
         <div>
           <p className="simulation-panel__status-title">{currentStatus.title}</p>
           <p className="simulation-panel__status-text">{statusMessage}</p>
@@ -725,26 +745,28 @@ function SimulationPanel({
         <div className="simulation-panel__actions">
           <button
             type="button"
-            className="btn-primary simulation-panel__button"
+            className="action-button action-button--primary simulation-panel__button"
             onClick={() => onRun?.(false)}
             disabled={buttonDisabled}
           >
-            시뮬레이션 실행
+            <FiPlayCircle aria-hidden="true" />
+            <span>시뮬레이션 시작</span>
           </button>
           <button
             type="button"
-            className="btn-debug simulation-panel__button"
+            className="action-button action-button--debug simulation-panel__button"
             onClick={() => onRun?.(true)}
             disabled={buttonDisabled}
           >
-            시뮬레이션 실행(디버그)
+            <FiTerminal aria-hidden="true" />
+            <span>시뮬레이션 디버그</span>
           </button>
         </div>
       )}
       {( ['collecting', 'loading', 'cancelling'].includes(status) && canCancel) && (
         <button
           type="button"
-          className="btn-outline simulation-panel__button"
+          className="ghost-button simulation-panel__button"
           onClick={onCancel}
         >
           실행 취소
@@ -1118,16 +1140,30 @@ function App() {
       if (typeof data?.query?.text === 'string') {
         setLastSearchText(data.query.text);
       }
+      if (targets.image || targets.text) {
+        setSimulationSelection((prev) => {
+          const next = { ...prev };
+          if (targets.image) {
+            next.image = buildSelectionMap(data.image_top || []);
+          }
+          if (targets.text) {
+            next.text = buildSelectionMap(data.text_top || []);
+          }
+          return next;
+        });
+        setSimulationDefaults((prev) => {
+          const next = { ...prev };
+          if (targets.image) {
+            next.image = buildHighlightMap(data.image_top || []);
+          }
+          if (targets.text) {
+            next.text = buildHighlightMap(data.text_top || []);
+          }
+          return next;
+        });
+      }
       if (targets.image && targets.text) {
         setBaseResponse(cloneDeep(data));
-        setSimulationSelection({
-          image: buildSelectionMap(data.image_top || []),
-          text: buildSelectionMap(data.text_top || []),
-        });
-        setSimulationDefaults({
-          image: buildHighlightMap(data.image_top || []),
-          text: buildHighlightMap(data.text_top || []),
-        });
         setSimulationStatus('idle');
         setSimulationResult(null);
         setSimulationJobId(null);
@@ -1524,7 +1560,7 @@ function App() {
     <div className="app-shell">
       <div className="search-column">
       <section className="hero">
-        <img className="logo" src="/logo-tradar.png" alt="T-RADAR" />
+        <img className="logo" src={logo} alt="T-RADAR" />
         <div className="hero-text">
           <div className="hero-heading">
             <h1 className="title">T-RADAR</h1>
@@ -1557,8 +1593,24 @@ function App() {
       />
       <div className="search-actions-row">
         <button type="button" className="secondary btn-wide" onClick={resetForm}>초기화</button>
-        <button type="button" className="btn-primary btn-wide" onClick={() => executeSearch(false)}>검색</button>
-        <button type="button" className="btn-debug btn-wide" onClick={() => executeSearch(true)}>검색(디버그)</button>
+        <div className="search-actions">
+          <button
+            type="button"
+            className="action-button action-button--primary"
+            onClick={() => executeSearch(false)}
+          >
+            <FiSearch aria-hidden="true" />
+            <span>일반 검색</span>
+          </button>
+          <button
+            type="button"
+            className="action-button action-button--debug"
+            onClick={() => executeSearch(true)}
+          >
+            <FiTerminal aria-hidden="true" />
+            <span>디버그 검색</span>
+          </button>
+        </div>
         <label className="llm-toggle" aria-label="LLM 유사어 사용 여부">
           <input
             id="llm-variants-checkbox"
@@ -1798,15 +1850,4 @@ const STATUS_MAP = {
   '심사중': 'status-pending',
 };
 
-const root = createRoot(document.getElementById('root'));
-root.render(<App />);
-const buildHighlightMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) => {
-  const map = {};
-  items.slice(0, limit).forEach((item) => {
-    const key = getResultKey(item);
-    if (key) {
-      map[key] = true;
-    }
-  });
-  return map;
-};
+export default App;

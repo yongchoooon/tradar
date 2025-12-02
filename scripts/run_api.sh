@@ -50,4 +50,10 @@ if [ -n "${TRADEMARK_LLM_API_KEY}" ]; then
   export OPENAI_API_KEY="${TRADEMARK_LLM_API_KEY}"
 fi
 
+FRONTEND_DIST="${REPO_ROOT}/frontend/dist"
+if [ ! -d "${FRONTEND_DIST}" ]; then
+  echo "[run_api] Frontend build not found at ${FRONTEND_DIST}." >&2
+  echo "          Run 'npm install && npm run dev' inside frontend/ for dev mode, or 'npm run build' to serve static files." >&2
+fi
+
 uvicorn app.main:app --reload "$@" --host 0.0.0.0

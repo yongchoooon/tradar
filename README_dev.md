@@ -45,6 +45,13 @@
 
 참고: 시뮬레이션 호출은 외부 REST API를 동기적으로 호출하므로, 한 번에 많은 상표를 선택하면 응답 시간이 길어질 수 있습니다. 네트워크 탭과 FastAPI 로그(`simulation` 로거)를 통해 진행 상황을 확인할 수 있습니다.
 
+## 프런트엔드 개발 환경 (Vite)
+- `frontend/` 디렉터리는 Vite 기반 React SPA입니다. `npm install` 한 번이면 모든 의존성이 설치됩니다.
+- 로컬 개발 시에는 `npm run dev`로 Vite Dev Server(기본 `http://localhost:5173`)를 띄우고, `bash scripts/run_api.sh`로 FastAPI를 별도로 구동합니다. `/search`, `/goods`, `/simulation`, `/media` 경로는 `frontend/vite.config.js`의 프록시 설정 때문에 자동으로 백엔드로 전달됩니다.
+- 운영/테스트 배포 시에는 `npm run build`로 `frontend/dist/`를 만든 뒤 Uvicorn을 실행하면 FastAPI가 해당 디렉터리를 정적 파일로 제공하고, `/` 경로에서 완성된 SPA를 내려줍니다. `scripts/run_api.sh`는 빌드가 없으면 경고를 출력해줍니다.
+- Docker나 AWS 배포 파이프라인에서 프런트 자산을 포함하려면 `frontend/`에서 `npm ci && npm run build`를 실행한 뒤 `frontend/dist` 폴더를 이미지에 복사하면 됩니다. FastAPI는 빌드 결과 존재 여부만 확인하므로 추가 설정이 필요 없습니다.
+- 빠른 통합 실행이 필요할 때는 `docker-compose.yml`의 `frontend` 서비스(노드 18 기반)를 통해 Vite Dev Server를 띄울 수 있고, `api` 서비스는 동일한 Compose 네트워크에서 Postgres(`db`)를 참조하도록 되어 있습니다.
+
 ## 데이터 시딩
 
 ### 전체 임베딩 적재

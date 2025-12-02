@@ -35,8 +35,15 @@ app.include_router(media_router)
 app.include_router(simulation_router)
 
 BASE_DIR = Path(__file__).resolve().parent
-app.mount(
-    "/",
-    StaticFiles(directory=BASE_DIR / "frontend", html=True),
-    name="frontend",
-)
+FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
+if FRONTEND_DIST.exists():
+    app.mount(
+        "/",
+        StaticFiles(directory=FRONTEND_DIST, html=True),
+        name="frontend",
+    )
+else:
+    logging.getLogger("simulation").warning(
+        "Frontend build not found at %s. Run 'npm run build' inside frontend/ or use the Vite dev server.",
+        FRONTEND_DIST,
+    )

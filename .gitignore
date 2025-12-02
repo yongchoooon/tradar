@@ -14,3 +14,6 @@ logs/
 evaluation/
 
 node_modules/
+frontend/node_modules/
+frontend/dist/
+.vite/
