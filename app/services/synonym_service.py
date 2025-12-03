@@ -79,12 +79,17 @@ class TrademarkLLMSynonymService:
             seen: set[str] = set()
             try:
                 prompt = self._build_prompt(text, limit - len(variants))
-                self._debug_print("prompt", prompt)
-                response = client.responses.create(
+                system_prompt = prompt[0]["content"][0]["text"]
+                user_prompt = prompt[1]["content"][0]["text"]
+                self._debug_print("prompt", [system_prompt, user_prompt])
+                response = client.chat.completions.create(
                     model=self._model_id,
                     temperature=self._temperature,
-                    max_output_tokens=512,
-                    input=prompt,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    max_tokens=512,
                 )
                 self._log_usage(response)
             except OpenAIError as exc:
@@ -95,9 +100,7 @@ class TrademarkLLMSynonymService:
                     ) from exc
                 continue
 
-            content = (response.output_text or "").strip()
-            if not content:
-                content = self._first_text(response)
+            content = self._first_text(response).strip()
             self._debug_print("raw_output", content)
             parsed = self._parse_json_candidates(content or "")
             rows = parsed if parsed else _split_variants(content or "")
@@ -138,8 +141,8 @@ class TrademarkLLMSynonymService:
         usage = getattr(response, "usage", None)
         if usage is None:
             return
-        input_tokens = getattr(usage, "input_tokens", None)
-        output_tokens = getattr(usage, "output_tokens", None)
+        input_tokens = getattr(usage, "prompt_tokens", None) or getattr(usage, "input_tokens", None)
+        output_tokens = getattr(usage, "completion_tokens", None) or getattr(usage, "output_tokens", None)
         total_tokens = getattr(usage, "total_tokens", None)
         if input_tokens is None and output_tokens is None and total_tokens is None:
             return
@@ -198,6 +201,7 @@ class TrademarkLLMSynonymService:
             " 7) 무의미한 숫자 나열, 괄호·설명 문구는 금지."
             " 8) 각 항목은 25자 이하이며 앞뒤 공백을 제거한다."
             " 9) 원문과 완전히 동일한 표기는 출력하지 않는다."
+            " 10) '-1', '-2', '-PRO' 같은 단순 일련번호·등급 표기나 접미사를 붙이지 말고 실제 상표에서 사용할 만한 자연스러운 변형만 제시한다."
         )
         return [
             {
@@ -216,9 +220,20 @@ class TrademarkLLMSynonymService:
 
     @staticmethod
     def _first_text(response) -> str:
+        choices = getattr(response, "choices", None)
+        if choices:
+            for choice in choices:
+                message = getattr(choice, "message", None)
+                if not message:
+                    continue
+                content = getattr(message, "content", "")
+                if isinstance(content, list):
+                    return "".join(str(part.get("text", "")) for part in content)
+                if content:
+                    return str(content)
         for item in getattr(response, "output", []) or []:
-            if item.type == "message":
-                for content in item.content or []:
+            if getattr(item, "type", "") == "message":
+                for content in getattr(item, "content", []) or []:
                     if content.get("type") in {"text", "output_text", "input_text"}:
                         return str(content.get("text", ""))
         return ""

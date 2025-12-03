@@ -12,7 +12,7 @@ python scripts/vector_db_prepare_text_only.py \
   --metadata data/trademarks_real_no_vienna.json \
   --database-url postgresql://postgres:postgres@localhost:5432/tradar \
   --text-backend torch \
-  --metaclip-model facebook/metaclip-2-worldwide-giant \
+  --metaclip-model /home/work/workspace/models/metaclip \
   --embed-device cuda:0
 ```
 

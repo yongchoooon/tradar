@@ -31,12 +31,12 @@
 2. 백엔드는 `KIPRIS_ACCESS_KEY`로 IntermediateDocument OP/RE API를 호출하여 거절사유/추가사유/이미지/최종변동일자를 수집합니다.
 3. 사용자 UI에서 선택한 상품류와 유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록도 함께 전달되어, 에이전트 프롬프트에 실사용자가 지정한 상품 설명을 그대로 노출합니다.
 4. 수집된 텍스트를 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-4o-mini)로 대화/요약/위험 분석을 생성합니다.
-5. 유사도 기반 휴리스틱 점수와 에이전트 결과를 묶어 프런트엔드 패널에 요약과 상위 후보별 노트를 보여 줍니다. LangGraph 호출은 내부적으로 최대 4개 워커로 병렬 실행되어 지연을 줄입니다.
+5. LangGraph 에이전트 결과를 묶어 프런트엔드 패널에 요약과 상위 후보별 노트를 보여 줍니다. 시뮬레이션 워커는 최대 10개까지 병렬 실행되어 지연을 줄입니다.
 
 ### 비동기 처리
 
 - `/simulation/run`은 요청을 큐에 넣고 `job_id`를 반환합니다. FastAPI `BackgroundTasks`가 별도 스레드에서 KIPRIS 호출 → LangGraph 실행을 수행합니다.
-- 클라이언트는 `/simulation/stream/{job_id}` SSE 스트림 또는 `/simulation/status/{job_id}`를 통해 `pending/running/complete/failed` 상태와 결과(`SimulationResponse`)를 확인합니다.
+- 클라이언트는 `/simulation/stream/{job_id}` SSE 스트림 또는 `/simulation/status/{job_id}`를 통해 `pending/collecting/simulating/complete/failed/cancelled` 상태와 결과(`SimulationResponse`)를 확인합니다.
 - 작업 정보는 메모리 내 `SimulationJobManager`가 관리하며, 서버 재시작 시 초기화되므로 장기 저장이 필요한 경우 외부 스토리지를 추가해야 합니다.
 
 필수 환경 변수:
@@ -57,8 +57,8 @@
 ### 전체 임베딩 적재
 ```bash
 python scripts/vector_db_prepare.py \
-  --metadata /data/trademarks.json \
-  --images-root /data/images \
+  --metadata data/trademarks.json \
+  --images-root data/images \
   --database-url postgresql://postgres:postgres@localhost:5432/tradar \
   --truncate \
   --image-backend torch \
@@ -74,10 +74,10 @@ python scripts/vector_db_prepare.py \
 ### 텍스트 임베딩만 추가 적재
 ```bash
 python scripts/vector_db_prepare_text_only.py \
-  --metadata /data/append.json \
+  --metadata data/append.json \
   --database-url postgresql://postgres:postgres@localhost:5432/tradar \
   --text-backend torch \
-  --metaclip-model facebook/metaclip-2-worldwide-giant \
+  --metaclip-model /home/work/workspace/models/metaclip \
   --embed-device cuda:0
 ```
 - 기존 이미지 임베딩은 유지한 채 `trademarks`, `text_embeddings_metaclip`만 업데이트합니다.
@@ -127,9 +127,9 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 6. Top-K를 선정합니다. 추후 `goods.is_adjacent`를 활용해 인접/비인접 그룹으로 재구성할 예정이며, 현재는 단일 리스트로 반환됩니다.
 
 ### 텍스트 흐름
-1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시)
+1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시). LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
 2. 텍스트 프롬프트가 있으면 LLM 기반 `PromptInterpreter`가 추가 키워드/필터(접두어, 포함/제외 토큰)를 추출하며, 실패 시 프롬프트 문장을 보조 키워드로만 사용한다고 디버그 메시지로 알려줍니다.
-3. 원본 질의, 유사어, 프롬프트 키워드를 MetaCLIP2 텍스트 임베딩으로 변환한 뒤 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치 프리셋에 맞춰 재결합합니다. 첫 입력 상표명은 다른 유사어보다 더 큰 가중치(1.5배)를 부여해 영어 입력이 한글 변형에 묻히지 않도록 합니다. 프런트엔드의 “LLM 유사어” 토글은 기본적으로 꺼져 있으며, 사용자가 켜면 LLM 유사어 10개를 생성해 이 단계에 포함하고 끄면 원문만 사용합니다 (`use_llm_variants`).
+3. 원본 질의, 유사어, 프롬프트 키워드를 MetaCLIP2 텍스트 임베딩으로 변환한 뒤 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치 프리셋에 맞춰 재결합합니다. 첫 입력 상표명은 4.5배 가중치를 부여하고, 나머지 유사어는 0.5배로 처리해 원본 질의가 항상 가장 큰 비중을 차지하도록 했습니다. 프런트엔드의 “LLM 유사어” 토글은 기본적으로 꺼져 있으며, 사용자가 켜면 LLM 유사어 10개를 생성해 이 단계에 포함하고 끄면 원문만 사용합니다 (`use_llm_variants`).
 4. 재결합된 벡터로 pgvector ANN Top-N 검색을 수행하고, LLM에서 생성한 필터(예: 접두어)는 결과 재정렬 단계에서 적용합니다.
 5. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색
 6. BM25 전용 후보는 텍스트 임베딩을 DB에서 읽어 코사인 유사도 계산 (동일하게 `<#>` 결과의 부호를 보정)
@@ -157,7 +157,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 
 ## 운영 팁
 
-- **LLM 사용**: `.env`에 `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED=true` 설정. 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 점수를 산출하고 휴리스틱 점수와 평균해 최종 점수를 도출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
+- **LLM 사용**: `.env`에 `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED=true` 설정. 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 충돌 위험도/등록 가능성을 산출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
 - **프롬프트 LLM**: 재검색 프롬프트 전용 모델을 조정하려면 `PROMPT_LLM_MODEL`, `PROMPT_LLM_TEMPERATURE` 환경 변수를 사용하세요 (기본값은 `TRADEMARK_LLM_MODEL`/`0.1`).
 - **임베딩 모델 경로**: 기본값은 `/home/work/workspace/models/{metaclip,dinov2}`. 변경 시 `METACLIP_MODEL_NAME`, `DINOV2_MODEL_NAME` 환경변수를 사용하세요.
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.

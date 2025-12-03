@@ -6,6 +6,7 @@ import asyncio
 import logging
 from statistics import mean
 from typing import Dict, List, Sequence, Callable, Optional
+import re
 from datetime import datetime
 from pathlib import Path
 import json
@@ -130,7 +131,6 @@ class SimulationEngine:
             )
             if debug_enabled and job_tag and overall_logs:
                 self._log_debug_llm(job_tag, "overall", overall_logs)
-
         return SimulationResponse(
             total_selected=len(candidates),
             high_risk=high_risk,
@@ -174,10 +174,11 @@ class SimulationEngine:
         bundle: Dict[str, object],
     ) -> str:
         status_note = (selection.status or '').strip()
+        variant_label = "이미지" if selection.variant == "image" else "텍스트"
         lines = [
             "[사용자 입력 상표]",
             f"- 명칭: {user_mark or '(상표명 미입력)'}",
-            f"- 비교 기준: {selection.variant} 유사도 {selection.image_sim if selection.variant == 'image' else selection.text_sim}",
+            f"- 선택 기준: {variant_label} 검색 상위 후보",
         ]
         if user_goods:
             lines.append(f"- 선택한 상품류: {', '.join(user_goods)}")
@@ -226,19 +227,7 @@ class SimulationEngine:
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
         variant_label = "이미지" if selection.variant == "image" else "텍스트"
-        similarity = selection.image_sim if selection.variant == "image" else selection.text_sim
-        similarity = float(similarity or 0.0)
-        similarity = max(0.0, min(similarity, 1.0))
-        base_conflict_score = round(similarity * 100, 1)
-        base_register_score = round(max(5.0, 100.0 - base_conflict_score * 0.7), 1)
-
-        notes: List[str] = [f"{variant_label} 기준 유사도 {similarity:.3f}"]
-        if base_conflict_score >= 85:
-            notes.append("거의 동일한 수준으로 판단됩니다.")
-        elif base_conflict_score >= 70:
-            notes.append("충돌 위험도가 높으므로 추가 검토가 필요합니다.")
-        elif base_conflict_score <= 40:
-            notes.append("충돌 위험도가 낮은 편입니다.")
+        notes: List[str] = [f"{variant_label} 검색 상위 후보"]
         if selection.status:
             notes.append(f"상태: {selection.status}")
         if selection.class_codes:
@@ -264,12 +253,12 @@ class SimulationEngine:
         agent_risk = agent_result.get("risk")
         reporter_markdown = (agent_result.get("reporter") or {}).get("markdown")
         score_block = agent_result.get("scores") or {}
-        llm_conflict_score = self._normalize_score(score_block.get("conflict_score"), base_conflict_score)
-        llm_register_score = self._normalize_score(score_block.get("register_score"), base_register_score)
+        llm_conflict_score = self._normalize_score(score_block.get("conflict_score"), 50.0)
+        llm_register_score = self._normalize_score(score_block.get("register_score"), 50.0)
         llm_rationale = score_block.get("rationale")
         llm_factors = score_block.get("factors") or []
-        final_conflict_score = round((base_conflict_score + llm_conflict_score) / 2, 1)
-        final_register_score = round((base_register_score + llm_register_score) / 2, 1)
+        final_conflict_score = round(llm_conflict_score, 1)
+        final_register_score = round(llm_register_score, 1)
         transcript = agent_result.get("transcript", [])
         if agent_summary:
             notes.append(agent_summary)
@@ -287,7 +276,6 @@ class SimulationEngine:
             application_number=selection.application_number,
             title=selection.title,
             variant=selection.variant,
-            similarity=round(similarity, 3),
             conflict_score=final_conflict_score,
             register_score=final_register_score,
             status=selection.status,
@@ -296,8 +284,6 @@ class SimulationEngine:
             agent_summary=agent_summary,
             agent_risk=agent_risk,
             transcript=transcript,
-            heuristic_conflict_score=base_conflict_score,
-            heuristic_register_score=base_register_score,
             llm_conflict_score=llm_conflict_score,
             llm_register_score=llm_register_score,
             llm_rationale=llm_rationale,
@@ -377,6 +363,8 @@ class SimulationEngine:
             )
         path.write_text("\n".join(chunks), encoding="utf-8")
 
+    def _sanitize_filename(self, value: str) -> str:
+        return re.sub(r"[^0-9A-Za-z_-]", "_", value or "unknown")
 
 _engine = SimulationEngine()
 

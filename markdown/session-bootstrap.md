@@ -65,8 +65,8 @@ KT Cloud 세션을 새로 생성할 때마다 아래 순서로 개발 환경을 
    - 예시 (CPU 실행):
      ```bash
      python scripts/vector_db_prepare.py \
-       --metadata /data/trademarks.json \
-       --images-root /data/images \
+       --metadata data/trademarks.json \
+       --images-root data/images \
        --database-url postgresql://postgres:postgres@localhost:5432/tradar \
        --truncate \
        --image-backend torch \

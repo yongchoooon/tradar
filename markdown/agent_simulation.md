@@ -55,7 +55,7 @@
 3. **Applicant Agent**: Examiner 출력에 기반하여 지정상품/서비스 차이, 발음/관념 비교, 선행사례와 차별성을 강조.
 4. **Examiner Rebuttal Agent**: Applicant 응답을 평가, 수용/반박 구분 및 필요 시 보정 조건 제안.
 5. **Reporter Agent**: 앞선 3턴을 요약하고 `issues: [{name, examiner, applicant, decision}]` 형태의 요약을 JSON/텍스트로 생성하며, 각 주장에 인용된 선행상표 ID·문서 출처 링크(API 원문 URL)를 명시해 Explainability를 유지한다.
-6. **Scorer Agent**: Reporter 요약과 검색 점수, 사용자 상표 vs 선행상표 비교 컨텍스트, 선행상표 현재 상태를 기반으로 충돌 위험/등록 가능성 점수를 0~100 사이로 JSON으로 산출하고, 근거(`rationale`)와 참고 항목(`factors`)을 함께 반환한다. 휴리스틱 점수와 LLM 점수는 최종 점수 산출에 모두 사용되며 UI에도 노출된다.
+6. **Scorer Agent**: Reporter 요약과 사용자/선행상표 비교 컨텍스트, 선행상표 상태 정보를 기반으로 충돌 위험/등록 가능성 점수를 0~100 사이로 JSON으로 산출하고, 근거(`rationale`)와 참고 항목(`factors`)을 함께 반환한다. 산출된 LLM 점수/근거가 그대로 UI에 노출된다.
 
 ## 6. 필요한 작업 / 산출물
 - LangGraph 프로젝트: `app/agents/simulation.py` 등 Python 모듈과 설정 파일.

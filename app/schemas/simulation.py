@@ -40,7 +40,6 @@ class SimulationCandidateResult:
     application_number: str
     title: str
     variant: VariantType
-    similarity: float
     conflict_score: float
     register_score: float
     status: Optional[str]
@@ -49,8 +48,6 @@ class SimulationCandidateResult:
     agent_summary: Optional[str] = None
     agent_risk: Optional[str] = None
     transcript: List[str] = field(default_factory=list)
-    heuristic_conflict_score: float = 0.0
-    heuristic_register_score: float = 0.0
     llm_conflict_score: float = 0.0
     llm_register_score: float = 0.0
     llm_rationale: Optional[str] = None

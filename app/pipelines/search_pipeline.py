@@ -346,7 +346,7 @@ class SearchPipeline:
         weights = []
         for idx, term in enumerate(terms):
             vectors.append(self._encode_text_cached(term))
-            weights.append(1.5 if idx == 0 else 0.6)
+            weights.append(4.5 if idx == 0 else 0.5)
 
         dim = len(vectors[0])
         accum = [0.0] * dim

@@ -97,13 +97,14 @@ class LangGraphOrchestrator:
             "아래 형식을 정확히 따라 Markdown으로만 작성하세요. 평균 점수나 등록 가능성 수치는 출력하지 말고, 충돌 위험도가 높은 사례(예: 70점 이상)를 우선 정렬해 최대 6건까지만 소개하세요."
             " 고위험 항목이 부족하면 충돌 점수가 가장 높은 후보를 추가하되, 각 항목의 '주요 쟁점'은 최소 두 문장으로 작성하고 리포터가 강조한 치명적 근거를 반드시 포함하세요."
             " 내부 약어·코드명(예: Track A/B 등)은 절대 사용하지 말고, 사용자 입장에서 바로 이해할 수 있는 평이한 표현으로 작성하세요."
-            "반드시 아래 형식을 정확히 따라 Markdown으로만 작성하세요."
+            "반드시 아래 형식을 정확히 따라 Markdown으로만 작성하고, 서론·맺음말 문장은 추가하지 마세요."
             "\n\n# 전체 요약\n- <2~3문장으로 전체 위험 상황과 치명적 쟁점을 구체적으로 요약>\n\n"
             "## 선행상표별 핵심 위험\n"
             "- **상표명 (출원번호)**  \n  - **충돌 위험도**: <숫자>%  \n  - **주요 쟁점**: <치명적 리스크·KIPRIS 근거를 2문장 이상으로 요약>  \n  - **권고**: <필요한 대응 또는 보정 전략>\n"
             "- **...**  \n  - **충돌 위험도**: ...  \n  - **주요 쟁점**: ...  \n  - **권고**: ...\n\n"
             "## 권고\n- <후속 조치 1>\n- <후속 조치 2>"
             "\n각 항목은 굵은 제목 → 줄바꿈된 세부 불릿 순서를 반드시 지키고, 불릿 사이에는 두 칸 공백+줄바꿈을 사용해 가독성을 확보하세요."
+            " 만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
         )
         state: AgentState = {
             "context": context,
@@ -132,7 +133,12 @@ class LangGraphOrchestrator:
     async def _examiner_node(self, state: AgentState) -> AgentState:
         response = await self._run_llm(
             role="특허청 심사관",
-            instruction="수집된 자료를 바탕으로 거절이유와 법적 근거를 상세히 설명해 주세요.",
+            instruction=(
+                "수집된 자료를 바탕으로 거절 이유와 법적 근거를 상세히 설명해 주세요."
+                "반드시 Markdown으로만 작성하고, 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요."
+                "만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
+                "서론·맺음말 문장과 다른 내용은 절대 출력하지 마세요."
+            ),
             state=state,
         )
         return self._append_transcript(state, "심사관", response)
@@ -140,7 +146,12 @@ class LangGraphOrchestrator:
     async def _applicant_node(self, state: AgentState) -> AgentState:
         response = await self._run_llm(
             role="출원인 대리인",
-            instruction="심사관 의견에 반박하거나 보정 논리를 제시하세요.",
+            instruction=(
+                "심사관 의견에 반박하거나 보정 논리를 제시하세요."
+                "반드시 Markdown으로만 작성하고, 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요."
+                "만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
+                "서론·맺음말 문장과 다른 내용은 절대 출력하지 마세요."
+            ),
             state=state,
         )
         return self._append_transcript(state, "출원인", response)
@@ -148,7 +159,12 @@ class LangGraphOrchestrator:
     async def _examiner_reply_node(self, state: AgentState) -> AgentState:
         response = await self._run_llm(
             role="심사관",
-            instruction="출원인의 주장 중 수용/반박 부분을 정리하고 최종 입장을 전달하세요.",
+            instruction=(
+                "출원인의 주장 중 수용/반박 부분을 정리하고 최종 입장을 전달하세요."
+                "반드시 Markdown으로만 작성하고, 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요."
+                "만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
+                "서론·맺음말 문장과 다른 내용은 절대 출력하지 마세요."
+            ),
             state=state,
         )
         return self._append_transcript(state, "심사관", response)
@@ -165,6 +181,8 @@ class LangGraphOrchestrator:
                 "2. **...** — ...\n3. **...** — ...\n\n"
                 "모든 항목은 반드시 '번호. **쟁점명** — 설명' 형식을 따르고, '쟁점명' 전체를 굵게(**) 감싸며 치명적 위험·보정 전략을 빠짐없이 포함하세요."
                 " 내부에서만 통용되는 약어나 코드명(예: Track A/B 등)은 사용하지 말고, 사용자도 즉시 이해할 수 있는 일반적인 표현으로 풀어 설명하세요."
+                " 제목과 목록 외에 어떤 서론이나 마무리 문장도 작성하지 마세요."
+                "만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
             ),
             state=state,
             context_override=conversation_only,
@@ -195,11 +213,13 @@ class LangGraphOrchestrator:
                 " 선행상표의 현재 상태나 KIPRIS 세부 내용은 이미 요약에 반영되어 있다고 가정하십시오."
                 " 반드시 다음 두 단계를 순서대로 따르세요:"
                 " 1) 응답의 첫 줄에 JSON 객체 {conflict_score, register_score, rationale, factors[]}를 출력합니다."
-                " 2) 이어서 아래 Markdown 형식을 정확히 지켜 항목화된 평가를 작성합니다."
+                " 2) 이어서 아래 Markdown 형식을 반드시 정확히 지켜 항목화된 평가를 작성합니다."
                 "\n\n## 판단 요약\n- **충돌 위험도**: <숫자>%\n- **등록 가능성**: <숫자>%\n"
                 "## 평가 근거\n- <핵심 근거 1>\n- <핵심 근거 2>\n"
                 "## 권장 대응\n- <후속 조치 또는 대응 전략>\n"
+                "제목은 반드시 '## 판단 요약', '## 평가 근거', '## 권장 대응' 순서로만 작성하고, 다른 제목이나 마무리 문구를 추가하지 마세요."
                 "줄글 형식의 문단을 작성하지 말고 모든 내용은 불릿 항목으로만 제시하세요."
+                "만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
             ),
             state=summary_only_state,
             context_override=reporter_markdown,
@@ -224,6 +244,13 @@ class LangGraphOrchestrator:
     ) -> str:
         transcript_text = transcript_override if transcript_override is not None else "\n".join(state.get("transcript", []))
         context_text = context_override if context_override is not None else state.get("context", "")
+        strict_instruction = (
+            instruction
+            + "\n\n[제한 사항]\n"
+            "- 요구된 형식 외의 마무리 멘트, 후속 안내, '필요하시면...' 등의 추가 문장은 절대 포함하지 마세요.\n"
+            "- 출력은 지침에 명시된 제목/목록만 포함하고, 서론이나 출력 내용 설명 문장을 쓰지 마세요.\n"
+            "- 만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
+        )
         messages = [
             SystemMessage(
                 content=(
@@ -237,7 +264,7 @@ class LangGraphOrchestrator:
                 content=(
                     f"사건 정보:\n{context_text}\n\n"
                     f"현재까지 대화:\n{transcript_text or '아직 대화 없음.'}\n\n"
-                    f"지침: {instruction}"
+                    f"지침: {strict_instruction}"
                 )
             ),
         ]
@@ -253,7 +280,7 @@ class LangGraphOrchestrator:
     @staticmethod
     def _append_transcript(state: AgentState, speaker: str, utterance: str) -> AgentState:
         transcript = list(state.get("transcript", []))
-        transcript.append(f"[{speaker}] {utterance}")
+        transcript.append(f"[{speaker}]\n{utterance}")
         new_state: AgentState = {
             "context": state["context"],
             "transcript": transcript,

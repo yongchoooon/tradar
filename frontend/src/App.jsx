@@ -55,13 +55,11 @@ const cloneDeep = (value) => (value == null ? value : JSON.parse(JSON.stringify(
 
 const normalizeMarkdown = (value) => {
   if (!value) return '';
-  const normalized = value
+  return value
     .replace(/\r\n/g, '\n')
-    .replace(/^([ \t]*)[·•▪◦‣⁃⦁●]\s+/gm, '$1- ');
-  return normalized
-    .split('\n')
-    .map((line) => line.replace(/^\s+/g, ''))
-    .join('\n');
+    .replace(/^([\t ]*)[·•▪◦‣⁃⦁●]\s+/gm, '$1- ')
+    // 보정: 문장 바로 뒤에 오는 불릿을 명시적 목록으로 인식시키기 위해 빈 줄 삽입
+    .replace(/([^\n])\n(-\s+)/g, '$1\n\n$2');
 };
 
 const IMAGE_BLEND_OPTIONS = [
@@ -86,7 +84,7 @@ function MarkdownBlock({ text, className }) {
       return '';
     }
     const normalized = normalizeMarkdown(text);
-    const parsed = marked(normalized, { breaks: true, gfm: true });
+    const parsed = marked(normalized, { gfm: true, breaks: false });
     return DOMPurify.sanitize(parsed);
   }, [text]);
 
@@ -509,10 +507,12 @@ function ResultSection({
         {highlightMap && Object.keys(highlightMap).length > 0 && (
           <span className="results-section__badge">가장 유사한 상위 5개 상표</span>
         )}
-        {hasVariants && (
-          <p className="variants">LLM 유사어: {variants.join(', ')}</p>
-        )}
       </div>
+      {hasVariants && (
+        <div className="results-section__subheader">
+          <p className="variants variants--right">LLM 유사어: {variants.join(', ')}</p>
+        </div>
+      )}
       <div className="results-section__inner">
         {visibleItems.length ? (
           <div className="results-grid">
@@ -776,11 +776,7 @@ function SimulationPanel({
         {result && status === 'complete' ? (
           <>
             <div className="simulation-panel__result-card">
-              <div className="simulation-panel__result-header">
-                <div>
-                  <h4>최종 요약</h4>
-                  <p className="simulation-panel__result-sub">AI Agent가 종합한 Markdown 리포트입니다.</p>
-                </div>
+              <div className="simulation-panel__result-top">
                 <div className="simulation-panel__result-metrics">
                   <div className="simulation-panel__metric-pill is-risk">
                     <span>평균 충돌 위험도</span>
@@ -829,26 +825,6 @@ function SimulationPanel({
                       </div>
                     </summary>
                     <div className="simulation-panel__case-body">
-                      <div className="simulation-panel__score-details">
-                        <div>
-                          <span>휴리스틱</span>
-                          <strong>
-                            {item.heuristic_conflict_score?.toFixed ? item.heuristic_conflict_score.toFixed(1) : item.heuristic_conflict_score}%
-                          </strong>
-                          <strong>
-                            {item.heuristic_register_score?.toFixed ? item.heuristic_register_score.toFixed(1) : item.heuristic_register_score}%
-                          </strong>
-                        </div>
-                        <div>
-                          <span>LLM</span>
-                          <strong>
-                            {item.llm_conflict_score?.toFixed ? item.llm_conflict_score.toFixed(1) : item.llm_conflict_score}%
-                          </strong>
-                          <strong>
-                            {item.llm_register_score?.toFixed ? item.llm_register_score.toFixed(1) : item.llm_register_score}%
-                          </strong>
-                        </div>
-                      </div>
                       {item.reporter_markdown ? (
                         <MarkdownBlock
                           className="markdown-block--panel"
@@ -889,11 +865,27 @@ function SimulationPanel({
                         <details className="simulation-panel__transcript">
                           <summary>대화 기록 (상위 4턴)</summary>
                           <ul>
-                            {item.transcript.slice(0, 4).map((line, idx) => (
-                              <li key={`transcript-${item.application_number}-${idx}`}>
-                                <MarkdownBlock text={line} />
-                              </li>
-                            ))}
+                            {item.transcript.slice(0, 4).map((line, idx) => {
+                              const match = line.match(/^\[(심사관|출원인|리포터)\]\s*\n?([\s\S]*)$/);
+                              const speaker = match ? match[1] : '대화';
+                              const content = match ? (match[2] || '').trimStart() : line;
+                              const roleClassMap = {
+                                심사관: 'transcript-entry--examiner',
+                                출원인: 'transcript-entry--applicant',
+                                리포터: 'transcript-entry--reporter',
+                              };
+                              const entryClass = roleClassMap[speaker] || 'transcript-entry--default';
+                              return (
+                                <li key={`transcript-${item.application_number}-${idx}`}>
+                                  <div className={`transcript-entry ${entryClass}`}>
+                                    <div className="transcript-entry__speaker">{speaker}</div>
+                                    <div className="transcript-entry__bubble">
+                                      <MarkdownBlock text={content} />
+                                    </div>
+                                  </div>
+                                </li>
+                              );
+                            })}
                           </ul>
                         </details>
                       ) : null}
@@ -1041,6 +1033,10 @@ function App() {
   const [simulationElapsed, setSimulationElapsed] = useState(0);
   const [simulationModel, setSimulationModel] = useState('');
   const simulationEventRef = useRef(null);
+  const baseVariants = baseResponse?.query?.variants;
+  const textDisplayVariants = (baseVariants && baseVariants.length)
+    ? baseVariants
+    : (response?.query?.variants || []);
 
   useEffect(() => {
     let ignore = false;
@@ -1067,9 +1063,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const isProcessing = ['collecting', 'loading'].includes(simulationStatus);
+    const runningStatuses = ['collecting', 'loading'];
+    const finishedStatuses = ['complete', 'error', 'cancelled'];
     let timer = null;
-    if (isProcessing) {
+
+    if (runningStatuses.includes(simulationStatus)) {
       const baseStart = simulationStartTime ?? Date.now();
       if (simulationStartTime === null) {
         setSimulationStartTime(baseStart);
@@ -1080,12 +1078,11 @@ function App() {
       timer = window.setInterval(() => {
         setSimulationElapsed(Math.floor((Date.now() - (simulationStartTime ?? baseStart)) / 1000));
       }, 1000);
-    } else if (
-      simulationStartTime !== null
-      && (simulationStatus === 'complete' || simulationStatus === 'error')
-    ) {
+    } else if (simulationStartTime !== null && finishedStatuses.includes(simulationStatus)) {
       setSimulationElapsed(Math.floor((Date.now() - simulationStartTime) / 1000));
+      setSimulationStartTime(null);
     }
+
     return () => {
       if (timer) {
         window.clearInterval(timer);
@@ -1129,7 +1126,21 @@ function App() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setResponse(data);
+      setResponse((prev) => {
+        if (!prev) {
+          return data;
+        }
+        const next = { ...data };
+        if (!targets.image) {
+          next.image_top = prev.image_top;
+          next.image_misc = prev.image_misc;
+        }
+        if (!targets.text) {
+          next.text_top = prev.text_top;
+          next.text_misc = prev.text_misc;
+        }
+        return next;
+      });
       setPages((prev) => ({
         image: targets.image ? 1 : prev.image,
         text: targets.text ? 1 : prev.text,
@@ -1520,6 +1531,14 @@ function App() {
     setLoading(false);
     setLoadingState({ image: false, text: false });
     setPages((prev) => ({ ...prev, image: 1 }));
+    setSimulationSelection((prev) => ({
+      ...prev,
+      image: buildSelectionMap(baseClone.image_top || []),
+    }));
+    setSimulationDefaults((prev) => ({
+      ...prev,
+      image: buildHighlightMap(baseClone.image_top || []),
+    }));
   };
 
   const handleTextReset = () => {
@@ -1548,6 +1567,14 @@ function App() {
     setLoading(false);
     setLoadingState({ image: false, text: false });
     setPages((prev) => ({ ...prev, text: 1 }));
+    setSimulationSelection((prev) => ({
+      ...prev,
+      text: buildSelectionMap(baseClone.text_top || []),
+    }));
+    setSimulationDefaults((prev) => ({
+      ...prev,
+      text: buildHighlightMap(baseClone.text_top || []),
+    }));
   };
 
   const resetForm = () => {
@@ -1706,7 +1733,7 @@ function App() {
                 items={response.text_top || []}
                 misc={response.text_misc || []}
                 variant="text"
-                variants={response.query?.variants || []}
+                variants={textDisplayVariants}
                 loading={loadingState.text}
                 loadingLabel="텍스트 결과 업데이트 중..."
                 page={pages.text}
