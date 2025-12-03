@@ -16,7 +16,7 @@ import {
 import logo from './assets/logo-tradar.png';
 
 const GOODS_LIMIT = 10;
-const RESULT_PAGE_SIZE = 20;
+const RESULT_PAGE_SIZE = 18;
 const RESULT_LIMIT = 200;
 const SIMULATION_DEFAULT_PER_VARIANT = 5;
 const SIMULATION_MAX_SELECTION = 40;
