@@ -29,9 +29,10 @@
 
 1. 프런트엔드에서 기본 이미지/텍스트 상위 5건(최대 40건) 출원번호를 `/simulation/run`으로 전송합니다.
 2. 백엔드는 `KIPRIS_ACCESS_KEY`로 IntermediateDocument OP/RE API를 호출하여 거절사유/추가사유/이미지/최종변동일자를 수집합니다.
-3. 사용자 UI에서 선택한 상품류와 유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록도 함께 전달되어, 에이전트 프롬프트에 실사용자가 지정한 상품 설명을 그대로 노출합니다.
-4. 수집된 텍스트를 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-4o-mini)로 대화/요약/위험 분석을 생성합니다.
-5. LangGraph 에이전트 결과를 묶어 프런트엔드 패널에 요약과 상위 후보별 노트를 보여 줍니다. 시뮬레이션 워커는 최대 10개까지 병렬 실행되어 지연을 줄입니다.
+3. 사용자 UI에서 선택한 상품류·유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록(`user_goods_names`)과 업로드 이미지(`user_image_b64` + `user_image_mime`)를 그대로 전달해 LangGraph 프롬프트가 실제 사용자의 지정상품과 외관을 참고하도록 합니다.
+4. 수집된 텍스트 및 사용자 맥락을 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-4o-mini)로 대화/요약/위험 분석을 생성합니다.
+5. 각 후보별 결과에는 충돌 위험도(`conflict_score`), 등록 가능성(`register_score`), LLM 근거(`rationale`, `factors[]`), 대화 로그가 포함됩니다. 시뮬레이션 워커는 최대 10개까지 병렬 실행되어 지연을 줄입니다.
+6. 모든 후보 평가가 끝나면 평균 점수, 고위험 건수, `overall_report`(여러 후보를 묶어 Markdown으로 정리한 최종 리포트)를 계산해 프런트엔드 상단 요약 카드에 사용합니다.
 
 ### 비동기 처리
 
@@ -124,7 +125,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 3. 각 후보에 대해 누락된 공간의 임베딩을 다시 읽어 코사인 유사도 계산
 4. 기본 스코어 가중치는 DINO:MetaCLIP = 0.5:0.5로 고정되며, 재검색 프롬프트를 사용해도 최종 점수 비율은 변하지 않고 MetaCLIP 질의 벡터만 프리셋(90/10 · 70/30 · 50/50 · 30/70 · 10/90)에 맞춰 섞입니다.
 5. 이미지 프롬프트가 제공되면 MetaCLIP 이미지 벡터와 프롬프트 텍스트 임베딩을 가중 평균해 새 질의를 구성합니다.
-6. Top-K를 선정합니다. 추후 `goods.is_adjacent`를 활용해 인접/비인접 그룹으로 재구성할 예정이며, 현재는 단일 리스트로 반환됩니다.
+6. Top-K를 선정합니다. 현재는 단일 리스트로 반환되며 프런트엔드에서 동일한 그리드로 표시합니다.
 
 ### 텍스트 흐름
 1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시). LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
@@ -136,7 +137,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 7. MetaCLIP 유사도와 프롬프트 필터를 반영해 Top-K를 선택합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
 
 ### 프롬프트 재검색
-- 프런트엔드에서 "최우선"/"우선"/"균형"/"프롬프트 우선" 프리셋을 제공하며, 각각 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치로 이미지/텍스트 임베딩이 보정됩니다.
+- 프런트엔드에서 "최우선"/"우선"/"균형"/"프롬프트 우선"/"프롬프트 최우선" 프리셋을 제공하며, 각각 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치로 이미지/텍스트 임베딩이 보정됩니다.
 - 이미지 프롬프트는 MetaCLIP 이미지 벡터만 재가중하며 DINO 스코어 비중은 항상 0.5로 유지됩니다 (MetaCLIP 질의 벡터만 프리셋 비율로 조정).
 - 텍스트 프롬프트는 LLM을 통해 추가 키워드·접두 조건을 추출하고, 실패 시 보조 검색어만 추가한 뒤 그 사실을 디버그 메시지에 남깁니다.
 - 재검색 요청에 `variants` 필드를 전달하면 기존 LLM 유사어를 그대로 재사용하고 TextVariantService를 재호출하지 않습니다.
@@ -145,7 +146,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 ### 응답 필드
 - `image_top`, `text_top`: 각각 Top-K 리스트 (기본 20)
 - `image_misc`, `text_misc`: Top-K 이외 후보 중 `등록`/`공고`가 아닌 상태를 가진 항목(최대 10)
-- `SearchResult`: `trademark_id`, `title`, `status`, `class_codes`, `app_no`, `image_sim`, `text_sim`, `thumb_url`
+- `SearchResult`: `trademark_id`, `title`, `status`, `class_codes`, `app_no`, `image_sim`, `text_sim`, `thumb_url`, `image_path`, `goods_services`
 - `QueryInfo`: `k`, `text`, `goods_classes`, `group_codes`, `variants` (`goods_classes`/`group_codes`는 향후 인접군 분류를 위해 예약된 필드이며 현재 점수에는 영향을 주지 않음)
 - `DebugInfo.messages`: 재검색 가중치, 프롬프트 LLM 해석, 폴백 여부 등 텍스트 메시지를 배열로 반환합니다.
 
