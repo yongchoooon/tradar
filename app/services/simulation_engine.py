@@ -265,7 +265,7 @@ class SimulationEngine:
         if agent_risk:
             notes.append(agent_risk)
         notes.append(
-            f"LLM 평가: 충돌 위험도 {llm_conflict_score:.1f}% · 등록 가능성 {llm_register_score:.1f}%"
+            f"LLM 평가: 충돌 위험도 {llm_conflict_score:.1f}점 · 등록 가능성 {llm_register_score:.1f}점"
         )
         if llm_rationale:
             notes.append(f"LLM 근거: {llm_rationale}")
@@ -304,12 +304,12 @@ class SimulationEngine:
         if high_risk == 0:
             base = (
                 f"총 {total}건 중 충돌 위험도가 높은 상표는 없습니다. "
-                f"평균 충돌 위험도 {avg_conflict:.1f}% · 평균 등록 가능성 {avg_register:.1f}%입니다."
+                f"평균 충돌 위험도 {avg_conflict:.1f}점 · 평균 등록 가능성 {avg_register:.1f}점입니다."
             )
         else:
             base = (
                 f"총 {total}건 중 {high_risk}건이 높은 충돌 위험도군입니다. "
-                f"평균 충돌 위험도 {avg_conflict:.1f}% · 평균 등록 가능성 {avg_register:.1f}%입니다."
+                f"평균 충돌 위험도 {avg_conflict:.1f}점 · 평균 등록 가능성 {avg_register:.1f}점입니다."
             )
         summaries = [c.agent_summary for c in candidates if c.agent_summary]
         if summaries:

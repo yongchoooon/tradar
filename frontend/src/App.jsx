@@ -780,11 +780,11 @@ function SimulationPanel({
                 <div className="simulation-panel__result-metrics">
                   <div className="simulation-panel__metric-pill is-risk">
                     <span>평균 충돌 위험도</span>
-                    <strong>{Number(result.avg_conflict_score ?? 0).toFixed(1)}%</strong>
+                    <strong>{Number(result.avg_conflict_score ?? 0).toFixed(1)}점</strong>
                   </div>
                   <div className="simulation-panel__metric-pill is-safe">
                     <span>평균 등록 가능성</span>
-                    <strong>{Number(result.avg_register_score ?? 0).toFixed(1)}%</strong>
+                    <strong>{Number(result.avg_register_score ?? 0).toFixed(1)}점</strong>
                   </div>
                   <div className="simulation-panel__metric-pill is-neutral">
                     <span>높은 위험</span>
@@ -815,11 +815,11 @@ function SimulationPanel({
                         <div className="simulation-panel__score-pills">
                           <span className="simulation-panel__score-pill is-risk">
                             <label>충돌 위험</label>
-                            <strong>{item.conflict_score?.toFixed ? item.conflict_score.toFixed(1) : item.conflict_score}%</strong>
+                            <strong>{item.conflict_score?.toFixed ? item.conflict_score.toFixed(1) : item.conflict_score}점</strong>
                           </span>
                           <span className="simulation-panel__score-pill is-safe">
                             <label>등록 가능</label>
-                            <strong>{item.register_score?.toFixed ? item.register_score.toFixed(1) : item.register_score}%</strong>
+                            <strong>{item.register_score?.toFixed ? item.register_score.toFixed(1) : item.register_score}점</strong>
                           </span>
                         </div>
                       </div>
