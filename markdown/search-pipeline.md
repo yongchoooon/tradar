@@ -12,12 +12,14 @@
 ## 요청 스키마
 
 - `SearchRequest`
-  - `image_b64` (필수): 업로드된 상표 이미지
-  - `text` (선택): 사용자가 입력한 상표명
-  - `image_prompt`: 이미지 재검색용 프롬프트(선택)
-  - `image_prompt_mode`: 가중치 프리셋 (`primary_strong`·`primary_focus`·`balanced`·`prompt_focus`·`prompt_strong` → 90/10·70/30·50/50·30/70·10/90)
-  - `text_prompt`: 텍스트 재검색용 프롬프트(선택)
-  - `text_prompt_mode`: 텍스트 가중치 프리셋 (`primary_focus`·`balanced`·`prompt_focus`)
+- `image_b64` (필수): 업로드된 상표 이미지
+- `text` (선택): 사용자가 입력한 상표명
+- `image_prompt`: 이미지 재검색용 프롬프트(선택)
+- `image_prompt_mode`: 가중치 프리셋 (`primary_strong`·`primary_focus`·`balanced`·`prompt_focus`·`prompt_strong` → 90/10·70/30·50/50·30/70·10/90)
+- `text_prompt`: 텍스트 재검색용 프롬프트(선택)
+  - `text_prompt_mode`: 텍스트 가중치 프리셋 (`primary_strong`·`primary_focus`·`balanced`·`prompt_focus`·`prompt_strong`)
+  - `variants`: 기존 검색에서 생성된 유사어를 재사용하고 싶을 때 전달하는 문자열 배열
+  - `use_llm_variants`: `false`로 설정하면 LLM을 호출하지 않고 원문만 사용
   - `goods_classes`, `group_codes`: 선택된 서비스류/유사군 (향후 인접군/비인접군 구분에 활용 예정)
   - `k`: 반환할 Top-K (기본 20)
   - `debug`: 디버그 세부정보를 포함할지 여부 (기본 비활성)
@@ -38,7 +40,7 @@
    - 프롬프트가 없을 때는 DINO:MetaCLIP = 0.5:0.5로 동일하게 가중합니다.
    - 프롬프트가 있으면 MetaCLIP 이미지 벡터와 텍스트 임베딩을 90/10, 70/30, 50/50, 30/70, 10/90 프리셋 중 선택한 값으로 보정하며, 최종 이미지 점수에서도 동일 비율이 적용됩니다.
 5. **Top-K 선정**
-   - 상위 K개 후보를 선택합니다. 인접군/비인접군 분리는 추후 `goods.is_adjacent` 로직을 사용해 확장할 예정이며, 현재는 단일 리스트로 반환됩니다.
+   - 상위 K개 후보를 단일 리스트로 반환합니다.
 
 ## 텍스트 검색 흐름
 
@@ -80,6 +82,8 @@
   - `title`: 한글/영문 제목 중 우선값
   - `image_sim`, `text_sim`: 각각 블렌딩된 이미지 점수, MetaCLIP 텍스트 점수
   - `thumb_url`: `/media?path=...` 형태의 썸네일 경로 또는 원본 URL
+  - `image_path`: 원본 이미지 절대 경로(프록시용) 또는 외부 URL
+  - `goods_services`: 지정상품 요약 텍스트
   - `doi`: 연계 문서가 있는 경우 DOI 링크
 - `DebugInfo.messages`: 재검색 가중치, LLM 해석 결과, 폴백 여부 등 추가 메시지 배열
 

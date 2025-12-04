@@ -47,7 +47,6 @@ class KiprisClient:
             "reasons": self._fetch_reject_details(self.base_op, "rejectDecisionInfo", app_no),
             "addition": self._fetch_addition(self.base_op, "additionRejectInfo", app_no),
             "result": self._fetch_simple_field(self.base_op, "examinationResultInfo", app_no, "examinationResult"),
-            "images": self._fetch_images(self.base_op, "imageInfo", app_no),
             "last_transfer": self._fetch_last_transfer(self.base_op, app_no),
         }
 
@@ -56,7 +55,6 @@ class KiprisClient:
             "reasons": self._fetch_reject_details(self.base_re, "rejectDecisionInfo", app_no),
             "addition": self._fetch_addition(self.base_re, "additionRejectInfo", app_no),
             "result": self._fetch_simple_field(self.base_re, "examinationResultInfo", app_no, "examinationResult"),
-            "images": self._fetch_images(self.base_re, "imageInfo", app_no),
             "last_transfer": self._fetch_last_transfer(self.base_re, app_no),
         }
 
@@ -93,19 +91,6 @@ class KiprisClient:
                 results.append(text)
         return results
 
-    def _fetch_images(self, base: str, endpoint: str, app_no: str) -> List[str]:
-        root = self._request(base, endpoint, app_no)
-        if root is None:
-            return []
-        images: List[str] = []
-        for info in root.findall(".//imageInfo"):
-            file_name = _extract_text(info.find("fileName"))
-            file_path = _extract_text(info.find("filePath"))
-            target = file_path or file_name
-            if target:
-                images.append(target)
-        return images
-
     def _fetch_simple_field(self, base: str, endpoint: str, app_no: str, field: str) -> Optional[str]:
         root = self._request(base, endpoint, app_no)
         if root is None:
@@ -129,7 +114,6 @@ def format_document_context(bundle: Dict[str, object]) -> str:
     sections: List[str] = []
     reasons = _ensure_list(bundle.get("reasons"))
     addition = _ensure_list(bundle.get("addition"))
-    images = _ensure_list(bundle.get("images"))
     if reasons:
         sections.append("주요 거절사유:\n" + "\n".join(reasons))
     if addition:
@@ -138,6 +122,4 @@ def format_document_context(bundle: Dict[str, object]) -> str:
         sections.append(f"심사결과: {bundle['result']}")
     if bundle.get("last_transfer"):
         sections.append(f"최종 변동일자: {bundle['last_transfer']}")
-    if images:
-        sections.append("이미지 참고: " + ", ".join(images[:3]))
     return "\n\n".join(sections)

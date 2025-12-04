@@ -333,7 +333,6 @@ function ResultCard({
   checked = false,
   onToggleSelection,
   canSelectMore = true,
-  highlighted = false,
 }) {
   const status = (item.status || '').trim();
   const statusClass = STATUS_MAP[status.toLowerCase()] || 'status-default';
@@ -341,7 +340,7 @@ function ResultCard({
   const simValue = variant === 'image' ? item.image_sim : item.text_sim;
   const showSelector = selectable && typeof onToggleSelection === 'function';
   const disableToggle = showSelector && !checked && !canSelectMore;
-  const cardClass = ['result-card', highlighted ? 'is-highlighted' : ''].filter(Boolean).join(' ');
+  const cardClass = ['result-card', checked ? 'is-highlighted' : ''].filter(Boolean).join(' ');
   const handleImageClick = () => {
     if (item.doi) {
       window.open(item.doi, '_blank', 'noopener,noreferrer');
@@ -525,7 +524,6 @@ function ResultSection({
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
                 onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
-                highlighted={Boolean(highlightMap && highlightMap[getResultKey(item)])}
               />
             ))}
           </div>
@@ -545,8 +543,7 @@ function ResultSection({
                   checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                   canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
                   onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
-                  highlighted={Boolean(highlightMap && highlightMap[getResultKey(item)])}
-                />
+              />
               ))}
             </div>
           </div>
@@ -599,7 +596,7 @@ function SimulationPanel({
     || (status === 'complete' && elapsedSeconds >= 0);
   const progressSteps = [
     { key: 'collecting', label: '데이터를 불러오는 중' },
-    { key: 'loading', label: 'LangGraph 분석' },
+    { key: 'loading', label: '시뮬레이션 진행' },
     { key: 'complete', label: '요약 완료' },
   ];
   const stepOrder = progressSteps.map((step) => step.key);
@@ -1111,6 +1108,16 @@ function App() {
     return Array.from(codes);
   }, [selectedGroups]);
 
+  const resetSimulationProgress = () => {
+    setSimulationStatus('idle');
+    setSimulationResult(null);
+    setSimulationJobId(null);
+    setSimulationError('');
+    setSimulationStartTime(null);
+    setSimulationElapsed(0);
+    closeSimulationStream();
+  };
+
   const search = async (payload, targets = { image: true, text: true }) => {
     setLoading(true);
     setError('');
@@ -1175,13 +1182,7 @@ function App() {
       }
       if (targets.image && targets.text) {
         setBaseResponse(cloneDeep(data));
-        setSimulationStatus('idle');
-        setSimulationResult(null);
-        setSimulationJobId(null);
-        setSimulationError('');
-        setSimulationStartTime(null);
-        setSimulationElapsed(0);
-        closeSimulationStream();
+        resetSimulationProgress();
       }
       setPlaceholderNotice('');
     } catch (err) {
@@ -1228,6 +1229,9 @@ function App() {
       text_sim: item.text_sim,
       status: item.status,
       class_codes: item.class_codes || [],
+      image_path: item.image_path || null,
+      thumb_url: item.thumb_url || null,
+      goods_services: item.goods_services || null,
     }));
     const images = mapItems(simulationSelection.image, 'image');
     const texts = mapItems(simulationSelection.text, 'text');
@@ -1336,13 +1340,10 @@ function App() {
       };
       return next;
     });
-    setSimulationStatus('idle');
-    setSimulationResult(null);
-    setSimulationJobId(null);
-    setSimulationError('');
-    setSimulationStartTime(null);
-    setSimulationElapsed(0);
-    closeSimulationStream();
+    const inProgress = ['collecting', 'loading', 'cancelling'].includes(simulationStatus) || Boolean(simulationJobId);
+    if (inProgress) {
+      resetSimulationProgress();
+    }
   };
 
   const handleSimulationRun = async (debug = false) => {
@@ -1369,6 +1370,8 @@ function App() {
         user_goods_classes: response?.query?.goods_classes || [],
         user_group_codes: response?.query?.group_codes || [],
         user_goods_names: buildSelectedGoodsNames(),
+        user_image_b64: lastImageBase64 || null,
+        user_image_mime: imageFile?.type || null,
       };
       const res = await fetch('/simulation/run', {
         method: 'POST',

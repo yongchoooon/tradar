@@ -6,7 +6,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, TypedDict, Any, Tuple
+from typing import Dict, List, TypedDict, Any, Tuple, Optional
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -22,6 +22,7 @@ class AgentState(TypedDict):
     scores: Dict[str, Any]
     logs: List[Dict[str, str]]
     reporter_only: Dict[str, str]
+    images: Dict[str, List[str]]
 
 
 logger = logging.getLogger("simulation")
@@ -50,7 +51,12 @@ class LangGraphOrchestrator:
         workflow.add_edge("scorer", END)
         self.graph = workflow.compile()
 
-    async def run_async(self, *, context: str) -> Dict[str, Any]:
+    async def run_async(
+        self,
+        *,
+        context: str,
+        images: Optional[Dict[str, List[str]]] = None,
+    ) -> Dict[str, Any]:
         load_dotenv(override=True)
         self._refresh_llm_if_needed()
         state = {
@@ -61,6 +67,7 @@ class LangGraphOrchestrator:
             "scores": {},
             "logs": [],
             "reporter_only": {},
+            "images": images or {},
         }
         result = await self.graph.ainvoke(state)
         return {
@@ -114,6 +121,7 @@ class LangGraphOrchestrator:
             "scores": {},
             "logs": [],
             "reporter_only": {},
+            "images": {},
         }
         extra = (
             f"평균 충돌 위험도: {avg_conflict:.1f}점\n"
@@ -131,11 +139,12 @@ class LangGraphOrchestrator:
     # 노드 정의 ---------------------------------------------------------------
 
     async def _examiner_node(self, state: AgentState) -> AgentState:
+        image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
             role="특허청 심사관",
             instruction=(
                 "유사 상표들의 심사 사례와 지정상품을 참고하여, 사용자가 입력한 상표에 대해, 가능한 거절 위험 요소를 분석하고 의견제출통지서에 준하는 논리적 평가를 작성해 주세요. "
-                "반드시 아래 기준을 따르세요. "
+                "반드시 아래 기준을 따르세요. \n"
                 "1. 판단 방식\n"
                 "  - 유사 상표의 과거 사례를 바탕으로 충돌 가능성이 높은 지점을 도출합니다.\n"
                 "  - 다만 사례의 내용을 동일하게 적용하거나 사실처럼 단정하면 안 됩니다.\n"
@@ -146,19 +155,21 @@ class LangGraphOrchestrator:
                 "3. 작성 목표\n"
                 "  - 사용자 상표가 거절될 수 있는 잠재적 이유를 근거 중심으로 설명합니다.\n"
                 "  - 각 판단 근거는 실제 특허청 심사 실무에 기반해 작성합니다.\n"
-                "  - 가능한 경우 “유사 여부 판단 기준(발음·관념·외관)” 등 관례적 요소를 포함해도 괜찮습니다.\n\n"
+                "  - 가능한 경우 “유사 여부 판단 기준(발음·관념·외관)” 등 관례적 요소를 포함해도 괜찮습니다."
             ),
             state=state,
+            image_inputs=image_payloads,
         )
         return self._append_transcript(state, "심사관", response)
 
     async def _applicant_node(self, state: AgentState) -> AgentState:
+        image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
             role="출원인 대리인",
             instruction=(
                 "심사관의 지적을 바탕으로 논리적 반박 또는 적절한 보정 방향을 제시해 주세요. "
                 "심사관이 제시한 잠재적 거절 사유는 ‘가능성 제시’일 뿐이며, 이에 대해 출원인은 반박 논리, 구별 요소, 보정 방향을 명확히 제시해야 합니다. "
-                "반드시 아래 기준을 따르세요. "
+                "반드시 아래 기준을 따르세요. \n"
                 "1. 판단 방식\n"
                 "  - 심사관의 지적 중 오해 또는 과도한 추정을 짚어 반박합니다.\n"
                 "  - 사용자의 상표가 발음, 관념, 외관, 거래 실정 등에서 충분히 구별된다는 근거를 제시합니다.\n"
@@ -169,9 +180,10 @@ class LangGraphOrchestrator:
                 "3. 작성 목표\n"
                 "  - 각 쟁점별로 “왜 유사하지 않은지” 근거를 제시합니다.\n"
                 "  - 심사관 분석이 유사 상표의 과거 사례에 지나치게 의존한 경우 이를 지적합니다.\n"
-                "  - “본 출원은 등록 가능성이 있다”는 논리적 방향을 구축하지만 단정은 하지 않습니다.\n\n"
+                "  - “본 출원은 등록 가능성이 있다”는 논리적 방향을 구축하지만 단정은 하지 않습니다."
             ),
             state=state,
+            image_inputs=image_payloads,
         )
         return self._append_transcript(state, "출원인", response)
 
@@ -180,7 +192,7 @@ class LangGraphOrchestrator:
             role="심사관",
             instruction=(
                 "출원인의 반박 중 합리적인 부분은 수용하고, 부족하거나 법적 근거가 약한 부분은 다시 반박하여 최종적인 판단 방향을 제시해 주세요. "
-                "반드시 아래 기준을 따르세요. "
+                "반드시 아래 기준을 따르세요. \n"
                 "1. 판단 방식\n"
                 "  - 출원인의 근거 제시가 합당하면 수용합니다.\n"
                 "  - 법적 근거 부족, 논리적 불충분 등이 있는 부분은 다시 반박합니다.\n"
@@ -189,7 +201,7 @@ class LangGraphOrchestrator:
                 "  - 반드시 Markdown으로만 작성합니다.\n"
                 "  - 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요.\n\n"
                 "3. 작성 목표\n"
-                "  - 쟁점을 명확히 정리하고, 반박하거나 수용하여 최종 판단 방향을 제시합니다.\n"
+                "  - 쟁점을 명확히 정리하고, 반박하거나 수용하여 최종 판단 방향을 제시합니다."
             ),
             state=state,
         )
@@ -267,6 +279,7 @@ class LangGraphOrchestrator:
         state: AgentState,
         context_override: str | None = None,
         transcript_override: str | None = None,
+        image_inputs: Optional[List[str]] = None,
     ) -> str:
         transcript_text = transcript_override if transcript_override is not None else "\n".join(state.get("transcript", []))
         context_text = context_override if context_override is not None else state.get("context", "")
@@ -277,6 +290,17 @@ class LangGraphOrchestrator:
             "- 출력은 지침에 명시된 제목/목록만 포함하고, 서론이나 출력 내용 설명 문장을 쓰지 마세요.\n"
             "- 만약 숫자 목록을 사용할 경우 반드시 '1.' 형식만 허용됩니다. '1)' 형식은 사용하지 마세요."
         )
+        human_content: Any = (
+            f"사건 정보:\n{context_text}\n\n"
+            f"현재까지 대화:\n{transcript_text or '아직 대화 없음.'}\n\n"
+            f"지침: {strict_instruction}"
+        )
+        if image_inputs:
+            payload = [{"type": "text", "text": human_content}]
+            for data_url in image_inputs:
+                payload.append({"type": "image_url", "image_url": {"url": data_url}})
+            human_content = payload
+
         messages = [
             SystemMessage(
                 content=(
@@ -286,13 +310,7 @@ class LangGraphOrchestrator:
                     " 또는 반박/보정으로 극복 가능한지에 초점을 맞춰 한국 특허청 심사 기준으로 판단하세요."
                 )
             ),
-            HumanMessage(
-                content=(
-                    f"사건 정보:\n{context_text}\n\n"
-                    f"현재까지 대화:\n{transcript_text or '아직 대화 없음.'}\n\n"
-                    f"지침: {strict_instruction}"
-                )
-            ),
+            HumanMessage(content=human_content),
         ]
         response = await self._invoke_llm(messages, role)
         prompt_text = ""
@@ -302,6 +320,16 @@ class LangGraphOrchestrator:
             prompt_text = content if isinstance(content, str) else str(content)
         self._record_log(state, role, prompt_text, response)
         return response.content.strip() if hasattr(response, "content") else str(response)
+
+    @staticmethod
+    def _collect_image_payloads(state: AgentState) -> List[str]:
+        images = state.get("images") or {}
+        payloads: List[str] = []
+        for key in ("user", "candidate"):
+            entries = images.get(key)
+            if entries:
+                payloads.extend(entries)
+        return payloads
 
     @staticmethod
     def _append_transcript(state: AgentState, speaker: str, utterance: str) -> AgentState:
@@ -315,6 +343,7 @@ class LangGraphOrchestrator:
             "scores": state.get("scores", {}),
             "logs": state.get("logs", []),
             "reporter_only": state.get("reporter_only", {}),
+            "images": state.get("images", {}),
         }
         return new_state
 

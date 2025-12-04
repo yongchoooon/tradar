@@ -10,6 +10,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 import json
+import base64
+import mimetypes
 
 from app.schemas.simulation import (
     SimulationCandidateResult,
@@ -58,6 +60,10 @@ class SimulationEngine:
         user_goods = list(getattr(request, "user_goods_classes", []) or [])
         user_groups = list(getattr(request, "user_group_codes", []) or [])
         user_goods_names = list(getattr(request, "user_goods_names", []) or [])
+        user_image_data_url = self._build_user_image_data_url(
+            getattr(request, "user_image_b64", None),
+            getattr(request, "user_image_mime", None),
+        )
         if progress_callback:
             try:
                 progress_callback("collecting")
@@ -87,6 +93,7 @@ class SimulationEngine:
                     user_goods=user_goods,
                     user_groups=user_groups,
                     user_goods_names=user_goods_names,
+                    user_image_data=user_image_data_url,
                     cancel_checker=cancel_checker,
                 )
 
@@ -196,10 +203,19 @@ class SimulationEngine:
             "[비교 대상 선행상표]",
             f"- 제목: {selection.title} (출원번호 {selection.application_number})",
             f"- 현재 상태: {status_note or '상태 정보 없음'}",
-            "- 아래 KIPRIS 문서는 선행상표가 과거에 어떤 거절사유를 지적받았는지 보여주며, 동일/유사 사유가 사용자 상표에도 적용될 수 있는지 검토하는 참고 자료입니다.",
         ]
         if selection.class_codes:
             lines.append(f"분류: {', '.join(selection.class_codes)}")
+        goods_text = (selection.goods_services or "").strip()
+        if goods_text:
+            lines.append("- 지정상품 요약:")
+            for chunk in goods_text.split("\n"):
+                cleaned = chunk.strip()
+                if cleaned:
+                    lines.append(f"  · {cleaned}")
+        if selection.variant == "image":
+            lines.append("- 사용자 상표 이미지와 선행상표 이미지를 함께 첨부했습니다. 외관·색상·구성 요소의 유사성과 차이점을 함께 검토하세요.")
+        lines.append("- 아래 KIPRIS 문서는 선행상표가 과거에 어떤 거절사유를 지적받았는지 보여주며, 동일/유사 사유가 사용자 상표에도 적용될 수 있는지 검토하는 참고 자료입니다.")
 
         office = bundle.get("office_action") or {}
         rejection = bundle.get("rejection") or {}
@@ -222,6 +238,7 @@ class SimulationEngine:
         user_goods: List[str],
         user_groups: List[str],
         user_goods_names: List[str],
+        user_image_data: Optional[str],
         cancel_checker: Optional[Callable[[], bool]] = None,
     ) -> SimulationCandidateResult:
         if cancel_checker and cancel_checker():
@@ -244,7 +261,11 @@ class SimulationEngine:
         if debug:
             self._log_debug_context(job_tag, selection.application_number, context_text, docs)
         logger.info("Running LangGraph orchestrator for %s", selection.application_number)
-        agent_result = await self._orchestrator.run_async(context=context_text)
+        image_inputs = self._prepare_image_inputs(selection, user_image_data)
+        agent_result = await self._orchestrator.run_async(
+            context=context_text,
+            images=image_inputs,
+        )
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
         if debug:
@@ -365,6 +386,47 @@ class SimulationEngine:
 
     def _sanitize_filename(self, value: str) -> str:
         return re.sub(r"[^0-9A-Za-z_-]", "_", value or "unknown")
+
+    def _build_user_image_data_url(
+        self,
+        data_b64: Optional[str],
+        mime: Optional[str],
+    ) -> Optional[str]:
+        if not data_b64:
+            return None
+        mime_type = mime or "image/png"
+        return f"data:{mime_type};base64,{data_b64}"
+
+    def _prepare_image_inputs(
+        self,
+        selection: SimulationSelection,
+        user_image_data: Optional[str],
+    ) -> Optional[Dict[str, List[str]]]:
+        images: Dict[str, List[str]] = {}
+        if user_image_data:
+            images.setdefault("user", []).append(user_image_data)
+        if selection.variant == "image":
+            candidate_data = self._load_candidate_image(selection)
+            if candidate_data:
+                images.setdefault("candidate", []).append(candidate_data)
+        return images if images else None
+
+    def _load_candidate_image(self, selection: SimulationSelection) -> Optional[str]:
+        path_text = getattr(selection, "image_path", None)
+        if not path_text:
+            return None
+        candidate_path = Path(path_text)
+        if not candidate_path.is_absolute():
+            candidate_path = candidate_path.resolve()
+        try:
+            data = candidate_path.read_bytes()
+        except OSError:
+            return None
+        mime, _ = mimetypes.guess_type(str(candidate_path))
+        if not mime:
+            mime = "image/png"
+        encoded = base64.b64encode(data).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
 
 _engine = SimulationEngine()
 

@@ -23,6 +23,9 @@ class SimulationSelection:
     text_sim: Optional[float] = None
     status: Optional[str] = None
     class_codes: List[str] = field(default_factory=list)
+    image_path: Optional[str] = None
+    thumb_url: Optional[str] = None
+    goods_services: Optional[str] = None
 
 
 @pydantic_dataclass
@@ -33,6 +36,8 @@ class SimulationRequest:
     user_goods_classes: List[str] = field(default_factory=list)
     user_group_codes: List[str] = field(default_factory=list)
     user_goods_names: List[str] = field(default_factory=list)
+    user_image_b64: Optional[str] = None
+    user_image_mime: Optional[str] = None
 
 
 @pydantic_dataclass

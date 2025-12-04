@@ -38,6 +38,8 @@ class SearchResult:
     text_sim: float
     thumb_url: Optional[str] = None
     doi: Optional[str] = None
+    image_path: Optional[str] = None
+    goods_services: Optional[str] = None
 
 
 @pydantic_dataclass

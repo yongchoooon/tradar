@@ -479,6 +479,8 @@ class SearchPipeline:
                     text_sim=round(text_cand.metaclip, 4),
                     thumb_url=record.thumb_url,
                     doi=record.doi,
+                    image_path=record.image_path,
+                    goods_services=record.goods_services,
                 )
             )
         return results

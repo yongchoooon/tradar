@@ -11,10 +11,10 @@
 - **출원인 Agent**: 심사관 사유를 반박하거나 보정 제안(지정상품 축소, 사용 표장 설명 등)을 생성.
 - **심사관 재응답 Agent**: 출원인 의견을 수용/반박으로 정리하고 최종 입장을 도출.
 - **리포터 Agent**: 전체 대화를 항목화(쟁점, 법조항, 양측 주장, 수용 여부, 향후 조치)하고 사용자 친화적 텍스트/테이블로 요약.
-- **채점자 Agent**: 리포터 요약 + 초기 데이터를 바탕으로 등록 가능성, 침해 리스크, 대응 난이도 등을 100점 만점으로 점수화하고 간단 코멘트를 제공.
+- **채점자 Agent**: 리포터 요약 + 초기 데이터를 바탕으로 충돌 위험도(`conflict_score`), 등록 가능성(`register_score`), 참고 요인(`factors[]`)을 0~100점 범위로 산출하고 간단 코멘트를 제공합니다.
 
 ## 3. 파이프라인 / 프레임워크
-- **LangGraph 추천**: 그래프 구조로 각 Agent 노드, 세션 메모리, 조건부 분기(예: 추가 라운드 필요 여부)를 유연하게 구성 가능. 필요한 경우 채점자 전에 "전략가" 등 보정 제안 전용 Agent를 끼워 넣거나 특정 조항 전담 Agent를 추가하는 식으로 그래프를 동적으로 확장할 수 있다. CrewAI, AutoGen, Semantic Kernel 등의 대안도 있으나 Python 생태계 및 LangChain 호환성을 고려하면 LangGraph가 적합.
+- **LangGraph 추천**: `app/services/langgraph_orchestrator.py`에서 StateGraph를 정의해 `examiner → applicant → examiner_reply → reporter → scorer` 순서로 실행하며, 각 노드가 동일한 `AgentState` 딕셔너리를 공유합니다. 조건부 분기는 현재 사용하지 않지만, 필요 시 노드를 추가해 확장할 수 있습니다. CrewAI, AutoGen, Semantic Kernel 등의 대안도 있으나 Python 생태계 및 LangChain 호환성을 고려하면 LangGraph가 적합합니다.
 - **실행 순서**
   1. 검색 API 호출
   2. 상위 N개 결과/메타데이터를 LangGraph 입력으로 전달
@@ -26,6 +26,7 @@
 ## 4. 필요 데이터 / 입력 요건
 - **T-RADAR 검색 결과**: `application_number`, `title_korean/english`, `status`, `service_classes`, `goods_services`, `image_sim`, `text_sim`, `thumb_url`.
 - **사용자 지정상품 선택**: 웹 UI에서 체크한 유사군 코드와 해당 그룹의 지정상품 이름 목록(최대 20개)을 그대로 전달해, LLM이 단순 코드가 아니라 실제 지정상품 설명을 참고할 수 있게 한다.
+- **사용자 이미지/지정상품 상세 문자열**: `SimulationRequest`에는 Base64 인코딩한 사용자 업로드 이미지(`user_image_b64` + `user_image_mime`)와 선택한 지정상품 이름 모음(`user_goods_names`, SimulationEngine에서 최대 30개까지 사용)이 함께 전달되어 LangGraph 프롬프트에 그대로 녹아든다.
 - **의견제출통지서 REST API**
   - 엔드포인트에서 송달정보(송달번호, 송달일, 제출기한), 서지정보(출원번호, 지정류, 출원인, 담당 심사관), 거절사유별 블록(법조항, 사유 요약, 적용 지정상품, 선행사례/표장)과 최소한의 안내 문구를 JSON으로 받는다.
 - **거절결정서 REST API**
@@ -46,23 +47,21 @@
     - 기타 메타 API(심사관/인명/서지/안내 등)는 시뮬레이션에는 사용하지 않으며 UI에서 원문 확인용으로만 유지한다.
 
 ## 5. Agent 워크플로 세부 단계
-1. **Preprocessor Node**: 사용자 상표 + 검색 결과 + (선택) API로 가져온 문서 스니펫을 LangGraph state에 저장.
-2. **Examiner Agent**: 다음 요소를 프롬프트에 포함
-   - 사용자 상표 이미지/설명
-   - 상위 유사 상표 메타정보(비교표)
-   - 의견제출통지서 API에서 받은 거절사유 블록(법조항별 예시)
-   - 출력: 조항별 이슈, 심사관 코멘트, 선행상표 매핑
-3. **Applicant Agent**: Examiner 출력에 기반하여 지정상품/서비스 차이, 발음/관념 비교, 선행사례와 차별성을 강조.
-4. **Examiner Rebuttal Agent**: Applicant 응답을 평가, 수용/반박 구분 및 필요 시 보정 조건 제안.
-5. **Reporter Agent**: 앞선 3턴을 요약하고 `issues: [{name, examiner, applicant, decision}]` 형태의 요약을 JSON/텍스트로 생성하며, 각 주장에 인용된 선행상표 ID·문서 출처 링크(API 원문 URL)를 명시해 Explainability를 유지한다.
-6. **Scorer Agent**: Reporter 요약과 사용자/선행상표 비교 컨텍스트, 선행상표 상태 정보를 기반으로 충돌 위험/등록 가능성 점수를 0~100 사이로 JSON으로 산출하고, 근거(`rationale`)와 참고 항목(`factors`)을 함께 반환한다. 산출된 LLM 점수/근거가 그대로 UI에 노출된다.
+1. **Context Builder (SimulationEngine)**: 선택한 각 선행상표마다 사용자 상표명, 이미지/텍스트 중 어떤 후보인지, 선택한 상품류·유사군·지정상품 목록, KIPRIS 의견제출통지서/거절결정서 요약을 한 덩어리의 Markdown 텍스트로 정리해 LangGraph state의 `context` 필드에 넣습니다. 디버그 모드에서는 이 컨텍스트가 `logs/simulation_debug/<tag>_<app_no>_context.json`에 기록됩니다.
+2. **Examiner Agent (`examiner`)**: 사용자 이미지/선행상표 이미지를 함께 주입하고, 거절사유 블록을 참고해 Markdown 형식으로 잠재적 충돌 이슈를 작성합니다. 외관/호칭/관념 및 지정상품 차이를 모두 언급하도록 프롬프트를 구성했습니다.
+3. **Applicant Agent (`applicant`)**: 심사관의 주장에 대해 반박 논리·보정 전략을 Markdown으로 응답하며, 실제 거래 실정·지정상품 범위를 근거로 등록 가능성을 강조합니다.
+4. **Examiner Rebuttal Agent (`examiner_reply`)**: 출원인의 주장 중 수용 가능한 부분과 추가 보정이 필요한 부분을 구분해 최종 입장을 제시합니다.
+5. **Reporter Agent (`reporter`)**: 앞선 대화를 `# 한 줄 요약` + `## 주요 쟁점` 형식으로 정리합니다. 쟁점 목록은 항상 `1.`부터 시작하는 번호 목록이며 굵은 제목(**쟁점명**)과 최소 두 문장 이상의 설명을 포함합니다. Reporter Markdown은 그대로 `SimulationCandidateResult.reporter_markdown`에 저장됩니다.
+6. **Scorer Agent (`scorer`)**: Reporter Markdown만을 입력으로 받아 첫 줄에 JSON `{"conflict_score", "register_score", "rationale", "factors"}`를 출력한 뒤 `## 판단 요약`, `## 평가 근거`, `## 권장 대응` 세 섹션을 불릿 목록으로 채웁니다. JSON은 파싱되어 `SimulationCandidateResult`의 점수 및 근거 필드로 저장되고, 나머지 Markdown은 UI 카드에 그대로 노출됩니다.
+
+모든 후보의 평가가 끝나면 `LangGraphOrchestrator.summarize_overall()`이 평균 점수와 각 후보의 요약을 모아 별도의 Markdown(전체 요약/선행상표별 핵심 위험/권고)을 생성하며, 이 결과가 `SimulationResponse.overall_report`로 전달됩니다.
 
 ## 6. 필요한 작업 / 산출물
-- LangGraph 프로젝트: `app/agents/simulation.py` 등 Python 모듈과 설정 파일.
+- LangGraph 프로젝트: `app/services/langgraph_orchestrator.py`에서 에이전트 그래프를 정의합니다.
 - 데이터 연동: 의견제출통지서/거절결정서 REST API 클라이언트를 구현해 필요한 시점에 데이터를 조회·캐싱하고, 필요 시 사례 검색용 벡터 인덱스를 구성.
 - 프롬프트 템플릿 및 법령 지식 베이스(`markdown/agent-prompts.md` 등).
 - FastAPI 엔드포인트 `/simulation/run`: LangGraph 실행을 트리거하는 비동기 작업을 생성해 `job_id`를 반환하고, `/simulation/stream/{job_id}`(SSE) 또는 `/simulation/status/{job_id}`로 작업 상태/결과를 조회한다. 진행 상황은 `simulation` 로거로도 확인할 수 있다.
-- 프론트엔드 UI: 심사관 vs 출원인 대화, 리포터 요약, 채점 카드 등을 표시하며 각 주장 하단에 인용된 선행상표/문서 링크를 노출해 Explainability를 유지. 모든 후보 정보를 모아 추가 LLM이 최종 Markdown 요약(전체 한 줄 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 생성하고, UI 상단에 고정된 형식으로 노출합니다.
+- 프론트엔드 UI: 심사관 vs 출원인 대화, 리포터 요약, 채점 카드 등을 표시하며 각 주장 하단에 인용된 선행상표/문서 링크를 노출해 Explainability를 유지합니다. 모든 후보 정보를 기반으로 생성된 `overall_report` Markdown(전체 한 줄 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)이 패널 상단에 고정됩니다.
 - 테스트: mock 상표 입력, deterministic LLM stub을 활용한 CI 검증.
 - 문서: README 업데이트 및 워크플로/데이터 요구사항 설명.
 - 디버그 모드: `시뮬레이션 실행(디버그)` 버튼을 누르면 후보별 `logs/simulation_debug/<timestamp>_<app_no>_context.json`(KIPRIS 정리)과 `..._llm.txt`(LLM 프롬프트/응답)가 생성된다.
