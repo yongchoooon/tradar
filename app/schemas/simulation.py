@@ -49,6 +49,7 @@ class SimulationCandidateResult:
     register_score: float
     status: Optional[str]
     class_codes: List[str]
+    thumb_url: Optional[str] = None
     notes: List[str] = field(default_factory=list)
     agent_summary: Optional[str] = None
     agent_risk: Optional[str] = None

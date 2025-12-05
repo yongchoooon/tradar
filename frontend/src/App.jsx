@@ -78,6 +78,60 @@ const TEXT_BLEND_OPTIONS = [
   { value: 'prompt_strong', label: '프롬프트 최우선', helper: '원문 10% · 프롬프트 90%' },
 ];
 
+const SCORE_SEGMENTS = [
+  { label: '매우 낮음', max: 10 },
+  { label: '낮음', max: 30 },
+  { label: '약간 낮음', max: 50 },
+  { label: '약간 높음', max: 70 },
+  { label: '높음', max: 90 },
+  { label: '매우 높음', max: 100 },
+];
+
+const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
+
+const describeScoreBand = (value) => {
+  const clamped = clampScore(value);
+  if (!Number.isFinite(clamped)) return '정보 부족';
+  if (clamped < 10) return '매우 낮음';
+  if (clamped < 30) return '낮음';
+  if (clamped < 50) return '약간 낮음';
+  if (clamped < 70) return '약간 높음';
+  if (clamped < 90) return '높음';
+  return '매우 높음';
+};
+
+const renderScoreBar = (title, value) => {
+  const safe = clampScore(value);
+  const segmentIndex = SCORE_SEGMENTS.findIndex((segment) => safe <= segment.max);
+  return (
+    <div className="simulation-score-bar" key={title}>
+      <div className="simulation-score-bar__header">
+        <span className="simulation-score-bar__title">{title}</span>
+        <span className="simulation-score-bar__value">{safe.toFixed(1)}점</span>
+      </div>
+      <div className="simulation-score-bar__body">
+        <div className="simulation-score-bar__track">
+          {SCORE_SEGMENTS.map((segment, idx) => (
+            <div
+              key={segment.label}
+              className={[
+                'simulation-score-bar__segment',
+                `simulation-score-bar__segment--${idx + 1}`,
+                idx === segmentIndex ? 'is-active' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              <span>{segment.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="simulation-score-bar__indicator" style={{ left: `${safe}%` }}>
+          <span className="simulation-score-bar__indicator-arrow" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function MarkdownBlock({ text, className }) {
   const html = useMemo(() => {
     if (!text) {
@@ -594,6 +648,7 @@ function SimulationPanel({
   const shouldShowElapsed =
     ['collecting', 'loading', 'cancelling'].includes(status)
     || (status === 'complete' && elapsedSeconds >= 0);
+
   const progressSteps = [
     { key: 'collecting', label: '데이터를 불러오는 중' },
     { key: 'loading', label: '시뮬레이션 진행' },
@@ -697,98 +752,97 @@ function SimulationPanel({
       <div className="simulation-panel__header">
         <p className="simulation-panel__tag">AI Agent</p>
         <h3>상표 등록 가능성 시뮬레이션</h3>
-        <p className="simulation-panel__model" aria-live="polite">
-          사용 모델: {modelName || '불러오는 중...'}
-        </p>
       </div>
-      <p className="simulation-panel__description">
-        {hasResults
-          ? '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.'
-          : '검색을 먼저 실행하면 위험도가 높은 후보 10건을 자동으로 선택해줍니다.'}
-      </p>
-      <div className="simulation-panel__progress" aria-hidden={progressIndex < 0}>
-        {progressSteps.map((step, idx) => {
-          const stepClass = [
-            'simulation-panel__progress-step',
-            idx <= progressIndex ? 'is-active' : '',
-            idx < progressIndex ? 'is-complete' : '',
-          ].filter(Boolean).join(' ');
-          return (
-            <div key={step.key} className={stepClass}>
-              <span className="simulation-panel__progress-dot" />
-              <span className="simulation-panel__progress-label">{step.label}</span>
+      <div className="simulation-panel__scrollable">
+        <div className="simulation-panel__body">
+          <section className="simulation-panel__intro">
+            <p className="simulation-panel__model" aria-live="polite">
+              사용 모델: {modelName || '불러오는 중...'}
+            </p>
+            <p className="simulation-panel__description">
+              {hasResults
+                ? '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.'
+                : '검색을 먼저 실행하면 위험도가 높은 후보 10건을 자동으로 선택해줍니다.'}
+            </p>
+            <div className="simulation-panel__progress" aria-hidden={progressIndex < 0}>
+              {progressSteps.map((step, idx) => {
+                const stepClass = [
+                  'simulation-panel__progress-step',
+                  idx <= progressIndex ? 'is-active' : '',
+                  idx < progressIndex ? 'is-complete' : '',
+                ].filter(Boolean).join(' ');
+                return (
+                  <div key={step.key} className={stepClass}>
+                    <span className="simulation-panel__progress-dot" />
+                    <span className="simulation-panel__progress-label">{step.label}</span>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-      {statusContent}
-      {hasResults ? (
-        <div className="simulation-panel__summary-grid">
-          <div className="simulation-panel__summary-card">
-            <p>이미지 후보</p>
-            <strong>{imageCount}</strong>
-          </div>
-          <div className="simulation-panel__summary-card">
-            <p>텍스트 후보</p>
-            <strong>{textCount}</strong>
-          </div>
-          <div className="simulation-panel__summary-card">
-            <p>총 선택 수</p>
-            <strong>{totalCount} / {maxSelection}</strong>
-          </div>
-        </div>
-      ) : guidanceBlock}
-      {![ 'collecting', 'loading', 'cancelling' ].includes(status) && (
-        <div className="simulation-panel__actions">
-          <button
-            type="button"
-            className="action-button action-button--primary simulation-panel__button"
-            onClick={() => onRun?.(false)}
-            disabled={buttonDisabled}
-          >
-            <FiPlayCircle aria-hidden="true" />
-            <span>시뮬레이션 시작</span>
-          </button>
-          <button
-            type="button"
-            className="action-button action-button--debug simulation-panel__button"
-            onClick={() => onRun?.(true)}
-            disabled={buttonDisabled}
-          >
-            <FiTerminal aria-hidden="true" />
-            <span>시뮬레이션 디버그</span>
-          </button>
-        </div>
-      )}
-      {( ['collecting', 'loading', 'cancelling'].includes(status) && canCancel) && (
-        <button
-          type="button"
-          className="ghost-button simulation-panel__button"
-          onClick={onCancel}
-        >
-          실행 취소
-        </button>
-      )}
-      <div className="simulation-panel__body">
+            {statusContent}
+            {hasResults ? (
+              <div className="simulation-panel__summary-grid">
+                <div className="simulation-panel__summary-card">
+                  <p>이미지 후보</p>
+                  <strong>{imageCount}</strong>
+                </div>
+                <div className="simulation-panel__summary-card">
+                  <p>텍스트 후보</p>
+                  <strong>{textCount}</strong>
+                </div>
+                <div className="simulation-panel__summary-card">
+                  <p>총 선택 수</p>
+                  <strong>{totalCount} / {maxSelection}</strong>
+                </div>
+              </div>
+            ) : guidanceBlock}
+            {![ 'collecting', 'loading', 'cancelling' ].includes(status) && (
+              <div className="simulation-panel__actions">
+                <button
+                  type="button"
+                  className="action-button action-button--primary simulation-panel__button"
+                  onClick={() => onRun?.(false)}
+                  disabled={buttonDisabled}
+                >
+                  <FiPlayCircle aria-hidden="true" />
+                  <span>시뮬레이션 시작</span>
+                </button>
+                <button
+                  type="button"
+                  className="action-button action-button--debug simulation-panel__button"
+                  onClick={() => onRun?.(true)}
+                  disabled={buttonDisabled}
+                >
+                  <FiTerminal aria-hidden="true" />
+                  <span>시뮬레이션 디버그</span>
+                </button>
+              </div>
+            )}
+            {( ['collecting', 'loading', 'cancelling' ].includes(status) && canCancel) && (
+              <button
+                type="button"
+                className="ghost-button simulation-panel__button"
+                onClick={onCancel}
+              >
+                실행 취소
+              </button>
+            )}
+          </section>
         {result && status === 'complete' ? (
           <>
             <div className="simulation-panel__result-card">
-              <div className="simulation-panel__result-top">
-                <div className="simulation-panel__result-metrics">
-                  <div className="simulation-panel__metric-pill is-risk">
-                    <span>평균 충돌 위험도</span>
-                    <strong>{Number(result.avg_conflict_score ?? 0).toFixed(1)}점</strong>
+              {result && (
+                <div className="simulation-panel__score-area">
+                  <div className="simulation-panel__score-bars">
+                    {renderScoreBar('평균 충돌 위험도', result.avg_conflict_score)}
+                    {renderScoreBar('평균 등록 가능성', result.avg_register_score)}
                   </div>
-                  <div className="simulation-panel__metric-pill is-safe">
-                    <span>평균 등록 가능성</span>
-                    <strong>{Number(result.avg_register_score ?? 0).toFixed(1)}점</strong>
-                  </div>
-                  <div className="simulation-panel__metric-pill is-neutral">
+                  <div className="simulation-panel__risk-pill">
                     <span>높은 위험</span>
                     <strong>{result.high_risk}건</strong>
                   </div>
                 </div>
-              </div>
+              )}
               <MarkdownBlock
                 className="markdown-block--panel"
                 text={result.overall_report || result.summary_text}
@@ -802,12 +856,23 @@ function SimulationPanel({
                   <details className="simulation-panel__case">
                     <summary>
                       <div className="simulation-panel__case-heading">
-                        <div>
-                          <span className={`simulation-panel__variant-badge simulation-panel__variant-badge--${item.variant}`}>
-                            {variantLabels[item.variant] || item.variant}
-                          </span>
-                          <strong>{item.title}</strong>
-                          <span className="simulation-panel__list-meta">{item.application_number}</span>
+                        <div className="simulation-panel__case-info">
+                          <div className="simulation-panel__case-thumb">
+                            {item.thumb_url ? (
+                              <img src={item.thumb_url} alt={`${item.title} 미리보기`} loading="lazy" />
+                            ) : (
+                              <span className="simulation-panel__case-thumb-placeholder">이미지 없음</span>
+                            )}
+                          </div>
+                          <div className="simulation-panel__case-details">
+                            <div className="simulation-panel__case-row">
+                              <span className={`simulation-panel__variant-badge simulation-panel__variant-badge--${item.variant}`}>
+                                {variantLabels[item.variant] || item.variant}
+                              </span>
+                              <strong className="simulation-panel__case-title" title={item.title}>{item.title}</strong>
+                            </div>
+                            <span className="simulation-panel__list-meta">{item.application_number}</span>
+                          </div>
                         </div>
                         <div className="simulation-panel__score-pills">
                           <span className="simulation-panel__score-pill is-risk">
@@ -895,6 +960,7 @@ function SimulationPanel({
         ) : status === 'complete' ? (
           <p className="simulation-panel__placeholder">결과를 불러오는 중입니다.</p>
         ) : null}
+        </div>
       </div>
     </aside>
   );

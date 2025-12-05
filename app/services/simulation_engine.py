@@ -301,6 +301,7 @@ class SimulationEngine:
             register_score=final_register_score,
             status=selection.status,
             class_codes=selection.class_codes,
+            thumb_url=selection.thumb_url,
             notes=notes,
             agent_summary=agent_summary,
             agent_risk=agent_risk,
