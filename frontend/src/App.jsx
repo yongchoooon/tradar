@@ -153,11 +153,11 @@ const TEXT_BLEND_OPTIONS = [
 ];
 
 const SCORE_SEGMENTS = [
-  { label: '매우 낮음', max: 10 },
-  { label: '낮음', max: 30 },
+  { label: '매우 낮음', max: 17 },
+  { label: '낮음', max: 34 },
   { label: '약간 낮음', max: 50 },
-  { label: '약간 높음', max: 70 },
-  { label: '높음', max: 90 },
+  { label: '약간 높음', max: 66 },
+  { label: '높음', max: 83 },
   { label: '매우 높음', max: 100 },
 ];
 
@@ -174,14 +174,16 @@ const describeScoreBand = (value) => {
   return '매우 높음';
 };
 
-const renderScoreBar = (title, value) => {
+const renderScoreBar = (title, value, secondary) => {
   const safe = clampScore(value);
   const segmentIndex = SCORE_SEGMENTS.findIndex((segment) => safe <= segment.max);
+  const hasSecondary = secondary && Number.isFinite(secondary.value);
+  const secondaryValue = hasSecondary ? clampScore(secondary.value) : null;
+  const markerLabel = secondary?.kind === 'max' ? '최댓값' : '최솟값';
   return (
     <div className="simulation-score-bar" key={title}>
       <div className="simulation-score-bar__header">
         <span className="simulation-score-bar__title">{title}</span>
-        <span className="simulation-score-bar__value">{safe.toFixed(1)}점</span>
       </div>
       <div className="simulation-score-bar__body">
         <div className="simulation-score-bar__track">
@@ -198,8 +200,26 @@ const renderScoreBar = (title, value) => {
             </div>
           ))}
         </div>
-        <div className="simulation-score-bar__indicator" style={{ left: `${safe}%` }}>
-          <span className="simulation-score-bar__indicator-arrow" />
+        {hasSecondary && secondaryValue !== null && (
+          <div
+            className={`simulation-score-bar__marker simulation-score-bar__marker--${secondary.kind}`}
+            style={{ left: `${secondaryValue}%` }}
+          >
+            <span className="simulation-score-bar__marker-label">
+              {markerLabel} {secondaryValue.toFixed(1)}점
+            </span>
+            <span className="simulation-score-bar__marker-triangle" />
+            <span className="simulation-score-bar__marker-line" />
+          </div>
+        )}
+        <div
+          className="simulation-score-bar__marker simulation-score-bar__marker--avg"
+          style={{ left: `${safe}%` }}
+        >
+          <span className="simulation-score-bar__marker-label">
+            평균 {safe.toFixed(1)}점
+          </span>
+          <span className="simulation-score-bar__marker-triangle" />
         </div>
       </div>
     </div>
@@ -766,6 +786,7 @@ function SimulationPanel({
   modelName = '',
   docked = false,
 }) {
+  const [focusHighRiskOnly, setFocusHighRiskOnly] = useState(false);
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
@@ -882,6 +903,41 @@ function SimulationPanel({
   );
   const variantLabels = { image: '이미지', text: '텍스트' };
   const hasResultData = Boolean(result);
+  const highRiskCandidates = useMemo(() => {
+    if (!result?.candidates?.length) return [];
+    return result.candidates.filter((item) => clampScore(item?.conflict_score) >= 70);
+  }, [result]);
+  const highRiskStats = useMemo(() => {
+    if (!highRiskCandidates.length) return null;
+    const conflictScores = highRiskCandidates.map((item) => clampScore(item?.conflict_score));
+    const registerScores = highRiskCandidates.map((item) => clampScore(item?.register_score));
+    const calcAverage = (scores) => (scores.length
+      ? scores.reduce((sum, value) => sum + value, 0) / scores.length
+      : 0);
+    const maxConflict = conflictScores.reduce((acc, value) => Math.max(acc, value), conflictScores[0]);
+    const minRegister = registerScores.reduce((acc, value) => Math.min(acc, value), registerScores[0]);
+    return {
+      count: highRiskCandidates.length,
+      avgConflict: calcAverage(conflictScores),
+      avgRegister: calcAverage(registerScores),
+      maxConflict,
+      minRegister,
+    };
+  }, [highRiskCandidates]);
+  useEffect(() => {
+    setFocusHighRiskOnly(false);
+  }, [result]);
+  useEffect(() => {
+    if (!highRiskStats?.count && focusHighRiskOnly) {
+      setFocusHighRiskOnly(false);
+    }
+  }, [highRiskStats, focusHighRiskOnly]);
+  const riskToggleEnabled = Boolean(highRiskStats?.count);
+  const activeScoreStats = focusHighRiskOnly && riskToggleEnabled ? highRiskStats : null;
+  const avgConflictScore = activeScoreStats?.avgConflict ?? result?.avg_conflict_score;
+  const avgRegisterScore = activeScoreStats?.avgRegister ?? result?.avg_register_score;
+  const maxConflictScore = activeScoreStats?.maxConflict ?? result?.max_conflict_score;
+  const minRegisterScore = activeScoreStats?.minRegister ?? result?.min_register_score;
   const resultIsStale = hasResultData && status !== 'complete';
 
   return (
@@ -971,17 +1027,49 @@ function SimulationPanel({
               {result && (
                 <div className="simulation-panel__score-area">
                   <div className="simulation-panel__score-bars">
-                    {renderScoreBar('평균 충돌 위험도', result.avg_conflict_score)}
-                    {renderScoreBar('평균 등록 가능성', result.avg_register_score)}
+                    {renderScoreBar(
+                      '충돌 위험도',
+                      avgConflictScore,
+                      Number.isFinite(maxConflictScore)
+                        ? { kind: 'max', value: maxConflictScore }
+                        : null,
+                    )}
+                    {renderScoreBar(
+                      '등록 가능성',
+                      avgRegisterScore,
+                      Number.isFinite(minRegisterScore)
+                        ? { kind: 'min', value: minRegisterScore }
+                        : null,
+                    )}
                   </div>
-                  <div className="simulation-panel__risk-pill">
-                    <span>높은 위험</span>
-                    <strong>{result.high_risk}건</strong>
+                <div className="simulation-panel__risk-row">
+                  <div className="simulation-panel__risk-group">
+                    <div className={`simulation-panel__risk-banner ${focusHighRiskOnly && riskToggleEnabled ? 'is-focused' : ''}`}>
+                      <div className="simulation-panel__risk-count">
+                        <span className="simulation-panel__risk-label">높은 위험</span>
+                        <strong className="simulation-panel__risk-value">{result.high_risk}건</strong>
+                      </div>
+                    </div>
+                    <label
+                      className={`risk-average-toggle ${focusHighRiskOnly ? 'is-active' : ''} ${!riskToggleEnabled ? 'is-disabled' : ''}`.trim()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={focusHighRiskOnly}
+                        onChange={(event) => setFocusHighRiskOnly(event.target.checked)}
+                        disabled={!riskToggleEnabled}
+                      />
+                      <span className="risk-average-toggle__switch" aria-hidden="true" />
+                      <span className="risk-average-toggle__label">높은 위험만 보기</span>
+                    </label>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
               {resultIsStale && (
-                <p className="simulation-panel__status-text">새로운 시뮬레이션이 진행 중입니다. 아래 내용은 직전 결과입니다.</p>
+                <p className="simulation-panel__status-text">
+                  새로운 시뮬레이션이 진행 중입니다. 아래 내용은 직전 결과입니다.
+                </p>
               )}
               <MarkdownBlock
                 className="markdown-block--panel"

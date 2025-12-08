@@ -8,6 +8,7 @@ import binascii
 import json
 import logging
 import mimetypes
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +23,7 @@ from app.schemas.simulation import (
 )
 from app.services.kipris_client import KiprisClient, format_document_context
 from app.services.langgraph_orchestrator import LangGraphOrchestrator
+from dotenv import load_dotenv
 
 logger = logging.getLogger("simulation")
 
@@ -37,11 +39,13 @@ class SimulationEngine:
     MAX_WORKERS = 10
 
     def __init__(self) -> None:
+        load_dotenv(override=True)
         self._client: KiprisClient | None = None
         self._doc_cache: Dict[str, Dict[str, object]] = {}
         self._orchestrator = LangGraphOrchestrator()
         self._debug_dir = Path("logs") / "simulation_debug"
         self._debug_dir.mkdir(parents=True, exist_ok=True)
+        self._timeline_enabled = os.getenv("SIMULATION_TIMELINE_LOG", "1").lower() in {"1", "true", "yes", "y"}
 
     async def run(
         self,
@@ -129,12 +133,15 @@ class SimulationEngine:
         avg_register = mean([c.register_score for c in candidates]) if candidates else 0.0
         avg_conflict = mean([c.conflict_score for c in candidates]) if candidates else 0.0
         summary = self._build_summary(len(candidates), high_risk, avg_register, avg_conflict, candidates)
+        max_conflict = max((c.conflict_score for c in candidates), default=0.0)
+        min_register = min((c.register_score for c in candidates), default=0.0)
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
         overall_report = None
         overall_logs: List[Dict[str, str]] = []
+        overall_timeline: List[Dict[str, object]] = []
         if candidates:
-            overall_report, overall_logs = await self._orchestrator.summarize_overall(
+            overall_report, overall_logs, overall_timeline = await self._orchestrator.summarize_overall(
                 user_mark=user_mark,
                 avg_conflict=avg_conflict,
                 avg_register=avg_register,
@@ -151,11 +158,15 @@ class SimulationEngine:
             )
             if debug_enabled and debug_tag and overall_logs:
                 self._log_debug_llm(debug_tag, "overall", overall_logs)
+            if run_tag and overall_timeline and self._timeline_enabled:
+                self._log_timeline(run_tag, "overall", overall_timeline)
         return SimulationResponse(
             total_selected=len(candidates),
             high_risk=high_risk,
             avg_conflict_score=round(avg_conflict, 1),
             avg_register_score=round(avg_register, 1),
+            max_conflict_score=round(max_conflict, 1),
+            min_register_score=round(min_register, 1),
             summary_text=summary,
             overall_report=overall_report,
             candidates=candidates,
@@ -299,7 +310,8 @@ class SimulationEngine:
         if debug:
             self._log_debug_llm(debug_tag, selection.application_number, agent_result.get("logs", []))
         timeline = agent_result.get("timeline", [])
-        self._log_timeline(run_tag, selection.application_number, timeline)
+        if self._timeline_enabled:
+            self._log_timeline(run_tag, selection.application_number, timeline)
         agent_summary = agent_result.get("summary")
         agent_risk = agent_result.get("risk")
         reporter_payload = agent_result.get("reporter") or {}

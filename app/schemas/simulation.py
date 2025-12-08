@@ -68,6 +68,8 @@ class SimulationResponse:
     avg_conflict_score: float
     avg_register_score: float
     summary_text: str
+    max_conflict_score: float = 0.0
+    min_register_score: float = 0.0
     overall_report: Optional[str] = None
     candidates: List[SimulationCandidateResult] = field(default_factory=list)
 

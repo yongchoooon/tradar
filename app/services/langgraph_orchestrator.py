@@ -113,13 +113,13 @@ class LangGraphOrchestrator:
             "아래 형식을 정확히 따라 Markdown으로만 작성하세요. 평균 점수나 등록 가능성 수치는 출력하지 말고, 충돌 위험도가 높은 사례(예: 70점 이상)를 우선 정렬해 최대 6건까지만 소개하세요."
             " 고위험 항목이 부족하면 충돌 점수가 가장 높은 후보를 추가하되, 각 항목의 '주요 쟁점'은 최소 두 문장으로 작성하고 리포터가 강조한 치명적 근거를 반드시 포함하세요."
             " 내부 약어·코드명(예: Track A/B 등)은 절대 사용하지 말고, 사용자 입장에서 바로 이해할 수 있는 평이한 표현으로 작성하세요."
-            " 각 항목의 '<상표명> (<출원번호>)' 자리에는 반드시 실제 상표명과 출원번호를 그대로 넣으세요."
+            " 각 항목의 '<상표명> (출원번호 <출원번호>)' 자리에는 반드시 실제 상표명과 출원번호를 그대로 넣으세요."
             " '권고' 항목과 마지막 '## 권고' 섹션에서는 '후속 조치 1' 같은 템플릿 문구를 쓰지 말고, 실제로 실행 가능한 조치나 전략을 요약해 문장으로 명시하세요."
             " '충돌 위험도'와 '등록 가능성' 라인은 반드시 입력된 점수를 그대로 '숫자 + 점' 형태로 출력하고, '높음/중간' 같은 추상적 표현은 사용하지 마세요."
             "반드시 아래 형식을 정확히 따라 Markdown으로만 작성하고, 서론·맺음말 문장은 추가하지 마세요."
             "\n\n# 전체 요약\n- <2~3문장으로 전체 위험 상황과 치명적 쟁점을 구체적으로 요약>\n\n"
             "## 선행상표별 핵심 위험\n"
-            "- **<상표명> (<출원번호>)**  \n  - **충돌 위험도**: <숫자>점  \n  - **등록 가능성**: <숫자>점  \n  - **주요 쟁점**: <치명적 리스크·KIPRIS 근거를 2문장 이상으로 요약>  \n  - **권고**: <필요한 대응 또는 보정 전략>\n"
+            "- **<상표명> (출원번호 <출원번호>)**  \n  - **충돌 위험도**: <숫자>점  \n  - **등록 가능성**: <숫자>점  \n  - **주요 쟁점**: <치명적 리스크·KIPRIS 근거를 2문장 이상으로 요약>  \n  - **권고**: <필요한 대응 또는 보정 전략>\n"
             "- **...**  \n  - **충돌 위험도**: ...  \n  - **등록 가능성**: ...  \n  - **주요 쟁점**: ...  \n  - **권고**: ...\n\n"
             "## 권고\n- <후속 조치 1>\n- <후속 조치 2>"
             "\n각 항목은 굵은 제목 → 줄바꿈된 세부 불릿 순서를 반드시 지키고, 불릿 사이에는 두 칸 공백+줄바꿈을 사용해 가독성을 확보하세요."
@@ -134,6 +134,9 @@ class LangGraphOrchestrator:
             "logs": [],
             "reporter_only": {},
             "images": {},
+            "metrics": {},
+            "worker_id": 0,
+            "timeline": [],
         }
         extra = (
             f"평균 충돌 위험도: {avg_conflict:.1f}점\n"
@@ -145,8 +148,11 @@ class LangGraphOrchestrator:
             instruction=instruction,
             state=state,
         )
+        state.setdefault("worker_id", 0)
+        state.setdefault("timeline", [])
         logs = state.get("logs", [])
-        return response.strip(), list(logs)
+        timeline = state.get("timeline", [])
+        return response.strip(), list(logs), list(timeline)
 
     # 노드 정의 ---------------------------------------------------------------
 
@@ -284,6 +290,8 @@ class LangGraphOrchestrator:
             "reporter_only": state.get("reporter_only", {}),
             "images": state.get("images", {}),
             "metrics": state.get("metrics", {}),
+            "worker_id": state.get("worker_id"),
+            "timeline": state.get("timeline", []),
         }
         scorer_context = reporter_markdown
         if metrics_block:
