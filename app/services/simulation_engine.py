@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
+import json
 import logging
-from statistics import mean
-from typing import Dict, List, Sequence, Callable, Optional
+import mimetypes
 import re
 from datetime import datetime
 from pathlib import Path
-import json
-import base64
-import mimetypes
+from statistics import mean
+from typing import Callable, Dict, List, Optional, Sequence
 
 from app.schemas.simulation import (
     SimulationCandidateResult,
@@ -55,13 +56,15 @@ class SimulationEngine:
 
         trimmed = request.selections[: self.MAX_SELECTIONS]
         debug_enabled = getattr(request, "debug", False)
-        job_tag = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f") if debug_enabled else ""
+        run_tag = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
+        debug_tag = run_tag if debug_enabled else ""
         user_mark = (getattr(request, "query_title", "") or "").strip()
         user_goods = list(getattr(request, "user_goods_classes", []) or [])
         user_groups = list(getattr(request, "user_group_codes", []) or [])
         user_goods_names = list(getattr(request, "user_goods_names", []) or [])
+        user_image_b64_raw = getattr(request, "user_image_b64", None)
         user_image_data_url = self._build_user_image_data_url(
-            getattr(request, "user_image_b64", None),
+            user_image_b64_raw,
             getattr(request, "user_image_mime", None),
         )
         if progress_callback:
@@ -79,7 +82,7 @@ class SimulationEngine:
                 pass
         sem = asyncio.Semaphore(self.MAX_WORKERS)
 
-        async def evaluate_with_limit(selection: SimulationSelection) -> SimulationCandidateResult:
+        async def evaluate_with_limit(selection: SimulationSelection, worker_id: int) -> SimulationCandidateResult:
             async with sem:
                 if cancel_checker and cancel_checker():
                     raise SimulationCancelled()
@@ -88,16 +91,22 @@ class SimulationEngine:
                     selection,
                     docs,
                     debug=debug_enabled,
-                    job_tag=job_tag,
+                    debug_tag=debug_tag,
+                    run_tag=run_tag,
                     user_mark=user_mark,
                     user_goods=user_goods,
                     user_groups=user_groups,
                     user_goods_names=user_goods_names,
                     user_image_data=user_image_data_url,
+                    user_image_b64=user_image_b64_raw,
+                    worker_id=worker_id,
                     cancel_checker=cancel_checker,
                 )
 
-        tasks = [evaluate_with_limit(selection) for selection in trimmed]
+        tasks = []
+        for idx, selection in enumerate(trimmed):
+            worker_id = (idx % self.MAX_WORKERS) + 1
+            tasks.append(evaluate_with_limit(selection, worker_id))
         candidates_raw = await asyncio.gather(*tasks, return_exceptions=True)
         candidates: List[SimulationCandidateResult] = []
         for selection, result in zip(trimmed, candidates_raw):
@@ -140,8 +149,8 @@ class SimulationEngine:
                     for c in candidates
                 ],
             )
-            if debug_enabled and job_tag and overall_logs:
-                self._log_debug_llm(job_tag, "overall", overall_logs)
+            if debug_enabled and debug_tag and overall_logs:
+                self._log_debug_llm(debug_tag, "overall", overall_logs)
         return SimulationResponse(
             total_selected=len(candidates),
             high_risk=high_risk,
@@ -189,7 +198,6 @@ class SimulationEngine:
         lines = [
             "[사용자 입력 상표]",
             f"- 명칭: {user_mark or '(상표명 미입력)'}",
-            f"- 선택 기준: {variant_label} 검색 상위 후보",
         ]
         if user_goods:
             lines.append(f"- 선택한 상품류: {', '.join(user_goods)}")
@@ -204,10 +212,11 @@ class SimulationEngine:
                 lines.append(f"  · {cleaned}")
         lines += [
             "",
-            "[비교 대상 선행상표]",
+            "[비교 대상 유사 선행상표]",
             f"- 제목: {selection.title} (출원번호 {selection.application_number})",
             f"- 현재 상태: {status_note or '상태 정보 없음'}",
         ]
+        lines.append(f"- 선정 기준: 사용자가 {variant_label} 검색 결과에서 선택한 후보")
         if selection.class_codes:
             lines.append(f"분류: {', '.join(selection.class_codes)}")
         goods_text = (selection.goods_services or "").strip()
@@ -218,8 +227,13 @@ class SimulationEngine:
                 if cleaned:
                     lines.append(f"  · {cleaned}")
         if selection.variant == "image":
-            lines.append("- 사용자 상표 이미지와 선행상표 이미지를 함께 첨부했습니다. 외관·색상·구성 요소의 유사성과 차이점을 함께 검토하세요.")
-        lines.append("- 아래 KIPRIS 문서는 선행상표가 과거에 어떤 거절사유를 지적받았는지 보여주며, 동일/유사 사유가 사용자 상표에도 적용될 수 있는지 검토하는 참고 자료입니다.")
+            lines.append("- 사용자 상표 이미지와 유사 선행상표 이미지를 함께 첨부했습니다. 외관·색상·구성 요소의 유사성과 차이점을 함께 검토하세요.")
+        lines.append(
+            "- 아래 KIPRIS 문서는 유사 선행상표가 과거에 어떤 거절사유를 지적받았는지 보여주며, 동일/유사 사유가 사용자 상표에도 적용될 수 있는지 검토하는 참고 자료입니다."
+        )
+        lines.append(
+            "- **중요**: 의견제출통지서에 등장하는 선등록/선출원 상표는 참고용이며, [사용자 입력 상표]와 [비교 대상 유사 선행상표]를 직접 비교하는 단계에서는 절대 사용하지 마세요. 선등록 상표 언급은 '4. 선등록 상표 거절이유'와 같은 별도 설명에서만 허용됩니다."
+        )
 
         office = bundle.get("office_action") or {}
         rejection = bundle.get("rejection") or {}
@@ -237,12 +251,15 @@ class SimulationEngine:
         docs: Dict[str, object],
         *,
         debug: bool = False,
-        job_tag: str = "",
+        debug_tag: str = "",
+        run_tag: str,
         user_mark: str = "",
         user_goods: List[str],
         user_groups: List[str],
         user_goods_names: List[str],
         user_image_data: Optional[str],
+        user_image_b64: Optional[str],
+        worker_id: int,
         cancel_checker: Optional[Callable[[], bool]] = None,
     ) -> SimulationCandidateResult:
         if cancel_checker and cancel_checker():
@@ -263,20 +280,30 @@ class SimulationEngine:
             docs or {},
         )
         if debug:
-            self._log_debug_context(job_tag, selection.application_number, context_text, docs)
+            self._log_debug_context(debug_tag, selection.application_number, context_text, docs)
         logger.info("Running LangGraph orchestrator for %s", selection.application_number)
         image_inputs = self._prepare_image_inputs(selection, user_image_data)
+        metrics = self._build_metrics(
+            user_mark=user_mark,
+            selection=selection,
+            user_image_b64=user_image_b64,
+        )
         agent_result = await self._orchestrator.run_async(
             context=context_text,
             images=image_inputs,
+            metrics=metrics,
+            worker_id=worker_id,
         )
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
         if debug:
-            self._log_debug_llm(job_tag, selection.application_number, agent_result.get("logs", []))
+            self._log_debug_llm(debug_tag, selection.application_number, agent_result.get("logs", []))
+        timeline = agent_result.get("timeline", [])
+        self._log_timeline(run_tag, selection.application_number, timeline)
         agent_summary = agent_result.get("summary")
         agent_risk = agent_result.get("risk")
-        reporter_markdown = (agent_result.get("reporter") or {}).get("markdown")
+        reporter_payload = agent_result.get("reporter") or {}
+        reporter_markdown = reporter_payload.get("display") or reporter_payload.get("markdown")
         score_block = agent_result.get("scores") or {}
         llm_conflict_score = self._normalize_score(score_block.get("conflict_score"), 50.0)
         llm_register_score = self._normalize_score(score_block.get("register_score"), 50.0)
@@ -389,6 +416,23 @@ class SimulationEngine:
             )
         path.write_text("\n".join(chunks), encoding="utf-8")
 
+    def _log_timeline(
+        self,
+        run_tag: str,
+        app_no: str,
+        timeline: Sequence[Dict[str, object]],
+    ) -> None:
+        if not run_tag or not timeline:
+            return
+        folder = Path("logs") / "simulation_timeline" / run_tag
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{run_tag}_{app_no}_timeline.json"
+        payload = {
+            "application_number": app_no,
+            "events": timeline,
+        }
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
     def _sanitize_filename(self, value: str) -> str:
         return re.sub(r"[^0-9A-Za-z_-]", "_", value or "unknown")
 
@@ -401,6 +445,62 @@ class SimulationEngine:
             return None
         mime_type = mime or "image/png"
         return f"data:{mime_type};base64,{data_b64}"
+
+    def _build_metrics(
+        self,
+        *,
+        user_mark: str,
+        selection: SimulationSelection,
+        user_image_b64: Optional[str],
+    ) -> Dict[str, object]:
+        user_norm = self._normalized_mark(user_mark)
+        candidate_norm = self._normalized_mark(selection.title)
+        same_title = bool(user_norm and candidate_norm and user_norm == candidate_norm)
+        same_image = self._detect_same_image(user_image_b64, getattr(selection, "image_path", None))
+        return {
+            "same_title": same_title,
+            "same_image": same_image,
+            "image_similarity": selection.image_sim,
+            "text_similarity": selection.text_sim,
+            "variant": selection.variant,
+        }
+
+    @staticmethod
+    def _normalized_mark(text: Optional[str]) -> str:
+        value = (text or "").strip()
+        if not value:
+            return ""
+        return re.sub(r"\s+", "", value).casefold()
+
+    def _detect_same_image(self, user_image_b64: Optional[str], image_path: Optional[str]) -> bool:
+        if not user_image_b64 or not image_path:
+            return False
+        user_bytes = self._decode_base64_bytes(user_image_b64)
+        if user_bytes is None:
+            return False
+        candidate_path = Path(image_path)
+        if not candidate_path.is_absolute():
+            candidate_path = candidate_path.resolve()
+        try:
+            candidate_bytes = candidate_path.read_bytes()
+        except OSError:
+            return False
+        return user_bytes == candidate_bytes
+
+    @staticmethod
+    def _decode_base64_bytes(data_str: str) -> Optional[bytes]:
+        payload = data_str.strip()
+        if payload.startswith("data:"):
+            parts = payload.split(",", 1)
+            if len(parts) == 2:
+                payload = parts[1]
+        try:
+            return base64.b64decode(payload, validate=False)
+        except (binascii.Error, ValueError):
+            try:
+                return base64.b64decode(payload)
+            except Exception:
+                return None
 
     def _prepare_image_inputs(
         self,

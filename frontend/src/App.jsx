@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import {
@@ -20,6 +20,80 @@ const RESULT_PAGE_SIZE = 18;
 const RESULT_LIMIT = 200;
 const SIMULATION_DEFAULT_PER_VARIANT = 5;
 const SIMULATION_MAX_SELECTION = 40;
+const STATIC_PUBLIC_PREFIX = '/home/work/workspace/tradar/frontend/public';
+
+const EXAMPLE_PRESETS = {
+  example1: {
+    title: 'T-RADAR',
+    imagePath: '/home/work/workspace/tradar/frontend/public/logo-tradar.png',
+    goodsQuery: '검색',
+    groups: [
+      {
+        classCode: '45',
+        className: '법률·IP 서비스',
+        groupCode: 'S120402',
+        names: ['지식재산권 자문', '상표 분쟁 대응 서비스'],
+      },
+      {
+        classCode: '35',
+        className: '광고·사업관리',
+        groupCode: 'S2039',
+        names: ['브랜드 전략 컨설팅', '상표 데이터 분석 서비스'],
+      },
+      {
+        classCode: '38',
+        className: '통신 서비스',
+        groupCode: 'S0601',
+        names: ['온라인 플랫폼 제공', '데이터 전송 서비스'],
+      },
+      {
+        classCode: '09',
+        className: '과학·전자기기',
+        groupCode: 'G390802',
+        names: ['인공지능 소프트웨어', '검색 프로그램'],
+      },
+    ],
+  },
+  example2: {
+    title: 'Hard Rock',
+    imagePath: '/home/work/workspace/tradar/frontend/public/logo-hard_rock.jpg',
+    goodsQuery: '맥주',
+    groups: [
+      {
+        classCode: '32',
+        className: '무알콜 음료',
+        groupCode: 'G0602',
+        names: ['무알콜 칵테일', '카페 음료 제조'],
+      },
+    ],
+  },
+};
+
+const resolveStaticAssetPath = (input) => {
+  if (!input) return '';
+  if (input.startsWith('http://') || input.startsWith('https://')) {
+    return input;
+  }
+  if (input.startsWith(STATIC_PUBLIC_PREFIX)) {
+    const relative = input.slice(STATIC_PUBLIC_PREFIX.length);
+    if (!relative) {
+      return '/';
+    }
+    return relative.startsWith('/') ? relative : `/${relative}`;
+  }
+  return input.startsWith('/') ? input : `/${input}`;
+};
+
+const fetchStaticAssetFile = async (assetPath) => {
+  const normalized = resolveStaticAssetPath(assetPath);
+  const res = await fetch(normalized);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch asset: ${normalized}`);
+  }
+  const blob = await res.blob();
+  const filename = normalized.split('/').pop() || 'example.png';
+  return new File([blob], filename, { type: blob.type || 'image/png' });
+};
 
 const getResultKey = (item) => (
   item?.application_number
@@ -195,16 +269,15 @@ function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, se
 }
 
 
-function GoodsSearchPanel({ selectedGroups, onToggleGroup }) {
+function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(new Set());
 
-  const fetchGoods = async (e) => {
-    e?.preventDefault();
-    const term = query.trim();
+  const runGoodsSearch = useCallback(async (termInput, options = {}) => {
+    const term = (termInput || '').trim();
     if (!term) {
       setResults([]);
       setError('');
@@ -221,12 +294,30 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup }) {
         .filter((item) => Array.isArray(item.groups) && item.groups.length > 0)
         .slice(0, GOODS_LIMIT);
       setResults(items);
-      setExpanded(new Set());
+      if (options.expandSelected) {
+        const autoExpanded = new Set();
+        items.forEach((item) => {
+          const hasSelected = item.groups?.some(
+            (group) => selectedGroups?.[group.similar_group_code],
+          );
+          if (hasSelected) {
+            autoExpanded.add(item.nc_class);
+          }
+        });
+        setExpanded(autoExpanded);
+      } else {
+        setExpanded(new Set());
+      }
     } catch (err) {
       setError(err?.message || '검색 중 오류가 발생했습니다');
     } finally {
       setLoading(false);
     }
+  }, [selectedGroups]);
+
+  const fetchGoods = async (e) => {
+    e?.preventDefault();
+    await runGoodsSearch(query);
   };
 
   const toggleExpand = (code) => {
@@ -240,6 +331,15 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup }) {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (!preset || typeof preset.term !== 'string') {
+      return;
+    }
+    const term = preset.term || '';
+    setQuery(term);
+    runGoodsSearch(term, { expandSelected: true });
+  }, [preset, runGoodsSearch]);
 
   return (
     <section className="goods-panel">
@@ -316,6 +416,7 @@ function TrademarkSearchForm({
   onImageFileChange,
   onSubmit,
   onReset,
+  onExample,
 }) {
   const fileInputRef = useRef(null);
 
@@ -339,7 +440,17 @@ function TrademarkSearchForm({
 
   return (
     <section className="search-section">
-      <h2>상표 검색</h2>
+      <div className="search-section__heading">
+        <h2>상표 검색</h2>
+        <div className="example-button-group" role="group" aria-label="예시 불러오기">
+          <button type="button" className="btn-outline" onClick={() => onExample?.('example1')}>
+            예시 1 : T-RADAR
+          </button>
+          <button type="button" className="btn-outline" onClick={() => onExample?.('example2')}>
+            예시 2 : Hard Rock
+          </button>
+        </div>
+      </div>
       <form className="search-card" onSubmit={handleSubmit} onReset={handleReset}>
         <div className="search-card__top">
           <label className="field-group">
@@ -470,9 +581,9 @@ function ResultCard({
   );
 }
 
-function PromptBlendSelector({ label, options, value, onChange }) {
+function PromptBlendSelector({ label, options, value, onChange, disabled = false }) {
   return (
-    <div className="prompt-panel__blend">
+    <div className={`prompt-panel__blend ${disabled ? 'is-disabled' : ''}`}>
       <span className="prompt-panel__blend-label">{label}</span>
       <div className="prompt-panel__blend-options">
         {options.map((option) => {
@@ -482,7 +593,12 @@ function PromptBlendSelector({ label, options, value, onChange }) {
               key={option.value}
               type="button"
               className={`prompt-blend-button ${isActive ? 'is-active' : ''}`}
-              onClick={() => onChange(option.value)}
+              onClick={() => {
+                if (!disabled) {
+                  onChange(option.value);
+                }
+              }}
+              disabled={disabled}
             >
               <span>{option.label}</span>
               <small>{option.helper}</small>
@@ -1116,14 +1232,15 @@ function App() {
   const [simulationResult, setSimulationResult] = useState(null);
   const [simulationJobId, setSimulationJobId] = useState(null);
   const [simulationError, setSimulationError] = useState('');
-const [simulationStartTime, setSimulationStartTime] = useState(null);
-const [simulationElapsed, setSimulationElapsed] = useState(0);
-const [simulationModel, setSimulationModel] = useState('');
-const simulationEventRef = useRef(null);
-const baseVariants = baseResponse?.query?.variants;
-const textDisplayVariants = (baseVariants && baseVariants.length)
-  ? baseVariants
-  : (response?.query?.variants || []);
+  const [simulationStartTime, setSimulationStartTime] = useState(null);
+  const [simulationElapsed, setSimulationElapsed] = useState(0);
+  const [simulationModel, setSimulationModel] = useState('');
+  const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
+  const simulationEventRef = useRef(null);
+  const baseVariants = baseResponse?.query?.variants;
+  const textDisplayVariants = (baseVariants && baseVariants.length)
+    ? baseVariants
+    : (response?.query?.variants || []);
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
 
   useEffect(() => {
@@ -1305,6 +1422,36 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
     panel.classList.add('goods-panel--pulse');
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     window.setTimeout(() => panel.classList.remove('goods-panel--pulse'), 1200);
+  };
+
+  const handleExampleLoad = async (key) => {
+    const config = EXAMPLE_PRESETS[key];
+    if (!config || loading) {
+      return;
+    }
+    try {
+      setError('');
+      const file = await fetchStaticAssetFile(config.imagePath);
+      const groupMap = {};
+      (config.groups || []).forEach((group) => {
+        if (!group?.groupCode) {
+          return;
+        }
+        groupMap[group.groupCode] = {
+          classCode: group.classCode,
+          className: group.className,
+          groupCode: group.groupCode,
+          names: group.names || [],
+        };
+      });
+      setTitle(config.title);
+      setGoodsPreset({ term: config.goodsQuery || '', nonce: Date.now() });
+      setSelectedGroups(groupMap);
+      handleImageFileUpdate(file);
+    } catch (err) {
+      console.error('Example load failed', err);
+      setError('예제 불러오기 중 오류가 발생했습니다.');
+    }
   };
 
   const selectedImageCount = Object.keys(simulationSelection.image || {}).length;
@@ -1538,6 +1685,9 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
   };
 
   const handleImageRerank = async (debug = false) => {
+    if (simulationLocked) {
+      return;
+    }
     if (!lastImageBase64) {
       alert('먼저 이미지 검색을 실행해주세요.');
       return;
@@ -1560,6 +1710,9 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
   };
 
   const handleTextRerank = async (debug = false) => {
+    if (simulationLocked) {
+      return;
+    }
     if (!lastImageBase64) {
       alert('먼저 검색을 실행해주세요.');
       return;
@@ -1598,6 +1751,9 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
   };
 
   const handleImageReset = () => {
+    if (simulationLocked) {
+      return;
+    }
     if (!baseResponse || !response) {
       return;
     }
@@ -1634,6 +1790,9 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
   };
 
   const handleTextReset = () => {
+    if (simulationLocked) {
+      return;
+    }
     if (!baseResponse || !response) {
       return;
     }
@@ -1705,10 +1864,12 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
         onImageFileChange={handleImageFileUpdate}
         onSubmit={executeSearch}
         onReset={resetForm}
+        onExample={handleExampleLoad}
       />
       <GoodsSearchPanel
         selectedGroups={selectedGroups}
         onToggleGroup={toggleGroup}
+        preset={goodsPreset}
       />
       <div className="search-actions-row">
         <button type="button" className="secondary btn-wide" onClick={resetForm}>초기화</button>
@@ -1769,7 +1930,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                 selectionLocked={simulationLocked}
               />
               <form
-                className="prompt-panel"
+                className={`prompt-panel ${simulationLocked ? 'prompt-panel--disabled' : ''}`}
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleImageRerank(false);
@@ -1781,6 +1942,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                   options={IMAGE_BLEND_OPTIONS}
                   value={imageBlendMode}
                   onChange={setImageBlendMode}
+                  disabled={simulationLocked}
                 />
                 <div className="prompt-panel__content">
                   <textarea
@@ -1789,17 +1951,22 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                     value={imagePrompt}
                     onChange={(e) => setImagePrompt(e.target.value)}
                     onKeyDown={(e) => {
+                      if (simulationLocked) {
+                        return;
+                      }
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleImageRerank(false);
                       }
                     }}
                     rows={3}
+                    disabled={simulationLocked}
                   />
                   <div className="prompt-panel__actions">
                     <button
                       type="submit"
                       className="btn-secondary"
+                      disabled={simulationLocked}
                     >
                       이미지 재검색
                     </button>
@@ -1807,6 +1974,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                       type="button"
                       className="btn-debug"
                       onClick={() => handleImageRerank(true)}
+                      disabled={simulationLocked}
                     >
                       이미지 재검색(디버그)
                     </button>
@@ -1814,7 +1982,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                       type="button"
                       className="btn-outline"
                       onClick={handleImageReset}
-                      disabled={!baseResponse}
+                      disabled={!baseResponse || simulationLocked}
                     >
                       원래 이미지 결과
                     </button>
@@ -1841,7 +2009,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                 selectionLocked={simulationLocked}
               />
               <form
-                className="prompt-panel"
+                className={`prompt-panel ${simulationLocked ? 'prompt-panel--disabled' : ''}`}
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleTextRerank(false);
@@ -1853,6 +2021,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                   options={TEXT_BLEND_OPTIONS}
                   value={textBlendMode}
                   onChange={setTextBlendMode}
+                  disabled={simulationLocked}
                 />
                 <div className="prompt-panel__content">
                   <textarea
@@ -1861,17 +2030,22 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                     value={textPrompt}
                     onChange={(e) => setTextPrompt(e.target.value)}
                     onKeyDown={(e) => {
+                      if (simulationLocked) {
+                        return;
+                      }
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleTextRerank(false);
                       }
                     }}
                     rows={3}
+                    disabled={simulationLocked}
                   />
                   <div className="prompt-panel__actions">
                     <button
                       type="submit"
                       className="btn-secondary"
+                      disabled={simulationLocked}
                     >
                       텍스트 재검색
                     </button>
@@ -1879,6 +2053,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                       type="button"
                       className="btn-debug"
                       onClick={() => handleTextRerank(true)}
+                      disabled={simulationLocked}
                     >
                       텍스트 재검색(디버그)
                     </button>
@@ -1886,7 +2061,7 @@ const textDisplayVariants = (baseVariants && baseVariants.length)
                       type="button"
                       className="btn-outline"
                       onClick={handleTextReset}
-                      disabled={!baseResponse}
+                      disabled={!baseResponse || simulationLocked}
                     >
                       원래 텍스트 결과
                     </button>
