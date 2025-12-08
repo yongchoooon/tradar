@@ -26,6 +26,48 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Responsive zoom effect for compact displays */
+#root,
+.app-shell {
+  transform-origin: top center;
+}
+
+@media (max-width: 1700px) {
+  body {
+    zoom: 0.95;
+  }
+  @supports not (zoom: 1) {
+    .app-shell {
+      transform: scale(0.95);
+      width: calc(100% / 0.95);
+    }
+  }
+}
+
+@media (max-width: 1500px) {
+  body {
+    zoom: 0.9;
+  }
+  @supports not (zoom: 1) {
+    .app-shell {
+      transform: scale(0.9);
+      width: calc(100% / 0.9);
+    }
+  }
+}
+
+@media (max-width: 1300px) {
+  body {
+    zoom: 0.85;
+  }
+  @supports not (zoom: 1) {
+    .app-shell {
+      transform: scale(0.85);
+      width: calc(100% / 0.85);
+    }
+  }
+}
+
 h1,
 h2,
 h3,
@@ -459,8 +501,8 @@ main.container {
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 24px;
   background: #fff;
-  overflow: hidden;
   box-shadow: 0 18px 35px rgba(15, 23, 42, 0.15);
+  overflow: hidden;
 }
 
 .result-card__thumb {
@@ -484,7 +526,7 @@ main.container {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.8rem;
 }
 
 .result-card__thumb.is-clickable {
@@ -627,6 +669,10 @@ main.container {
   top: 0.2rem;
 }
 
+.result-card__select--locked {
+  cursor: not-allowed;
+}
+
 .result-card__select input[type="checkbox"] {
   width: 0.85rem;
   height: 0.85rem;
@@ -668,8 +714,30 @@ main.container {
 }
 
 .result-card__select input[type="checkbox"]:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
+}
+
+
+
+.result-card__checkbox.is-locked-checked {
+  background: linear-gradient(135deg, #f3f4f6, #cbd5f5);
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.35);
+}
+
+.result-card__checkbox.is-locked-checked::after {
+  border-color: rgba(55, 65, 81, 0.8);
+  opacity: 1;
+}
+
+.result-card__checkbox.is-locked-empty {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+}
+
+.result-card__checkbox.is-locked-empty::after {
+  opacity: 0;
 }
 
 .result-card.is-highlighted {

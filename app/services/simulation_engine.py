@@ -104,7 +104,11 @@ class SimulationEngine:
             if isinstance(result, SimulationCancelled):
                 raise result
             if isinstance(result, Exception):  # pragma: no cover - defensive logging
-                logger.exception("Simulation worker failed for %s: %s", selection.application_number, result)
+                logger.exception(
+                    "Simulation worker failed for %s: %s",
+                    selection.application_number,
+                    result,
+                )
                 continue
             candidates.append(result)
         candidates.sort(key=lambda item: item.conflict_score, reverse=True)

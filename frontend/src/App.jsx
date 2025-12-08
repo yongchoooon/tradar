@@ -387,6 +387,7 @@ function ResultCard({
   checked = false,
   onToggleSelection,
   canSelectMore = true,
+  locked = false,
 }) {
   const status = (item.status || '').trim();
   const statusClass = STATUS_MAP[status.toLowerCase()] || 'status-default';
@@ -394,7 +395,18 @@ function ResultCard({
   const simValue = variant === 'image' ? item.image_sim : item.text_sim;
   const showSelector = selectable && typeof onToggleSelection === 'function';
   const disableToggle = showSelector && !checked && !canSelectMore;
-  const cardClass = ['result-card', checked ? 'is-highlighted' : ''].filter(Boolean).join(' ');
+  const displayChecked = checked;
+  const checkboxClassNames = ['result-card__checkbox'];
+  if (locked && checked) {
+    checkboxClassNames.push('is-locked-checked');
+  } else if (locked && !checked) {
+    checkboxClassNames.push('is-locked-empty');
+  }
+  if (locked) {
+    checkboxClassNames.push('is-locked');
+  }
+
+  const cardClass = ['result-card', displayChecked ? 'is-highlighted' : ''].filter(Boolean).join(' ');
   const handleImageClick = () => {
     if (item.doi) {
       window.open(item.doi, '_blank', 'noopener,noreferrer');
@@ -439,11 +451,15 @@ function ResultCard({
         <footer className="result-card__footer">
           <span className="result-card__sim-label">{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
           {showSelector && (
-            <label className="result-card__select" aria-label="시뮬레이션 대상 선택">
+            <label
+              className={['result-card__select', locked ? 'result-card__select--locked' : ''].filter(Boolean).join(' ')}
+              aria-label="시뮬레이션 대상 선택"
+            >
               <input
                 type="checkbox"
-                checked={checked}
-                disabled={disableToggle}
+                checked={displayChecked}
+                disabled={disableToggle || locked}
+                className={checkboxClassNames.join(' ')}
                 onChange={(e) => onToggleSelection?.(e.target.checked)}
               />
             </label>
@@ -540,6 +556,7 @@ function ResultSection({
   totalSelected = 0,
   selectionLimit = SIMULATION_MAX_SELECTION,
   highlightMap = null,
+  selectionLocked = false,
 }) {
   const hasVariants = Array.isArray(variants) && variants.length > 0;
   const overlayLabel = loadingLabel || '재검색 중…';
@@ -577,6 +594,7 @@ function ResultSection({
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
+                locked={selectionLocked}
                 onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
               />
             ))}
@@ -593,9 +611,10 @@ function ResultSection({
                   key={`${variant}-misc-${item.trademark_id}`}
                   item={item}
                   variant={variant}
-                  selectable={selectable}
-                  checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
-                  canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
+                selectable={selectable}
+                checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
+                canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
+                locked={selectionLocked}
                   onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
               />
               ))}
@@ -746,6 +765,8 @@ function SimulationPanel({
     />
   );
   const variantLabels = { image: '이미지', text: '텍스트' };
+  const hasResultData = Boolean(result);
+  const resultIsStale = hasResultData && status !== 'complete';
 
   return (
     <aside className={panelClass} aria-label="상표 등록 가능성 시뮬레이션">
@@ -828,7 +849,7 @@ function SimulationPanel({
               </button>
             )}
           </section>
-        {result && status === 'complete' ? (
+        {hasResultData ? (
           <>
             <div className="simulation-panel__result-card">
               {result && (
@@ -842,6 +863,9 @@ function SimulationPanel({
                     <strong>{result.high_risk}건</strong>
                   </div>
                 </div>
+              )}
+              {resultIsStale && (
+                <p className="simulation-panel__status-text">새로운 시뮬레이션이 진행 중입니다. 아래 내용은 직전 결과입니다.</p>
               )}
               <MarkdownBlock
                 className="markdown-block--panel"
@@ -1092,14 +1116,15 @@ function App() {
   const [simulationResult, setSimulationResult] = useState(null);
   const [simulationJobId, setSimulationJobId] = useState(null);
   const [simulationError, setSimulationError] = useState('');
-  const [simulationStartTime, setSimulationStartTime] = useState(null);
-  const [simulationElapsed, setSimulationElapsed] = useState(0);
-  const [simulationModel, setSimulationModel] = useState('');
-  const simulationEventRef = useRef(null);
-  const baseVariants = baseResponse?.query?.variants;
-  const textDisplayVariants = (baseVariants && baseVariants.length)
-    ? baseVariants
-    : (response?.query?.variants || []);
+const [simulationStartTime, setSimulationStartTime] = useState(null);
+const [simulationElapsed, setSimulationElapsed] = useState(0);
+const [simulationModel, setSimulationModel] = useState('');
+const simulationEventRef = useRef(null);
+const baseVariants = baseResponse?.query?.variants;
+const textDisplayVariants = (baseVariants && baseVariants.length)
+  ? baseVariants
+  : (response?.query?.variants || []);
+  const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
 
   useEffect(() => {
     let ignore = false;
@@ -1343,7 +1368,7 @@ function App() {
           setSimulationStatus('collecting');
         } else if (status === 'simulating' || status === 'running') {
           setSimulationStatus('loading');
-        } else if (status === 'complete' && data.result) {
+      } else if (status === 'complete' && data.result) {
           setSimulationStatus('complete');
           setSimulationResult(data.result);
           setSimulationJobId(null);
@@ -1356,7 +1381,7 @@ function App() {
           closeSimulationStream();
         } else if (status === 'cancelled') {
           setSimulationStatus('cancelled');
-          setSimulationResult(data.result || null);
+          setSimulationResult((prev) => data.result || prev || null);
           setSimulationJobId(null);
           setSimulationError('사용자가 시뮬레이션을 취소했습니다.');
           closeSimulationStream();
@@ -1383,6 +1408,9 @@ function App() {
   };
 
   const toggleSimulationSelection = (variant, item, checked) => {
+    if (simulationLocked) {
+      return;
+    }
     const key = getResultKey(item);
     if (!key) return;
     setSimulationSelection((prev) => {
@@ -1406,10 +1434,6 @@ function App() {
       };
       return next;
     });
-    const inProgress = ['collecting', 'loading', 'cancelling'].includes(simulationStatus) || Boolean(simulationJobId);
-    if (inProgress) {
-      resetSimulationProgress();
-    }
   };
 
   const handleSimulationRun = async (debug = false) => {
@@ -1424,7 +1448,6 @@ function App() {
     try {
       closeSimulationStream();
       setSimulationStatus('collecting');
-      setSimulationResult(null);
       setSimulationError('');
       setSimulationJobId(null);
       setSimulationStartTime(Date.now());
@@ -1743,6 +1766,7 @@ function App() {
                 totalSelected={totalSimulationSelected}
                 selectionLimit={SIMULATION_MAX_SELECTION}
                 highlightMap={simulationDefaults.image}
+                selectionLocked={simulationLocked}
               />
               <form
                 className="prompt-panel"
@@ -1814,6 +1838,7 @@ function App() {
                 totalSelected={totalSimulationSelected}
                 selectionLimit={SIMULATION_MAX_SELECTION}
                 highlightMap={simulationDefaults.text}
+                selectionLocked={simulationLocked}
               />
               <form
                 className="prompt-panel"

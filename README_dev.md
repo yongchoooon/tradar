@@ -52,6 +52,7 @@
 - 운영/테스트 배포 시에는 `npm run build`로 `frontend/dist/`를 만든 뒤 Uvicorn을 실행하면 FastAPI가 해당 디렉터리를 정적 파일로 제공하고, `/` 경로에서 완성된 SPA를 내려줍니다. `scripts/run_api.sh`는 빌드가 없으면 경고를 출력해줍니다.
 - Docker나 AWS 배포 파이프라인에서 프런트 자산을 포함하려면 `frontend/`에서 `npm ci && npm run build`를 실행한 뒤 `frontend/dist` 폴더를 이미지에 복사하면 됩니다. FastAPI는 빌드 결과 존재 여부만 확인하므로 추가 설정이 필요 없습니다.
 - 빠른 통합 실행이 필요할 때는 `docker-compose.yml`의 `frontend` 서비스(노드 18 기반)를 통해 Vite Dev Server를 띄울 수 있고, `api` 서비스는 동일한 Compose 네트워크에서 Postgres(`db`)를 참조하도록 되어 있습니다.
+- `frontend/src/index.css`는 `--viewport-scale`, `--space-scale` 같은 루트 변수를 통해 창 너비에 따라 글꼴/패딩/갭을 자동으로 조절합니다. 큰 모니터에서는 100% 크기로, 14~16인치 노트북에서는 약 80%까지 자연스럽게 축소되므로, 레이아웃 변경 시 해당 변수를 먼저 고려하세요.
 
 ## 데이터 시딩
 
@@ -119,13 +120,13 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 
 이미지와 텍스트는 분리된 Top-K 리스트로 반환됩니다. 자세한 단계는 `markdown/search-pipeline.md`에 기록되어 있습니다.
 
-### 이미지 흐름 (기본 N=100, K=20)
+### 이미지 흐름 (기본 N=100, K 기본 20)
 1. 입력 이미지를 MetaCLIP2/DINOv2로 임베딩 (임베딩 결과는 LRU 캐시에 저장돼 동일 이미지 재검색 시 재사용)
 2. pgvector에서 각각 ANN Top-N 후보 검색
 3. 각 후보에 대해 누락된 공간의 임베딩을 다시 읽어 코사인 유사도 계산
 4. 기본 스코어 가중치는 DINO:MetaCLIP = 0.5:0.5로 고정되며, 재검색 프롬프트를 사용해도 최종 점수 비율은 변하지 않고 MetaCLIP 질의 벡터만 프리셋(90/10 · 70/30 · 50/50 · 30/70 · 10/90)에 맞춰 섞입니다.
 5. 이미지 프롬프트가 제공되면 MetaCLIP 이미지 벡터와 프롬프트 텍스트 임베딩을 가중 평균해 새 질의를 구성합니다.
-6. Top-K를 선정합니다. 현재는 단일 리스트로 반환되며 프런트엔드에서 동일한 그리드로 표시합니다.
+6. Top-K를 선정합니다. API 기본값은 20이지만 프런트엔드는 한 번의 호출로 최대 200건(`k=200`)을 요청해 이후 페이징/재선택에 활용합니다.
 
 ### 텍스트 흐름
 1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시). LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
@@ -134,7 +135,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 4. 재결합된 벡터로 pgvector ANN Top-N 검색을 수행하고, LLM에서 생성한 필터(예: 접두어)는 결과 재정렬 단계에서 적용합니다.
 5. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색
 6. BM25 전용 후보는 텍스트 임베딩을 DB에서 읽어 코사인 유사도 계산 (동일하게 `<#>` 결과의 부호를 보정)
-7. MetaCLIP 유사도와 프롬프트 필터를 반영해 Top-K를 선택합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
+7. MetaCLIP 유사도와 프롬프트 필터를 반영해 Top-K를 선택합니다. 기본값은 20이며, 프런트엔드는 이미지와 동일하게 200건까지 받아 자체 페이징합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
 
 ### 프롬프트 재검색
 - 프런트엔드에서 "최우선"/"우선"/"균형"/"프롬프트 우선"/"프롬프트 최우선" 프리셋을 제공하며, 각각 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치로 이미지/텍스트 임베딩이 보정됩니다.
@@ -144,7 +145,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 - 모든 재검색은 Top-N을 다시 질의하는 방식으로 동작하여 기존 후보에 국한되지 않습니다.
 
 ### 응답 필드
-- `image_top`, `text_top`: 각각 Top-K 리스트 (기본 20)
+- `image_top`, `text_top`: 각각 Top-K 리스트 (기본 20, 프런트엔드는 `k=200`으로 호출해 18개씩 페이징)
 - `image_misc`, `text_misc`: Top-K 이외 후보 중 `등록`/`공고`가 아닌 상태를 가진 항목(최대 10)
 - `SearchResult`: `trademark_id`, `title`, `status`, `class_codes`, `app_no`, `image_sim`, `text_sim`, `thumb_url`, `image_path`, `goods_services`
 - `QueryInfo`: `k`, `text`, `goods_classes`, `group_codes`, `variants` (`goods_classes`/`group_codes`는 향후 인접군 분류를 위해 예약된 필드이며 현재 점수에는 영향을 주지 않음)
