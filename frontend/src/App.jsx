@@ -22,6 +22,11 @@ const SIMULATION_DEFAULT_PER_VARIANT = 5;
 const SIMULATION_MAX_SELECTION = 40;
 const STATIC_PUBLIC_PREFIX = '/home/work/workspace/tradar/frontend/public';
 
+const buildGoodsSelectionKey = (classCode, groupCode, names = []) => {
+  const normalizedNames = Array.isArray(names) ? names.join('|') : '';
+  return [classCode || '', groupCode || '', normalizedNames].join('::');
+};
+
 const EXAMPLE_PRESETS = {
   example1: {
     title: 'T-RADAR',
@@ -32,25 +37,48 @@ const EXAMPLE_PRESETS = {
         classCode: '45',
         className: '법률·IP 서비스',
         groupCode: 'S120402',
-        names: ['지식재산권 자문', '상표 분쟁 대응 서비스'],
+        names: [
+          '상표정보검색조사업',
+          '선행기술 조사 및 검색업',
+          '온라인 검색가능 데이터베이스를 통한 특허 애플리케이션 분야 정보제공업',
+          '칭호검색업',
+        ],
       },
       {
         classCode: '35',
         className: '광고·사업관리',
-        groupCode: 'S2039',
-        names: ['브랜드 전략 컨설팅', '상표 데이터 분석 서비스'],
+        groupCode: 'S123301',
+        names: [
+          '인터넷 자료 검색제공업',
+          '인터넷상의 정보검색대행업',
+          '컴퓨터 데이터베이스 검색업',
+          '컴퓨터 자료 검색업',
+        ],
       },
       {
         classCode: '38',
         className: '통신 서비스',
         groupCode: 'S0601',
-        names: ['온라인 플랫폼 제공', '데이터 전송 서비스'],
+        names: [
+          '검색엔진 이용자 접속제공업',
+          '스마트폰애플리케이션을 통한 검색엔진 사용자 접속제공업',
+          '정보검색용 전자식 온라인 네트워크 접속제공업',
+          '정보검색용 전자온라인네트워크 접속제공업',
+        ],
       },
       {
         classCode: '09',
         className: '과학·전자기기',
         groupCode: 'G390802',
-        names: ['인공지능 소프트웨어', '검색 프로그램'],
+        names: [
+          '검색가능 데이터베이스 생성용 컴퓨터 소프트웨어',
+          '데이터 검색용 컴퓨터 소프트웨어',
+          '데이터 검색이 가능한 컴퓨터 소프트웨어',
+          '정보 및 데이터의 검색 가능한 데이터베이스 제작용 컴퓨터 소프트웨어',
+          '컴퓨터 및 컴퓨터네트워크 콘텐츠용 원격검색 컴퓨터프로그램',
+          '컴퓨터네트워크를 통한 정보 검색/송신용 소프트웨어',
+          '컴퓨터용 검색엔진 소프트웨어',
+        ],
       },
     ],
   },
@@ -63,7 +91,28 @@ const EXAMPLE_PRESETS = {
         classCode: '32',
         className: '무알콜 음료',
         groupCode: 'G0602',
-        names: ['무알콜 칵테일', '카페 음료 제조'],
+        names: [
+          '맥아맥주',
+          '맥주',
+          '맥주/에일 및 라거',
+          '맥주/에일 및 포터',
+          '맥주/에일/라거/스타우트 및 포터',
+          '맥주용 맥아즙',
+          '맥주음료',
+          '맥주함유 칵테일',
+          '무알코올 맥주',
+          '밀맥주',
+          '발리 와인(맥주)',
+          '비알코올성 맥주',
+          '비알코올성 맥주맛 음료',
+          '비알코올성 맥주함유 칵테일',
+          '비알코올성 맥주향 음료',
+          '알코올성분을 제거한 맥주',
+          '에일(맥주)',
+          '유사맥주',
+          '커피맛 맥주',
+          '필젠맥주',
+        ],
       },
     ],
   },
@@ -179,7 +228,41 @@ const renderScoreBar = (title, value, secondary) => {
   const segmentIndex = SCORE_SEGMENTS.findIndex((segment) => safe <= segment.max);
   const hasSecondary = secondary && Number.isFinite(secondary.value);
   const secondaryValue = hasSecondary ? clampScore(secondary.value) : null;
+  const bandIsHigh = (score) => clampScore(score) >= 70;
+  const bandIsLow = (score) => clampScore(score) <= 30;
+  const diff = hasSecondary && secondaryValue !== null
+    ? Math.abs(secondaryValue - safe)
+    : Infinity;
+  const markersOverlap = hasSecondary && secondaryValue !== null && diff < 15;
+  const avgOffsetClass = markersOverlap
+    ? (safe <= (secondaryValue ?? safe) ? 'is-offset-left' : 'is-offset-right')
+    : '';
+  const secondaryOffsetClass = markersOverlap
+    ? (safe <= (secondaryValue ?? safe) ? 'is-offset-right' : 'is-offset-left')
+    : '';
+  const withinMergeRange = hasSecondary && secondaryValue !== null && diff < 15;
+  const bandSatisfied = (() => {
+    if (!withinMergeRange || !secondary) return false;
+    if (secondary.kind === 'max') {
+      return bandIsHigh(safe) && bandIsHigh(secondaryValue);
+    }
+    if (secondary.kind === 'min') {
+      return bandIsLow(safe) && bandIsLow(secondaryValue);
+    }
+    return false;
+  })();
+  const nearlyEqual = hasSecondary && secondaryValue !== null && diff < 0.25;
+  const shouldCombineLabels = nearlyEqual || (withinMergeRange && bandSatisfied);
+  const avgComesFirst = secondaryValue !== null && safe <= secondaryValue;
+  const avgCollapseClass = shouldCombineLabels
+    ? (avgComesFirst ? 'simulation-score-bar__marker-label--collapse-right'
+      : 'simulation-score-bar__marker-label--collapse-left')
+    : '';
   const markerLabel = secondary?.kind === 'max' ? '최댓값' : '최솟값';
+  const avgLabelText = `평균 ${safe.toFixed(1)}점`;
+  const secondaryLabelText = shouldCombineLabels && secondaryValue !== null
+    ? null
+    : `${markerLabel} ${secondaryValue?.toFixed(1)}점`;
   return (
     <div className="simulation-score-bar" key={title}>
       <div className="simulation-score-bar__header">
@@ -202,22 +285,54 @@ const renderScoreBar = (title, value, secondary) => {
         </div>
         {hasSecondary && secondaryValue !== null && (
           <div
-            className={`simulation-score-bar__marker simulation-score-bar__marker--${secondary.kind}`}
+            className={`simulation-score-bar__marker simulation-score-bar__marker--${secondary.kind} ${secondaryOffsetClass}`.trim()}
             style={{ left: `${secondaryValue}%` }}
           >
-            <span className="simulation-score-bar__marker-label">
-              {markerLabel} {secondaryValue.toFixed(1)}점
+            <span
+              className={[
+                'simulation-score-bar__marker-label',
+                shouldCombineLabels ? 'simulation-score-bar__marker-label--combined' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              {shouldCombineLabels && secondaryValue !== null ? (
+                avgComesFirst ? (
+                  <>
+                    <span className="simulation-score-bar__marker-label-avg">{avgLabelText}</span>
+                    <span className="simulation-score-bar__marker-label-divider"> | </span>
+                    <span className="simulation-score-bar__marker-label-secondary">
+                      {markerLabel} {secondaryValue.toFixed(1)}점
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="simulation-score-bar__marker-label-secondary">
+                      {markerLabel} {secondaryValue.toFixed(1)}점
+                    </span>
+                    <span className="simulation-score-bar__marker-label-divider"> | </span>
+                    <span className="simulation-score-bar__marker-label-avg">{avgLabelText}</span>
+                  </>
+                )
+              ) : (
+                secondaryLabelText
+              )}
             </span>
             <span className="simulation-score-bar__marker-triangle" />
             <span className="simulation-score-bar__marker-line" />
           </div>
         )}
         <div
-          className="simulation-score-bar__marker simulation-score-bar__marker--avg"
+          className={`simulation-score-bar__marker simulation-score-bar__marker--avg ${avgOffsetClass}`.trim()}
           style={{ left: `${safe}%` }}
         >
-          <span className="simulation-score-bar__marker-label">
-            평균 {safe.toFixed(1)}점
+          <span
+            className={[
+              'simulation-score-bar__marker-label',
+              shouldCombineLabels ? 'simulation-score-bar__marker-label--ghost' : '',
+              avgCollapseClass,
+            ].filter(Boolean).join(' ')}
+            aria-hidden={shouldCombineLabels}
+          >
+            {avgLabelText}
           </span>
           <span className="simulation-score-bar__marker-triangle" />
         </div>
@@ -262,14 +377,20 @@ function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, se
       </header>
       <ul className="goods-class__groups" hidden={!expanded}>
         {classItem.groups.map((group) => {
-          const checked = Boolean(selectedGroups[group.similar_group_code]);
+          const selectionKey = buildGoodsSelectionKey(
+            classItem.nc_class,
+            group.similar_group_code,
+            group.names,
+          );
+          const checked = Boolean(selectedGroups[selectionKey]);
           return (
-            <li key={group.similar_group_code}>
+            <li key={selectionKey}>
               <label className="goods-group__row">
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={(e) => onToggleGroup({
+                    key: selectionKey,
                     checked: e.target.checked,
                     classCode: classItem.nc_class,
                     className: classItem.class_name,
@@ -295,6 +416,11 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(new Set());
+  const selectedGroupsRef = useRef(selectedGroups);
+
+  useEffect(() => {
+    selectedGroupsRef.current = selectedGroups;
+  }, [selectedGroups]);
 
   const runGoodsSearch = useCallback(async (termInput, options = {}) => {
     const term = (termInput || '').trim();
@@ -316,10 +442,17 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
       setResults(items);
       if (options.expandSelected) {
         const autoExpanded = new Set();
+        const currentGroups = selectedGroupsRef.current || {};
         items.forEach((item) => {
-          const hasSelected = item.groups?.some(
-            (group) => selectedGroups?.[group.similar_group_code],
-          );
+          const hasSelected = item.groups?.some((group) => (
+            Boolean(
+              currentGroups?.[buildGoodsSelectionKey(
+                item.nc_class,
+                group.similar_group_code,
+                group.names,
+              )],
+            )
+          ));
           if (hasSelected) {
             autoExpanded.add(item.nc_class);
           }
@@ -333,7 +466,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedGroups]);
+  }, []);
 
   const fetchGoods = async (e) => {
     e?.preventDefault();
@@ -1390,19 +1523,27 @@ function App() {
     };
   }, [simulationStatus, simulationStartTime]);
 
-  const toggleGroup = ({ checked, classCode, className, groupCode, names }) => {
+  const toggleGroup = ({ key, checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
       const next = { ...prev };
       if (checked) {
-        next[groupCode] = { classCode, className, groupCode, names };
+        next[key] = { classCode, className, groupCode, names };
       } else {
-        delete next[groupCode];
+        delete next[key];
       }
       return next;
     });
   };
 
-  const selectedGroupCodes = useMemo(() => Object.keys(selectedGroups), [selectedGroups]);
+  const selectedGroupCodes = useMemo(() => {
+    const codes = new Set();
+    Object.values(selectedGroups || {}).forEach((item) => {
+      if (item?.groupCode) {
+        codes.add(item.groupCode);
+      }
+    });
+    return Array.from(codes);
+  }, [selectedGroups]);
   const selectedClassCodes = useMemo(() => {
     const codes = new Set();
     Object.values(selectedGroups).forEach((item) => {
@@ -1532,7 +1673,12 @@ function App() {
         if (!group?.groupCode) {
           return;
         }
-        groupMap[group.groupCode] = {
+        const selectionKey = buildGoodsSelectionKey(
+          group.classCode,
+          group.groupCode,
+          group.names,
+        );
+        groupMap[selectionKey] = {
           classCode: group.classCode,
           className: group.className,
           groupCode: group.groupCode,

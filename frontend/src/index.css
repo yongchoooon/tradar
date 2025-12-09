@@ -579,8 +579,7 @@ main.container {
 .result-card__body header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+  gap: 1rem;
   min-height: 2.6rem;
 }
 
@@ -594,6 +593,7 @@ main.container {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  flex: 0 1 65%;
 }
 
 .status-badge {
@@ -1867,6 +1867,7 @@ main.container {
   min-height: 34px;
 }
 
+
 .simulation-score-bar__segment {
   flex: 1 1 0;
   text-align: center;
@@ -1890,12 +1891,13 @@ main.container {
 }
 
 .simulation-score-bar__segment.is-active {
-  outline: 2px solid #000000;
-  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px #000000;
 }
 
 .simulation-score-bar__segment--1 {
   background: #ecf5ff;
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
 }
 
 .simulation-score-bar__segment--2 {
@@ -1916,6 +1918,8 @@ main.container {
 
 .simulation-score-bar__segment--6 {
   background: #ffd5de;
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
 }
 
 .simulation-score-bar__marker {
@@ -1943,6 +1947,39 @@ main.container {
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 4px 8px rgba(15, 23, 42, 0.15);
   color: #b91c1c;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.simulation-score-bar__marker-label--combined {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.simulation-score-bar__marker-label-avg {
+  color: #111827;
+}
+
+.simulation-score-bar__marker-label-divider {
+  color: rgba(15, 23, 42, 0.7);
+  font-weight: 600;
+}
+
+.simulation-score-bar__marker-label-secondary {
+  color: #b91c1c;
+}
+
+.simulation-score-bar__marker-label--ghost {
+  opacity: 0;
+}
+
+.simulation-score-bar__marker-label--collapse-left {
+  transform: translateX(-16px);
+}
+
+.simulation-score-bar__marker-label--collapse-right {
+  transform: translateX(16px);
 }
 
 .simulation-score-bar__marker-triangle {
@@ -2098,9 +2135,9 @@ main.container {
 }
 
 .simulation-panel__case-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
 }
@@ -2121,7 +2158,6 @@ main.container {
   align-items: center;
   gap: 0.85rem;
   min-width: 0;
-  flex: 1 1 auto;
 }
 
 .simulation-panel__case-thumb {
@@ -2241,6 +2277,20 @@ main.container {
   display: flex;
   gap: 0.45rem;
   flex-shrink: 0;
+  justify-self: end;
+}
+
+@media (max-width: 720px) {
+  .simulation-panel__case-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .simulation-panel__score-pills {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    justify-self: stretch;
+  }
 }
 
 .simulation-panel__score-pill {
