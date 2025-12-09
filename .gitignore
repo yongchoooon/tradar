@@ -7,13 +7,16 @@ __pycache__/
 .DS_Store
 build/
 dist/
+.vite/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+
 
 data/
 !app/data/
 logs/
-evaluation/
-
-node_modules/
-frontend/node_modules/
-frontend/dist/
-.vite/
+eval_results/
+api_info/
+eval_dataset/
