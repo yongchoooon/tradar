@@ -1330,6 +1330,13 @@ function App() {
     ? baseVariants
     : (response?.query?.variants || []);
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
+  const rerankPlaceholder = (variant) => (
+    simulationLocked
+      ? '상표 등록 가능성 시뮬레이션 중에는 재검색할 수 없습니다.'
+      : (variant === 'image'
+        ? '추가로 설명하고 싶은 내용을 입력하세요'
+        : '추가 텍스트 프롬프트를 입력하세요')
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -2035,7 +2042,7 @@ function App() {
                 <div className="prompt-panel__content">
                   <textarea
                     id="image-rerank"
-                    placeholder="추가로 설명하고 싶은 내용을 입력하세요"
+                    placeholder={rerankPlaceholder('image')}
                     value={imagePrompt}
                     onChange={(e) => setImagePrompt(e.target.value)}
                     onKeyDown={(e) => {
@@ -2114,7 +2121,7 @@ function App() {
                 <div className="prompt-panel__content">
                   <textarea
                     id="text-rerank"
-                    placeholder="추가 텍스트 프롬프트를 입력하세요"
+                    placeholder={rerankPlaceholder('text')}
                     value={textPrompt}
                     onChange={(e) => setTextPrompt(e.target.value)}
                     onKeyDown={(e) => {

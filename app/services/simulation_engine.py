@@ -28,6 +28,20 @@ from dotenv import load_dotenv
 logger = logging.getLogger("simulation")
 
 
+def _env_flag(name: str, *, default: bool = True) -> bool:
+    """Read boolean-like environment variables with lenient parsing."""
+
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "y", "on"}:
+        return True
+    if value in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
 class SimulationCancelled(Exception):
     """Raised when the user cancels an in-flight simulation."""
 
@@ -45,7 +59,7 @@ class SimulationEngine:
         self._orchestrator = LangGraphOrchestrator()
         self._debug_dir = Path("logs") / "simulation_debug"
         self._debug_dir.mkdir(parents=True, exist_ok=True)
-        self._timeline_enabled = os.getenv("SIMULATION_TIMELINE_LOG", "1").lower() in {"1", "true", "yes", "y"}
+        self._timeline_enabled = _env_flag("SIMULATION_TIMELINE_LOG", default=True)
 
     async def run(
         self,
@@ -434,6 +448,8 @@ class SimulationEngine:
         app_no: str,
         timeline: Sequence[Dict[str, object]],
     ) -> None:
+        if not self._timeline_enabled:
+            return
         if not run_tag or not timeline:
             return
         folder = Path("logs") / "simulation_timeline" / run_tag
