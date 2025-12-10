@@ -536,9 +536,9 @@ class SimulationEngine:
         user_image_data: Optional[str],
     ) -> Optional[Dict[str, List[str]]]:
         images: Dict[str, List[str]] = {}
-        if user_image_data:
-            images.setdefault("user", []).append(user_image_data)
         if selection.variant == "image":
+            if user_image_data:
+                images.setdefault("user", []).append(user_image_data)
             candidate_data = self._load_candidate_image(selection)
             if candidate_data:
                 images.setdefault("candidate", []).append(candidate_data)
