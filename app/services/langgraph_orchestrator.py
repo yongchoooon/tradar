@@ -13,6 +13,18 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
+from app.services.prompt_templates import (
+    LLM_RESTRICTION_SUFFIX,
+    FINAL_REPORTER_PROMPT,
+    EXAMINER_PROMPT,
+    APPLICANT_PROMPT,
+    EXAMINER_REPLY_PROMPT,
+    REPORTER_PROMPT,
+    SCORER_PROMPT,
+    SYSTEM_MESSAGE_TEMPLATE,
+)
+from app.services.model_pricing import get_model_pricing
+
 
 class AgentState(TypedDict):
     context: str
@@ -109,23 +121,7 @@ class LangGraphOrchestrator:
                 f" | 요약={summary_line}"
             )
         context = "\n".join(context_lines)
-        instruction = (
-            "아래 형식을 정확히 따라 Markdown으로만 작성하세요. 평균 점수나 등록 가능성 수치는 출력하지 말고, 충돌 위험도가 높은 사례(예: 70점 이상)를 우선 정렬해 최대 6건까지만 소개하세요."
-            " 고위험 항목이 부족하면 충돌 점수가 가장 높은 후보를 추가하되, 각 항목의 '주요 쟁점'은 최소 두 문장으로 작성하고 리포터가 강조한 치명적 근거를 반드시 포함하세요."
-            " 내부 약어·코드명(예: Track A/B 등)은 절대 사용하지 말고, 사용자 입장에서 바로 이해할 수 있는 평이한 표현으로 작성하세요."
-            " 각 항목의 '<상표명> (출원번호 <출원번호>)' 자리에는 반드시 실제 상표명과 출원번호를 그대로 넣으세요."
-            " 각 항목의 모든 <>로 표시된 부분에는 반드시 실제 내용을 채워 넣으세요."
-            " '권고' 항목과 마지막 '## 권고' 섹션에서는 '후속 조치 1' 같은 템플릿 문구를 쓰지 말고, 실제로 실행 가능한 조치나 전략을 요약해 문장으로 명시하세요."
-            " '충돌 위험도'와 '등록 가능성' 라인은 반드시 입력된 점수를 그대로 '숫자 + 점' 형태로 출력하고, '높음/중간' 같은 추상적 표현은 사용하지 마세요.\n\n"
-            "반드시 아래 형식을 정확히 따라 Markdown으로만 작성하고, 서론·맺음말 문장은 추가하지 마세요."
-            "\n\n# 전체 요약\n- <2~3문장으로 전체 위험 상황과 치명적 쟁점을 구체적으로 요약>\n\n"
-            "## 선행상표별 핵심 위험\n"
-            "- **<상표명> (출원번호 <출원번호>)**  \n  - **충돌 위험도**: <숫자>점  \n  - **등록 가능성**: <숫자>점  \n  - **주요 쟁점**: <치명적 리스크·KIPRIS 근거를 2문장 이상으로 요약>  \n  - **권고**: <필요한 대응 또는 보정 전략>\n"
-            "- **...**  \n  - **충돌 위험도**: ...  \n  - **등록 가능성**: ...  \n  - **주요 쟁점**: ...  \n  - **권고**: ...\n\n"
-            "## 권고\n- <후속 조치 1>\n- <후속 조치 2>"
-            "\n각 항목은 굵은 제목 → 줄바꿈된 세부 불릿 순서를 반드시 지키고, 불릿 사이에는 두 칸 공백+줄바꿈을 사용해 가독성을 확보하세요."
-            " 만약 숫자 목록을 사용할 경우 반드시 '1.', '2.' 등의 형식만 허용됩니다. '1)', '2)' 등의 형식은 사용하지 마세요."
-        )
+        instruction = FINAL_REPORTER_PROMPT
         state: AgentState = {
             "context": context,
             "transcript": [],
@@ -161,22 +157,7 @@ class LangGraphOrchestrator:
         image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
             role="특허청 심사관",
-            instruction=(
-                "유사 선행상표의 심사 사례와 지정상품을 참고하여, 사용자가 입력한 상표에 대해, 가능한 거절 위험 요소를 분석하고 의견제출통지서에 준하는 논리적 평가를 작성해 주세요. "
-                "반드시 아래 기준을 따르세요. \n"
-                "1. 판단 방식\n"
-                "  - 유사 선행상표의 과거 사례를 바탕으로 충돌 가능성이 높은 지점을 도출하되, 보정이나 대응 전략은 언급하지 않습니다.\n"
-                "  - 다만 사례의 내용을 동일하게 적용하거나 사실처럼 단정하면 안 됩니다.\n"
-                "  - 모든 직접 비교는 [사용자 입력 상표]와 [비교 대상 유사 선행상표] 사이에서만 수행하고, 의견제출통지서에 등장하는 타 선등록 상표는 4. 선등록 상표 거절이유 섹션에서 참고 근거로만 언급합니다.\n"
-                "  - 사용자의 상표와 유사 선행상표의 표장(모양·글자·발음·관념), 지정상품의 범위 등을 비교해 논리적으로 판단합니다.\n\n"
-                "2. 작성 방식\n"
-                "  - 반드시 Markdown으로만 작성합니다.\n"
-                "  - 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요.\n\n"
-                "3. 작성 목표\n"
-                "  - 사용자 상표가 거절될 수 있는 잠재적 이유를 근거 중심으로 설명합니다.\n"
-                "  - 각 판단 근거는 실제 특허청 심사 실무에 기반해 작성합니다.\n"
-                "  - 가능한 경우 “유사 여부 판단 기준(발음·관념·외관)” 등 관례적 요소를 포함해도 괜찮습니다."
-            ),
+            instruction=EXAMINER_PROMPT,
             state=state,
             image_inputs=image_payloads,
         )
@@ -186,23 +167,7 @@ class LangGraphOrchestrator:
         image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
             role="출원인 대리인",
-            instruction=(
-                "심사관의 지적을 바탕으로 논리적 반박 또는 적절한 보정 방향을 제시해 주세요. "
-                "심사관이 제시한 잠재적 거절 사유는 ‘가능성 제시’일 뿐이며, 이에 대해 출원인은 반박 논리, 구별 요소, 보정 방향을 명확히 제시해야 합니다. "
-                "반드시 아래 기준을 따르세요. \n"
-                "1. 판단 방식\n"
-                "  - 심사관의 지적 중 오해 또는 과도한 추정을 짚어 반박합니다.\n"
-                "  - 모든 비교 근거는 [사용자 입력 상표]와 [비교 대상 유사 선행상표] 사이에서 제시하고, 의견제출통지서의 선등록 상표는 참고 사례로만 언급합니다.\n"
-                "  - 사용자의 상표가 발음, 관념, 외관, 거래 실정 등에서 충분히 구별된다는 근거를 제시합니다.\n"
-                "  - 만약 보정이 유리하거나 가능하다면, 지정상품 명확화, 표현 요소 조정 등의 방향을 제시합니다.\n\n"
-                "2. 작성 방식\n"
-                "  - 반드시 Markdown으로만 작성합니다.\n"
-                "  - 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요.\n\n"
-                "3. 작성 목표\n"
-                "  - 각 쟁점별로 “왜 유사하지 않은지” 근거를 제시합니다.\n"
-                "  - 심사관 분석이 유사 선행상표의 과거 사례에 지나치게 의존한 경우 이를 지적합니다.\n"
-                "  - “본 출원은 등록 가능성이 있다”는 논리적 방향을 구축하지만 단정은 하지 않습니다."
-            ),
+            instruction=APPLICANT_PROMPT,
             state=state,
             image_inputs=image_payloads,
         )
@@ -211,23 +176,7 @@ class LangGraphOrchestrator:
     async def _examiner_reply_node(self, state: AgentState) -> AgentState:
         response = await self._run_llm(
             role="심사관",
-            instruction=(
-                "출원인의 반박 중 합리적인 부분은 수용하고, 부족하거나 법적 근거가 약한 부분은 다시 반박하여 최종적인 판단 방향을 제시해 주세요."
-                "앞선 대화를 그대로 반복하지 말고, 출원인이 제시한 논점별로 수용 여부와 이유를 명확히 정리한 뒤 최종 결론을 내려야 합니다."
-                "충돌 판단만 내리고 보정/대응 전략은 작성하지 마세요. "
-                "반드시 아래 기준을 따르세요. \n"
-                "1. 판단 방식\n"
-                "  - 출원인의 근거 제시가 합당하면 명시적으로 수용하고, 그 근거를 요약합니다.\n"
-                "  - 법적 근거 부족, 논리적 불충분 등이 있는 부분은 다시 반박하고, 왜 유지되어야 하는지 설명합니다.\n"
-                "  - 비교 판단은 일관되게 [사용자 입력 상표] vs [비교 대상 유사 선행상표]를 기본으로 하고, 의견제출통지서 속 선등록 상표는 필요 시 별도 근거로만 활용합니다.\n"
-                "  - 보정이나 대응 전략은 언급하지 않습니다.\n"
-                "  - 쟁점이 명백할 경우에는 단호한 결론을 내려도 됩니다.\n\n"
-                "2. 작성 방식\n"
-                "  - 반드시 Markdown으로만 작성합니다.\n"
-                "  - 각 항목은 ## 혹은 ### 소제목와 함께 숫자 목록과 불릿 목록을 적절히 활용하세요.\n\n"
-                "3. 작성 목표\n"
-                "  - 쟁점을 명확히 정리하고, 반박하거나 수용하여 최종 판단 방향을 제시합니다."
-            ),
+            instruction=EXAMINER_REPLY_PROMPT,
             state=state,
         )
         return self._append_transcript(state, "심사관", response)
@@ -237,36 +186,14 @@ class LangGraphOrchestrator:
         metrics_block = self._format_metrics_block(state)
         metrics_info = state.get("metrics") or {}
         include_image_metric, include_text_metric = self._metric_similarity_flags(metrics_info)
-        quant_instruction = (
-            "## 정량 지표\n"
-            "- 동일 상표명 여부: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n"
-            "- 동일 이미지 여부: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n"
-        )
-        if include_image_metric:
-            quant_instruction += "- 이미지 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n"
-        if include_text_metric:
-            quant_instruction += "- 텍스트 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n"
-        quant_instruction += "\n"
+        image_line = "- 이미지 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n" if include_image_metric else ""
+        text_line = "- 텍스트 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n" if include_text_metric else ""
         reporter_context = conversation_only
         if metrics_block:
             reporter_context += "\n\n[정량 지표]\n" + metrics_block
         summary = await self._run_llm(
             role="리포터",
-            instruction=(
-                "심사관과 출원인 대리인의 대화를 기반으로 아래 포맷 그대로 Markdown으로만 작성하세요.\n\n"
-                "# 한 줄 요약\n- <사용자 상표 vs 유사 선행상표 충돌 여부를 한 문장으로 요약>\n\n"
-                "## 주요 쟁점\n"
-                "1. **<쟁점명>** — <사용자 상표에 미치는 영향과 KIPRIS 근거를 2문장 이상으로 구체적으로 설명>\n"
-                "2. **...** — ...\n3. **...** — ...\n\n"
-                + quant_instruction
-                + "모든 항목은 반드시 '번호. **<쟁점명>** — 설명' 형식을 따르고, '<쟁점명>' 전체를 굵게(**) 감싸며 치명적 위험·보정 전략을 빠짐없이 포함하세요.\n"
-                "이미지 유사도는 [사용자 입력 상표]와 [비교 대상 유사 선행상표] 간 DINOv2 similarity와 MetaCLIP2 similarity를 0.5:0.5로 앙상블한 값이며,"
-                " 텍스트 유사도는 상표명 간 MetaCLIP2 similarity입니다. 해당 수치는 정량 지표 섹션 외에서는 절대 언급하지 마세요.\n"
-                " 내부에서만 통용되는 약어나 코드명(예: Track A/B 등)은 사용하지 말고, 사용자도 즉시 이해할 수 있는 일반적인 표현으로 풀어 설명하세요.\n"
-                " 제목과 목록 외에 어떤 서론이나 마무리 문장도 작성하지 마세요.\n"
-                "<쟁점명>, <사용자 상표에 미치는 영향과 KIPRIS 근거를 2문장 이상으로 구체적으로 설명>에는 반드시 실제 내용을 채워 넣으세요."
-                "만약 숫자 목록을 사용할 경우 반드시 '1.', '2.' 등의 형식만 허용됩니다. '1)', '2)' 등의 형식은 사용하지 마세요.\n"
-            ),
+            instruction=REPORTER_PROMPT.format(image_line=image_line, text_line=text_line),
             state=state,
             context_override=reporter_context,
             transcript_override=reporter_context,
@@ -302,26 +229,7 @@ class LangGraphOrchestrator:
             scorer_context += "\n\n[정량 지표]\n" + metrics_block
         response = await self._run_llm(
             role="채점자",
-            instruction=(
-                "아래는 리포터가 정리한 사용자 상표 vs 유사 선행상표 비교 요약입니다."
-                " 이 요약만을 근거로 충돌 위험도와 등록 가능성을 0~100점 범위로 평가하세요."
-                " 유사 선행상표의 현재 상태나 KIPRIS 세부 내용은 이미 요약에 반영되어 있다고 가정하십시오."
-                " 반드시 다음 두 단계를 순서대로 따르세요:"
-                " 1) 응답의 첫 줄에 JSON 객체 {conflict_score, register_score, rationale, factors[]}를 출력합니다."
-                " 2) 이어서 아래 [Markdown 형식]을 반드시 정확히 지켜 항목화된 평가를 작성합니다.\n\n"
-                " 평가 시에는 다음 우선순위를 반드시 고려하세요: (1) 상표명의 발음·관념·요부가 동일하거나 사실상 동일한지, (2) 사용자 입력 상표의 절대적 식별력(독창성이 부족하면 더 엄격히 평가), (3) 상표 이미지 외관 유사성, (4) 지정상품 분류와 거래 실정의 근접성."
-                " 동일 상표명/동일 이미지 플래그나 이미지·텍스트 유사도 값이 제공되는 경우 이를 가장 먼저 검토하고, 동일하거나 극도로 높은 유사도라면 충돌 위험을 매우 높게, 등록 가능성을 매우 낮게 평가하는 방향으로 판단하세요."
-                " 평가 시에는 각 후보의 사실관계를 냉철하게 검토하고, 치명적 충돌 근거가 명확하면 높은 충돌 위험 점수, 문제가 거의 없는 경우에는 낮은 충돌 위험 점수를 부여하세요."
-                " 근거가 뚜렷하면 가급적 과감히 40~60점의 중간값에서 벗어나 높은 값 혹은 낮은 값을 점수로 부여하세요.\n\n"
-                "[Markdown 형식]"
-                "\n\n## 판단 요약\n- **충돌 위험도**: <숫자>점\n- **등록 가능성**: <숫자>점\n"
-                "## 평가 근거\n- <핵심 근거 1>\n- <핵심 근거 2>\n"
-                "## 권장 대응\n- <후속 조치 또는 대응 전략>\n"
-                "제목은 반드시 '## 판단 요약', '## 평가 근거', '## 권장 대응' 순서로만 작성하고, 다른 제목이나 마무리 문구를 추가하지 마세요.\n"
-                "줄글 형식의 문단을 작성하지 말고 모든 내용은 불릿 항목으로만 제시하세요.\n"
-                "<숫자>, <핵심 근거 1>, <핵심 근거 2>, <후속 조치 또는 대응 전략> 부분에는 반드시 실제 내용을 채워 넣으세요.\n"
-                "만약 숫자 목록을 사용할 경우 반드시 '1.', '2.' 등의 형식만 허용됩니다. '1)', '2)' 등의 형식은 사용하지 마세요."
-            ),
+            instruction=SCORER_PROMPT,
             state=summary_only_state,
             context_override=scorer_context,
         )
@@ -346,14 +254,7 @@ class LangGraphOrchestrator:
     ) -> str:
         transcript_text = transcript_override if transcript_override is not None else "\n".join(state.get("transcript", []))
         context_text = context_override if context_override is not None else state.get("context", "")
-        strict_instruction = (
-            instruction
-            + "\n\n[제한 사항]\n"
-            "- 요구된 형식 외의 마무리 멘트, 후속 안내, '필요하시면...' 등의 추가 문장은 절대 포함하지 마세요.\n"
-            "- 출력은 지침에 명시된 제목/목록만 포함하고, 서론이나 출력 내용 설명 문장을 쓰지 마세요.\n"
-            "- 의견제출통지서에 등장하는 선등록/선출원 상표는 참고용이며, [사용자 입력 상표]와 [비교 대상 유사 선행상표]의 직접 비교 단계에서는 절대 언급하지 마세요.\n"
-            "- 만약 숫자 목록을 사용할 경우 반드시 '1.', '2.' 등의 형식만 허용됩니다. '1)', '2)' 등의 형식은 사용하지 마세요."
-        )
+        strict_instruction = f"{instruction}\n\n{LLM_RESTRICTION_SUFFIX}"
         context_block = f"사건 정보:\n{context_text}\n\n" if context_text else ""
         needs_transcript = bool(transcript_text and transcript_text.strip()
                                 and transcript_text.strip() != (context_text or '').strip())
@@ -372,14 +273,7 @@ class LangGraphOrchestrator:
             human_content = payload
 
         messages = [
-            SystemMessage(
-                content=(
-                    f"당신은 {role}입니다. 컨텍스트에는 [사용자 입력 상표]와 [비교 대상 유사 선행상표] 정보가 분리되어 있으며,"
-                    " 유사 선행상표의 KIPRIS 자료는 '이 유사 선행상표가 어떤 이유로 지적되었는지'를 참고하기 위한 것입니다."
-                    " 반드시 사용자 상표와 유사 선행상표를 직접 비교하면서, 과거 거절사유가 사용자 상표에도 동일하게 적용될 수 있는지,"
-                    " 또는 반박/보정으로 극복 가능한지에 초점을 맞춰 한국 특허청 심사 기준으로 판단하세요."
-                )
-            ),
+            SystemMessage(content=SYSTEM_MESSAGE_TEMPLATE.format(role=role)),
             HumanMessage(content=human_content),
         ]
         start_time = datetime.utcnow()
@@ -517,8 +411,9 @@ class LangGraphOrchestrator:
         ):
             return counts
 
-        in_rate = float(os.getenv("OPENAI_RATE_INPUT_USD_PER_MTOKEN", "0.15"))
-        out_rate = float(os.getenv("OPENAI_RATE_OUTPUT_USD_PER_MTOKEN", "0.60"))
+        pricing = get_model_pricing(self._model_name)
+        in_rate = pricing.get("input", 0.0)
+        out_rate = pricing.get("output", 0.0)
         input_cost = (input_tokens or 0) * (in_rate / 1_000_000)
         output_cost = (output_tokens or 0) * (out_rate / 1_000_000)
         call_cost = input_cost + output_cost

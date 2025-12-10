@@ -12,6 +12,8 @@ from typing import Iterable, List
 
 from openai import OpenAI, OpenAIError
 
+from app.services.model_pricing import get_model_pricing
+
 _HANGUL_RE = re.compile(r"[가-힣]")
 _LATIN_RE = re.compile(r"[A-Za-z]")
 
@@ -147,9 +149,9 @@ class TrademarkLLMSynonymService:
         if input_tokens is None and output_tokens is None and total_tokens is None:
             return
 
-        # OpenAI pricing for gpt-4o-mini: $0.15 per 1M input, $0.60 per 1M output
-        in_rate = float(os.getenv("OPENAI_RATE_INPUT_USD_PER_MTOKEN", "0.15"))
-        out_rate = float(os.getenv("OPENAI_RATE_OUTPUT_USD_PER_MTOKEN", "0.60"))
+        pricing = get_model_pricing(self._model_id)
+        in_rate = pricing.get("input", 0.0)
+        out_rate = pricing.get("output", 0.0)
         input_cost = (input_tokens or 0) * (in_rate / 1_000_000)
         output_cost = (output_tokens or 0) * (out_rate / 1_000_000)
         total_cost = input_cost + output_cost
