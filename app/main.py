@@ -29,6 +29,13 @@ def _configure_logging() -> None:
 _configure_logging()
 
 app = FastAPI(title="Trademark Search Service")
+
+
+@app.get("/health", tags=["infrastructure"])
+def health_check():
+    """Simple endpoint for ALB/ECS health checks."""
+    return {"status": "ok"}
+
 app.include_router(search_router)
 app.include_router(goods_router)
 app.include_router(media_router)
