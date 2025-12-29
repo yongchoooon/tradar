@@ -58,8 +58,12 @@ def get_client() -> OpenSearch:
     use_ssl = parsed.scheme == "https"
     port = parsed.port or (443 if use_ssl else 80)
     http_auth = None
+    env_username = os.getenv("OPENSEARCH_USERNAME")
+    env_password = os.getenv("OPENSEARCH_PASSWORD")
     if parsed.username:
         http_auth = (parsed.username, parsed.password or "")
+    elif env_username:
+        http_auth = (env_username, env_password or "")
 
     kwargs = {
         "hosts": [{"host": parsed.hostname, "port": port}],

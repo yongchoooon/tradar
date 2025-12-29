@@ -162,26 +162,18 @@ docker compose up --build
 
 5. **ECR & Docker 이미지 빌드**
    - `aws ecr create-repository --repository-name tradar-backend`
-   - 현재 `Dockerfile`은 `app/` 디렉터리만 이미지에 복사합니다. FastAPI가 빌드된 프런트를 함께 서빙하려면 `frontend/dist`도 이미지에 포함해야 합니다. 가장 간단한 방법은 배포 전용 Dockerfile을 하나 더 만드는 것입니다.
+   - 백엔드 이미지는 FastAPI 코드와 Python 의존성만 포함합니다. 프런트엔드는 별도 파이프라인(S3/CloudFront)에서 배포하므로 Dockerfile에 `frontend/dist`를 복사할 필요가 없습니다.
      ```Dockerfile
-     # Dockerfile.prod (예시)
      FROM python:3.11-slim
      WORKDIR /app
+     ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
      COPY requirements.txt .
-     RUN pip install --upgrade pip && pip install -r requirements.txt \
-         && pip install "psycopg[binary]==3.2.*" pgvector opensearch-py
+     RUN pip install --upgrade pip && pip install -r requirements.txt
      COPY app /app/app
-     COPY frontend/dist /app/frontend/dist
-     CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+     CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
      ```
-   - 실제 빌드 순서는 다음과 같습니다.
-     ```bash
-     npm ci --prefix frontend
-     npm run build --prefix frontend
-     docker build -t tradar-backend:latest -f Dockerfile.prod .
-     docker tag tradar-backend:latest <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/tradar-backend:latest
-     docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/tradar-backend:latest
-     ```
+   - 프런트 배포는 `npm ci --prefix frontend && npm run build --prefix frontend` 후 `aws s3 sync frontend/dist s3://tradar-frontend-prod --delete` 순서로 별도 워크플로우에서 수행합니다.
+   - 백엔드 이미지는 평소와 같이 `docker build -t tradar-backend:latest .` → `docker tag` → `docker push` 순서로 ECR에 업로드합니다.
 
 6. **ECS (Fargate) + ALB**
    - 클러스터: `tradar-cluster`.
@@ -192,11 +184,14 @@ docker compose up --build
 7. **Parameter Store**
    | 이름 | 예시 값 | 비고 |
    | --- | --- | --- |
-   | `/tradar/prod/database-url` | `postgresql://user:pass@tradar-db.cluster-xxx.ap-northeast-2.rds.amazonaws.com:5432/tradar` | SecureString |
-   | `/tradar/prod/opensearch-url` | `https://vpc-tradar-search-xxx.ap-northeast-2.es.amazonaws.com` | SecureString |
-   | `/tradar/prod/openai-api-key` | `sk-...` | SecureString |
-   | `/tradar/prod/kipris-access-key` | `...` | SecureString |
-   | `/tradar/prod/frontend-base-url` | `https://app.tradar.com` | CloudFront 배포 주소 |
+| `/tradar/prod/database-url` | `postgresql://user:pass@tradar-db.cluster-xxx.ap-northeast-2.rds.amazonaws.com:5432/tradar` | SecureString |
+| `/tradar/prod/opensearch-url` | `https://vpc-tradar-search-xxx.ap-northeast-2.es.amazonaws.com` | SecureString |
+| `/tradar/prod/opensearch-username` | `tradar-opensearch` | (필요 시) Basic Auth |
+| `/tradar/prod/opensearch-password` | `****` | Basic Auth 비밀번호 |
+| `/tradar/prod/openai-api-key` | `sk-...` | SecureString |
+| `/tradar/prod/kipris-access-key` | `...` | SecureString |
+| `/tradar/prod/frontend-base-url` | `https://app.tradar.com` | CloudFront 배포 주소 |
+| `/tradar/prod/cors-allowed-origins` | `https://app.tradar.com` | 백엔드 CORS 허용 Origin |
 
 ### 2.3 GitHub Actions용 IAM 사용자
 - 이름: `tradar-github-actions`
@@ -278,14 +273,18 @@ docker compose up --build
 ### 2.4 ECS Task Definition에 넣을 주요 환경 변수
 | 이름 | 값 예시 | 설명 |
 | --- | --- | --- |
+| `APP_ENV` | `prod` | 배포 환경 스위치 |
 | `DATABASE_URL` | Parameter Store 참조 | RDS 접속 URL |
 | `OPENSEARCH_URL` | Parameter Store 참조 | Amazon OpenSearch 엔드포인트 |
+| `OPENSEARCH_USERNAME` | Parameter Store 참조 | (선택) Basic Auth 사용자 |
+| `OPENSEARCH_PASSWORD` | Parameter Store 참조 | (선택) Basic Auth 비밀번호 |
 | `OPENAI_API_KEY` | Parameter Store 참조 | LangChain/LLM |
 | `KIPRIS_ACCESS_KEY` | Parameter Store 참조 | KIPRIS REST |
+| `CORS_ALLOWED_ORIGINS` | Parameter Store 참조 | 허용 Origin(`https://app.tradar.com`) |
 | `TRADEMARK_LLM_MODEL` | `gpt-4o-mini` | 검색 프롬프트용 |
 | `SIMULATION_LLM_MODEL` | `gpt-5-nano` | LangGraph 시뮬레이션용 |
 | `SIMULATION_LLM_TEMPERATURE` | `0.2` | 필요 시 조정 |
-| `MEDIA_ALLOWED_ROOTS` | `/data:/app/frontend/dist` | 컨테이너 내 허용 경로 |
+| `MEDIA_ALLOWED_ROOTS` | `/data` | 컨테이너 내 허용 파일 루트 |
 | `UVICORN_WORKERS`(선택) | `2` | 동시성 확장 |
 
 ---
@@ -301,10 +300,9 @@ docker compose up --build
 - 권장 단계
   1. `actions/checkout`
   2. Python 의존성 설치 → `pytest`
-  3. `npm ci --prefix frontend && npm run build --prefix frontend` (FastAPI가 정적 파일을 서빙하도록 dist 포함)
-  4. `aws-actions/configure-aws-credentials`
-  5. Docker Build & Push (`docker/build-push-action`)
-  6. 새 Task Definition을 등록 후 `aws ecs update-service --force-new-deployment`
+  3. `aws-actions/configure-aws-credentials`
+  4. Docker Build & Push (`docker/build-push-action`)
+  5. 새 Task Definition을 렌더링(SSM Parameter → 환경 변수 매핑) 후 `aws ecs update-service --force-new-deployment`
 
 ### 3.3 Frontend 워크플로우 초안
 - 위치 제안: `.github/workflows/frontend-deploy.yml`

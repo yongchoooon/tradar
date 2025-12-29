@@ -41,20 +41,24 @@
 - 작업 정보는 메모리 내 `SimulationJobManager`가 관리하며, 서버 재시작 시 초기화되므로 장기 저장이 필요한 경우 외부 스토리지를 추가해야 합니다.
 
 필수 환경 변수:
-- `.env`에 `KIPRIS_ACCESS_KEY`, `OPENAI_API_KEY`를 설정하고 FastAPI가 자동으로 `load_dotenv()`로 읽어옵니다.
-- 선택적으로 `SIMULATION_LLM_MODEL`, `SIMULATION_LLM_TEMPERATURE`, `SIMULATION_LLM_TEMPERATURE`로 모델/온도를 조정할 수 있습니다.
+- 운영(`APP_ENV=prod`)에서는 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`, `KIPRIS_ACCESS_KEY`, `CORS_ALLOWED_ORIGINS` 값을 반드시 OS 환경 또는 AWS SSM Parameter Store에서 주입해야 합니다. 값이 하나라도 비어 있으면 FastAPI가 즉시 종료합니다.
+- 로컬 개발(`APP_ENV!=prod`)에서는 `.env`가 있으면 자동으로 로드하고, `DATABASE_URL`/`OPENSEARCH_URL`은 각각 `postgresql://postgres:postgres@localhost:5432/tradar`, `http://localhost:9200`로 기본값을 채웁니다.
+- `CORS_ALLOWED_ORIGINS`는 콤마로 구분된 허용 Origin 목록입니다. 기본값은 `http://localhost:5173`이며, 운영 환경에서는 `https://<cloudfront-domain>`처럼 구체적인 도메인을 지정해야 합니다.
+- 시뮬레이션 LLM 설정(`SIMULATION_LLM_MODEL`, `SIMULATION_LLM_TEMPERATURE`)과 기타 선택적 매개변수는 기존과 동일하게 환경 변수로 조정합니다.
 
 참고: 시뮬레이션 호출은 외부 REST API를 동기적으로 호출하므로, 한 번에 많은 상표를 선택하면 응답 시간이 길어질 수 있습니다. 네트워크 탭과 FastAPI 로그(`simulation` 로거)를 통해 진행 상황을 확인할 수 있습니다.
 
 ## 프런트엔드 개발 환경 (Vite)
 - `frontend/` 디렉터리는 Vite 기반 React SPA입니다. `npm install` 한 번이면 모든 의존성이 설치됩니다.
 - 로컬 개발 시에는 `npm run dev`로 Vite Dev Server(기본 `http://localhost:5173`)를 띄우고, `bash scripts/run_api.sh`로 FastAPI를 별도로 구동합니다. `/search`, `/goods`, `/simulation`, `/media` 경로는 `frontend/vite.config.js`의 프록시 설정 때문에 자동으로 백엔드로 전달됩니다.
-- 운영/테스트 배포 시에는 `npm run build`로 `frontend/dist/`를 만든 뒤 Uvicorn을 실행하면 FastAPI가 해당 디렉터리를 정적 파일로 제공하고, `/` 경로에서 완성된 SPA를 내려줍니다. `scripts/run_api.sh`는 빌드가 없으면 경고를 출력해줍니다.
-- Docker나 AWS 배포 파이프라인에서 프런트 자산을 포함하려면 `frontend/`에서 `npm ci && npm run build`를 실행한 뒤 `frontend/dist` 폴더를 이미지에 복사하면 됩니다. FastAPI는 빌드 결과 존재 여부만 확인하므로 추가 설정이 필요 없습니다.
-- 빠른 통합 실행이 필요할 때는 `docker-compose.yml`의 `frontend` 서비스(노드 18 기반)를 통해 Vite Dev Server를 띄울 수 있고, `api` 서비스는 동일한 Compose 네트워크에서 Postgres(`db`)를 참조하도록 되어 있습니다.
+- 운영/테스트 배포에서는 SPA를 별도 S3/CloudFront에 올리고 FastAPI는 API 전용으로 실행합니다. `FRONTEND_DIST` 환경 변수를 직접 지정한 경우에만 정적 자산을 서빙하므로, 로컬에서 `npm run build` 결과를 확인하고 싶을 때 `FRONTEND_DIST=frontend/dist uvicorn app.main:app` 형태로 실행하면 됩니다.
+- Docker나 AWS 배포 파이프라인도 백엔드와 프런트엔드를 분리합니다. 백엔드 이미지는 `app/` 코드와 Python 의존성만 포함하고, 프런트 배포는 `frontend/dist`를 S3에 업로드하거나 CloudFront에 연결된 버킷으로 동기화하세요.
+- `docker-compose.yml`은 개발 편의용으로만 제공합니다. `.:/app` 볼륨 마운트, 로컬 Postgres/OpenSearch 컨테이너 등은 프로덕션에서 사용하지 말고, ECS/RDS/OpenSearch Service 조합에 필요한 환경 변수들은 모두 OS 환경이나 AWS SSM Parameter Store에서 주입하세요.
 - `frontend/src/index.css`는 `--viewport-scale`, `--space-scale` 같은 루트 변수를 통해 창 너비에 따라 글꼴/패딩/갭을 자동으로 조절합니다. 큰 모니터에서는 100% 크기로, 14~16인치 노트북에서는 약 80%까지 자연스럽게 축소되므로, 레이아웃 변경 시 해당 변수를 먼저 고려하세요.
 
 ## 데이터 시딩
+
+> **참고**: 아래 스크립트(`scripts/vector_db_prepare*.py`, `scripts/sync_opensearch.sh`)는 FastAPI 기동 시 자동 실행되지 않습니다. 데이터나 인덱스를 새로 준비해야 할 때 CLI에서 수동으로 호출하세요.
 
 ### 전체 임베딩 적재
 ```bash

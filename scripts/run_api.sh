@@ -13,6 +13,7 @@ if [ -f "${REPO_ROOT}/.env" ]; then
 fi
 
 # Allow overrides from the current shell; fall back to project defaults.
+: "${APP_ENV:=dev}"
 : "${DATABASE_URL:=postgresql://postgres:postgres@localhost:5432/tradar}"
 : "${IMAGE_EMBED_BACKEND:=torch}"
 : "${TEXT_EMBED_BACKEND:=torch}"
@@ -27,6 +28,7 @@ fi
 : "${TRADEMARK_LLM_MODEL:=gpt-4o-mini}"
 : "${TRADEMARK_LLM_REASONING:=medium}"
 : "${MEDIA_ALLOWED_ROOTS:=/home/work/workspace/tradar-data:/home/work/workspace/tradar}"
+: "${CORS_ALLOWED_ORIGINS:=http://localhost:5173}"
 
 : "${TRADEMARK_LLM_DEBUG:=false}"
 
@@ -39,21 +41,25 @@ export EMBED_DEVICE
 export OPENSEARCH_URL
 export OPENSEARCH_INDEX
 export OPENSEARCH_SEARCH_FIELDS
+export APP_ENV
 export TRADEMARK_LLM_ENABLED
 export TRADEMARK_LLM_API_KEY
 export TRADEMARK_LLM_MODEL
 export TRADEMARK_LLM_REASONING
 export MEDIA_ALLOWED_ROOTS
+export CORS_ALLOWED_ORIGINS
 export TRADEMARK_LLM_DEBUG
 
 if [ -n "${TRADEMARK_LLM_API_KEY}" ]; then
   export OPENAI_API_KEY="${TRADEMARK_LLM_API_KEY}"
 fi
 
-FRONTEND_DIST="${REPO_ROOT}/frontend/dist"
-if [ ! -d "${FRONTEND_DIST}" ]; then
-  echo "[run_api] Frontend build not found at ${FRONTEND_DIST}." >&2
-  echo "          Run 'npm install && npm run dev' inside frontend/ for dev mode, or 'npm run build' to serve static files." >&2
+FRONTEND_DIST_PATH="${REPO_ROOT}/frontend/dist"
+if [ -d "${FRONTEND_DIST_PATH}" ]; then
+  export FRONTEND_DIST="${FRONTEND_DIST:-${FRONTEND_DIST_PATH}}"
+else
+  echo "[run_api] Frontend build not found at ${FRONTEND_DIST_PATH}." >&2
+  echo "          Use Vite dev server (npm run dev) or set FRONTEND_DIST to a custom path if needed." >&2
 fi
 
 uvicorn app.main:app --reload "$@" --host 0.0.0.0

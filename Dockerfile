@@ -20,3 +20,4 @@ COPY app /app/app
 
 # Default command is provided by docker-compose.yml
 
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
