@@ -11,5 +11,5 @@ pgvector==0.2.*
 opensearch-py==2.4.*
 Pillow==10.3.*
 torch==2.3.*
-transformers==4.41.*
+transformers @ git+https://github.com/huggingface/transformers.git@main
 tqdm==4.66.*
