@@ -45,11 +45,9 @@ logger = logging.getLogger("simulation")
 
 class LangGraphOrchestrator:
     def __init__(self) -> None:
-        model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-4o-mini")
-        temperature = float(os.getenv("SIMULATION_LLM_TEMPERATURE", "1"))
-        self.llm = ChatOpenAI(model=model_name, temperature=temperature)
-        self._model_name = model_name
-        self._temperature = temperature
+        self._model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-4o-mini")
+        self._temperature = float(os.getenv("SIMULATION_LLM_TEMPERATURE", "1"))
+        self.llm: ChatOpenAI | None = None
         self._usage_log_path = self._ensure_usage_log()
         self._running_total = self._load_existing_usage_total()
         workflow = StateGraph(AgentState)
@@ -374,8 +372,9 @@ class LangGraphOrchestrator:
         return include_image_line, include_text_line
 
     async def _invoke_llm(self, messages: List, role: str):  # type: ignore[no-untyped-def]
+        llm = self._get_llm()
         try:
-            response = await self.llm.ainvoke(messages)
+            response = await llm.ainvoke(messages)
         except Exception as exc:
             if self._temperature_error(exc):
                 logger.warning(
@@ -384,7 +383,7 @@ class LangGraphOrchestrator:
                     self._model_name,
                 )
                 self._override_temperature(1.0)
-                response = await self.llm.ainvoke(messages)
+                response = await self._get_llm().ainvoke(messages)
             else:
                 raise
         return response
@@ -476,13 +475,18 @@ class LangGraphOrchestrator:
         desired_model = os.getenv("SIMULATION_LLM_MODEL", self._model_name)
         desired_temp = float(os.getenv("SIMULATION_LLM_TEMPERATURE", str(self._temperature)))
         if desired_model != self._model_name or desired_temp != self._temperature:
-            self.llm = ChatOpenAI(model=desired_model, temperature=desired_temp)
             self._model_name = desired_model
             self._temperature = desired_temp
+            self.llm = None
 
     def _override_temperature(self, value: float) -> None:
-        self.llm = ChatOpenAI(model=self._model_name, temperature=value)
         self._temperature = value
+        self.llm = None
+
+    def _get_llm(self) -> ChatOpenAI:
+        if self.llm is None:
+            self.llm = ChatOpenAI(model=self._model_name, temperature=self._temperature)
+        return self.llm
 
     @staticmethod
     def _temperature_error(exc: Exception) -> bool:
