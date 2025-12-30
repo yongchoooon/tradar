@@ -23,7 +23,6 @@ fi
 : "${OPENSEARCH_URL:=http://localhost:9200}"
 : "${OPENSEARCH_INDEX:=tradar_trademarks}"
 : "${OPENSEARCH_SEARCH_FIELDS:=title_korean^2,title_english,aliases^0.5}"
-: "${TRADEMARK_LLM_ENABLED:=true}"
 : "${TRADEMARK_LLM_API_KEY:=${OPENAI_API_KEY:-}}"
 : "${TRADEMARK_LLM_MODEL:=gpt-4o-mini}"
 : "${TRADEMARK_LLM_REASONING:=medium}"
@@ -42,7 +41,6 @@ export OPENSEARCH_URL
 export OPENSEARCH_INDEX
 export OPENSEARCH_SEARCH_FIELDS
 export APP_ENV
-export TRADEMARK_LLM_ENABLED
 export TRADEMARK_LLM_API_KEY
 export TRADEMARK_LLM_MODEL
 export TRADEMARK_LLM_REASONING

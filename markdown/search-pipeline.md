@@ -93,7 +93,7 @@
 | ------ | ---- | --------------- |
 | PostgreSQL + pgvector | `app/services/db.py`, `vector_client.py`, `catalog.py` | `DATABASE_URL` |
 | OpenSearch | `app/services/bm25_client.py` | `OPENSEARCH_URL`, `OPENSEARCH_INDEX`, `OPENSEARCH_SEARCH_FIELDS` |
-| OpenAI GPT-4o-mini | `app/services/synonym_service.py` | `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED` |
+| OpenAI GPT-4o-mini | `app/services/synonym_service.py` | `OPENAI_API_KEY`, `SearchRequest.use_llm_variants` |
 
 ## 업데이트 가이드
 

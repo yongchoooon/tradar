@@ -31,7 +31,6 @@ DEFAULT_IMAGE_EMBED_BACKEND = "torch"
 DEFAULT_TEXT_EMBED_BACKEND = "torch"
 DEFAULT_METACLIP_MODEL_NAME = "/home/work/workspace/models/metaclip"
 DEFAULT_DINOV2_MODEL_NAME = "/home/work/workspace/models/dinov2"
-DEFAULT_TRADEMARK_LLM_ENABLED = "false"
 DEFAULT_MEDIA_ALLOWED_ROOTS = "/home/work/workspace/tradar-data:/home/work/workspace/tradar"
 
 os.environ.setdefault("DATABASE_URL", DEFAULT_DATABASE_URL)
@@ -40,7 +39,6 @@ os.environ.setdefault("IMAGE_EMBED_BACKEND", DEFAULT_IMAGE_EMBED_BACKEND)
 os.environ.setdefault("TEXT_EMBED_BACKEND", DEFAULT_TEXT_EMBED_BACKEND)
 os.environ.setdefault("METACLIP_MODEL_NAME", DEFAULT_METACLIP_MODEL_NAME)
 os.environ.setdefault("DINOV2_MODEL_NAME", DEFAULT_DINOV2_MODEL_NAME)
-os.environ.setdefault("TRADEMARK_LLM_ENABLED", DEFAULT_TRADEMARK_LLM_ENABLED)
 os.environ.setdefault("MEDIA_ALLOWED_ROOTS", DEFAULT_MEDIA_ALLOWED_ROOTS)
 
 

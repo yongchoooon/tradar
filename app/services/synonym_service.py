@@ -44,21 +44,18 @@ def _split_variants(text: str) -> Iterable[str]:
 class TrademarkLLMSynonymService:
     """Wraps a Hugging Face chat model to propose similar trademark names.
 
-    The service is opt-in via the ``TRADEMARK_LLM_ENABLED`` environment variable so
-    that local development and automated tests do not attempt to download large
-    models by default. When enabled, the model id can be configured with
-    ``TRADEMARK_LLM_MODEL`` (defaults to ``gpt-4o-mini``).
+    The service is used on-demand by the search API when the user turns on
+    the "LLM 유사어" 체크박스 in the UI. The backend simply checks whether
+    an OpenAI API key is provided and calls the model when the request opts in.
     """
 
     def __init__(self) -> None:
-        self._enabled = _is_truthy(os.getenv("TRADEMARK_LLM_ENABLED"))
         self._model_id = os.getenv("TRADEMARK_LLM_MODEL", "gpt-4o-mini")
         self._reasoning_level = os.getenv("TRADEMARK_LLM_REASONING", "medium")
         self._temperature = float(os.getenv("TRADEMARK_LLM_TEMPERATURE", "0.2"))
         self._client: OpenAI | None = None
         self._api_key = os.getenv("OPENAI_API_KEY")
-        if not self._api_key:
-            self._enabled = False
+        self._enabled = bool(self._api_key)
         self._usage_log_path = self._ensure_usage_log()
         self._debug = _is_truthy(os.getenv("TRADEMARK_LLM_DEBUG"))
 

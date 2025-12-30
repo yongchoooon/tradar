@@ -21,7 +21,7 @@
 
 - **PostgreSQL + pgvector**: 모든 임베딩과 상표 메타데이터를 보관합니다.
 - **OpenSearch**: BM25 텍스트 후보 확장을 담당합니다.
-- **OpenAI GPT-4o-mini**: 상표명 유사어를 생성합니다 (`TRADEMARK_LLM_ENABLED=true` 일 때).
+- **OpenAI GPT-4o-mini**: 상표명 유사어를 생성합니다. 기본값은 꺼져 있으며, 프런트엔드의 "LLM 유사어" 체크박스를 켜면 해당 검색에만 호출합니다.
 - **FastAPI**: `/search/multimodal`에서 이미지·텍스트 결과를 각각 Top-K로 반환합니다.
 - **LangGraph + KIPRIS REST**: `/simulation/run`에서 선택된 선행상표의 의견제출통지서/거절결정서를 호출하고 에이전트 기반으로 등록 가능성을 평가합니다.
 
@@ -163,7 +163,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 
 ## 운영 팁
 
-- **LLM 사용**: `.env`에 `OPENAI_API_KEY`, `TRADEMARK_LLM_ENABLED=true` 설정. 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 충돌 위험도/등록 가능성을 산출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
+- **LLM 사용**: `.env` 또는 AWS SSM에 `OPENAI_API_KEY`만 설정하면 됩니다. 검색 화면의 "LLM 유사어" 체크박스가 켜진 요청에서만 OpenAI API를 호출하고, 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 충돌 위험도/등록 가능성을 산출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
 - **프롬프트 LLM**: 재검색 프롬프트 전용 모델을 조정하려면 `PROMPT_LLM_MODEL`, `PROMPT_LLM_TEMPERATURE` 환경 변수를 사용하세요 (기본값은 `TRADEMARK_LLM_MODEL`/`0.1`).
 - **임베딩 모델 경로**: 기본값은 `/home/work/workspace/models/{metaclip,dinov2}`. 변경 시 `METACLIP_MODEL_NAME`, `DINOV2_MODEL_NAME` 환경변수를 사용하세요.
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.

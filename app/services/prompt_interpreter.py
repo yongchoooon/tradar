@@ -10,8 +10,6 @@ from typing import List, Optional
 
 from openai import OpenAI, OpenAIError
 
-from app.services.synonym_service import _is_truthy  # reuse existing helper
-
 
 @dataclass
 class PromptInterpretation:
@@ -38,12 +36,10 @@ class PromptInterpreter:
     """Interpret free-form prompts into structured search hints."""
 
     def __init__(self) -> None:
-        self._enabled = _is_truthy(os.getenv("TRADEMARK_LLM_ENABLED"))
+        self._enabled = bool(os.getenv("OPENAI_API_KEY"))
         self._model_id = os.getenv("PROMPT_LLM_MODEL", os.getenv("TRADEMARK_LLM_MODEL", "gpt-4o-mini"))
         self._temperature = float(os.getenv("PROMPT_LLM_TEMPERATURE", "0.1"))
         self._api_key = os.getenv("OPENAI_API_KEY")
-        if not self._api_key:
-            self._enabled = False
         self._client: OpenAI | None = None
 
     def interpret(self, base_text: str, prompt: str) -> PromptInterpretation:
