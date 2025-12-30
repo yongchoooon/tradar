@@ -42,11 +42,13 @@ class AgentState(TypedDict):
 
 logger = logging.getLogger("simulation")
 
+SIMULATION_LLM_TEMPERATURE = 1.0
+
 
 class LangGraphOrchestrator:
     def __init__(self) -> None:
-        self._model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-4o-mini")
-        self._temperature = float(os.getenv("SIMULATION_LLM_TEMPERATURE", "1"))
+        self._model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-5-nano")
+        self._temperature = SIMULATION_LLM_TEMPERATURE
         self.llm: ChatOpenAI | None = None
         self._usage_log_path = self._ensure_usage_log()
         self._running_total = self._load_existing_usage_total()
@@ -473,7 +475,7 @@ class LangGraphOrchestrator:
     def _refresh_llm_if_needed(self) -> None:
         load_dotenv(override=True)
         desired_model = os.getenv("SIMULATION_LLM_MODEL", self._model_name)
-        desired_temp = float(os.getenv("SIMULATION_LLM_TEMPERATURE", str(self._temperature)))
+        desired_temp = SIMULATION_LLM_TEMPERATURE
         if desired_model != self._model_name or desired_temp != self._temperature:
             self._model_name = desired_model
             self._temperature = desired_temp

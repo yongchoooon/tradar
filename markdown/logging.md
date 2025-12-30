@@ -16,10 +16,6 @@
 | --- | --- | --- |
 | `logs/simulation_debug/<run_tag>/<run_tag>_<app_no>_context.json` | `_log_debug_context` | LLM에 전달된 컨텍스트(사용자 상표, 문서 등)와 KIPRIS 원문 요약을 저장합니다. |
 | `logs/simulation_debug/<run_tag>/<run_tag>_<app_no>_llm.txt` | `_log_debug_llm` | LangGraph 노드의 전체 Prompt/Response 로그. `[role]`, `Prompt`, `Response` 블록으로 구성됩니다. |
-| `logs/simulation_timeline/<run_tag>/<run_tag>_<app_no>_timeline.json` | `_log_timeline` | LangGraph 이벤트 타임라인(`start_time`, `end_time`, 토큰 사용 등)을 JSON 배열로 기록합니다. `_timeline_enabled`가 `True`일 때만 생성됩니다. |
-
-> `run_tag`는 `SimulationEngine.run()` 호출 시 타임스탬프로 생성됩니다. `overall` 요약에도 동일한 로그 파일이 만들어집니다.
-
 ## 3. OpenAI Synonym Service 사용량 로그
 - **경로**: `logs/openai_usage.csv`
 - **기능**: `TrademarkLLMSynonymService._log_usage` (app/services/synonym_service.py)

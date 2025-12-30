@@ -44,7 +44,7 @@
 - 운영(`APP_ENV=prod`)에서는 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`, `KIPRIS_ACCESS_KEY`, `CORS_ALLOWED_ORIGINS` 값을 반드시 OS 환경 또는 AWS SSM Parameter Store에서 주입해야 합니다. 값이 하나라도 비어 있으면 FastAPI가 즉시 종료합니다.
 - 로컬 개발(`APP_ENV!=prod`)에서는 `.env`가 있으면 자동으로 로드하고, `DATABASE_URL`/`OPENSEARCH_URL`은 각각 `postgresql://postgres:postgres@localhost:5432/tradar`, `http://localhost:9200`로 기본값을 채웁니다.
 - `CORS_ALLOWED_ORIGINS`는 콤마로 구분된 허용 Origin 목록입니다. 기본값은 `http://localhost:5173`이며, 운영 환경에서는 `https://<cloudfront-domain>`처럼 구체적인 도메인을 지정해야 합니다.
-- 시뮬레이션 LLM 설정(`SIMULATION_LLM_MODEL`, `SIMULATION_LLM_TEMPERATURE`)과 기타 선택적 매개변수는 기존과 동일하게 환경 변수로 조정합니다.
+- 시뮬레이션 LLM 모델(`SIMULATION_LLM_MODEL`)은 환경 변수로 조정할 수 있고, 온도는 코드 상에서 1.0으로 고정되어 별도 설정이 필요 없습니다.
 
 참고: 시뮬레이션 호출은 외부 REST API를 동기적으로 호출하므로, 한 번에 많은 상표를 선택하면 응답 시간이 길어질 수 있습니다. 네트워크 탭과 FastAPI 로그(`simulation` 로거)를 통해 진행 상황을 확인할 수 있습니다.
 

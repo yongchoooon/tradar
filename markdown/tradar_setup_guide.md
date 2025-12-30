@@ -53,7 +53,7 @@ cd tradar
    | `OPENAI_API_KEY` | 검색/시뮬레이션 모두에 쓰이는 OpenAI 키 |
    | `KIPRIS_ACCESS_KEY` | KIPRIS IntermediateDocument API 호출용 |
    | `OPENSEARCH_URL` + `OPENSEARCH_INDEX` | BM25 후보 조회용 OpenSearch 도메인 |
-   | `TRADEMARK_LLM_*`, `SIMULATION_LLM_*` | LLM 모델명·온도 등 (기본값: `gpt-4o-mini`, `gpt-5-nano`) |
+| `TRADEMARK_LLM_*`, `SIMULATION_LLM_MODEL` | 검색/시뮬레이션 LLM 모델명 (기본값: `gpt-4o-mini`, `gpt-5-nano`) |
    | `MEDIA_ALLOWED_ROOTS` | `/media/{path}` 다운로드 허용 경로 (기본적으로 `tradar-data`, `tradar`) |
 
 ### 1.5 데이터베이스 및 임베딩 시딩
@@ -283,7 +283,6 @@ docker compose up --build
 | `CORS_ALLOWED_ORIGINS` | Parameter Store 참조 | 허용 Origin(`https://app.tradar.com`) |
 | `TRADEMARK_LLM_MODEL` | `gpt-4o-mini` | 검색 프롬프트용 |
 | `SIMULATION_LLM_MODEL` | `gpt-5-nano` | LangGraph 시뮬레이션용 |
-| `SIMULATION_LLM_TEMPERATURE` | `0.2` | 필요 시 조정 |
 | `MEDIA_ALLOWED_ROOTS` | `/data` | 컨테이너 내 허용 파일 루트 |
 | `UVICORN_WORKERS`(선택) | `2` | 동시성 확장 |
 

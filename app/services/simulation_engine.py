@@ -28,20 +28,6 @@ from dotenv import load_dotenv
 logger = logging.getLogger("simulation")
 
 
-def _env_flag(name: str, *, default: bool = True) -> bool:
-    """Read boolean-like environment variables with lenient parsing."""
-
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    value = raw.strip().lower()
-    if value in {"1", "true", "yes", "y", "on"}:
-        return True
-    if value in {"0", "false", "no", "n", "off"}:
-        return False
-    return default
-
-
 class SimulationCancelled(Exception):
     """Raised when the user cancels an in-flight simulation."""
 
@@ -59,7 +45,6 @@ class SimulationEngine:
         self._orchestrator = LangGraphOrchestrator()
         self._debug_dir = Path("logs") / "simulation_debug"
         self._debug_dir.mkdir(parents=True, exist_ok=True)
-        self._timeline_enabled = _env_flag("SIMULATION_TIMELINE_LOG", default=True)
 
     async def run(
         self,
@@ -110,7 +95,6 @@ class SimulationEngine:
                     docs,
                     debug=debug_enabled,
                     debug_tag=debug_tag,
-                    run_tag=run_tag,
                     user_mark=user_mark,
                     user_goods=user_goods,
                     user_groups=user_groups,
@@ -153,9 +137,8 @@ class SimulationEngine:
             raise SimulationCancelled()
         overall_report = None
         overall_logs: List[Dict[str, str]] = []
-        overall_timeline: List[Dict[str, object]] = []
         if candidates:
-            overall_report, overall_logs, overall_timeline = await self._orchestrator.summarize_overall(
+            overall_report, overall_logs, _ = await self._orchestrator.summarize_overall(
                 user_mark=user_mark,
                 avg_conflict=avg_conflict,
                 avg_register=avg_register,
@@ -172,8 +155,6 @@ class SimulationEngine:
             )
             if debug_enabled and debug_tag and overall_logs:
                 self._log_debug_llm(debug_tag, "overall", overall_logs)
-            if run_tag and overall_timeline and self._timeline_enabled:
-                self._log_timeline(run_tag, "overall", overall_timeline)
         return SimulationResponse(
             total_selected=len(candidates),
             high_risk=high_risk,
@@ -277,7 +258,6 @@ class SimulationEngine:
         *,
         debug: bool = False,
         debug_tag: str = "",
-        run_tag: str,
         user_mark: str = "",
         user_goods: List[str],
         user_groups: List[str],
@@ -323,9 +303,6 @@ class SimulationEngine:
             raise SimulationCancelled()
         if debug:
             self._log_debug_llm(debug_tag, selection.application_number, agent_result.get("logs", []))
-        timeline = agent_result.get("timeline", [])
-        if self._timeline_enabled:
-            self._log_timeline(run_tag, selection.application_number, timeline)
         agent_summary = agent_result.get("summary")
         agent_risk = agent_result.get("risk")
         reporter_payload = agent_result.get("reporter") or {}
@@ -441,25 +418,6 @@ class SimulationEngine:
                 f"[{idx}] 역할: {role}\n--- Prompt ---\n{prompt}\n--- Response ---\n{response}\n"
             )
         path.write_text("\n".join(chunks), encoding="utf-8")
-
-    def _log_timeline(
-        self,
-        run_tag: str,
-        app_no: str,
-        timeline: Sequence[Dict[str, object]],
-    ) -> None:
-        if not self._timeline_enabled:
-            return
-        if not run_tag or not timeline:
-            return
-        folder = Path("logs") / "simulation_timeline" / run_tag
-        folder.mkdir(parents=True, exist_ok=True)
-        path = folder / f"{run_tag}_{app_no}_timeline.json"
-        payload = {
-            "application_number": app_no,
-            "events": timeline,
-        }
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _sanitize_filename(self, value: str) -> str:
         return re.sub(r"[^0-9A-Za-z_-]", "_", value or "unknown")
