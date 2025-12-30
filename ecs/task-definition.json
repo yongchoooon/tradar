@@ -1,0 +1,27 @@
+{
+  "family": "tradar-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::082351608649:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::082351608649:role/tradar-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "tradar-backend",
+      "image": "REPLACED_BY_WORKFLOW",
+      "essential": true,
+      "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
+      "environment": [{ "name": "APP_ENV", "value": "prod" }],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tradar-backend",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      }
+    }
+  ]
+}
