@@ -28,6 +28,30 @@
         {
           "name": "HUGGINGFACE_HUB_TOKEN",
           "valueFrom":  "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/hf-token"
+        },
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/database-url"
+        },
+        {
+          "name": "OPENSEARCH_URL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/opensearch-url"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/openai-api-key"
+        },
+        {
+          "name": "KIPRIS_ACCESS_KEY",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/kipris-access-key"
+        },
+        {
+          "name": "TRADEMARK_LLM_MODEL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/trademark-llm-model"
+        },
+        {
+          "name": "SIMULATION_LLM_MODEL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/simulation-llm-model"
         }
       ],
       "logConfiguration": {
