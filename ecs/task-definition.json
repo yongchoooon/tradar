@@ -4,6 +4,7 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "4096",
   "memory": "16384",
+  "ephemeralStorage": { "sizeInGiB": 80 },
   "executionRoleArn": "arn:aws:iam::082351608649:role/ecsTaskExecutionRole",
   "taskRoleArn": "arn:aws:iam::082351608649:role/tradar-ecs-task-role",
   "containerDefinitions": [
@@ -12,7 +13,23 @@
       "image": "REPLACED_BY_WORKFLOW",
       "essential": true,
       "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
-      "environment": [{ "name": "APP_ENV", "value": "prod" }],
+      "environment": [
+        { "name": "APP_ENV", "value": "prod" },
+        { "name": "HF_HOME", "value": "/tmp/hf" },
+        { "name": "TRANSFORMERS_CACHE", "value": "/tmp/hf/transformers" },
+        { "name": "HF_HUB_CACHE", "value": "/tmp/hf/hub" },
+        { "name": "HF_HUB_ENABLE_HF_TRANSFER", "value": "0" }
+      ],
+      "secrets": [
+        {
+          "name": "HF_TOKEN",
+          "valueFrom":  "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/hf-token"
+        },
+        {
+          "name": "HUGGINGFACE_HUB_TOKEN",
+          "valueFrom":  "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/hf-token"
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
