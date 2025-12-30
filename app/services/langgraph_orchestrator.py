@@ -188,12 +188,17 @@ class LangGraphOrchestrator:
         include_image_metric, include_text_metric = self._metric_similarity_flags(metrics_info)
         image_line = "- 이미지 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n" if include_image_metric else ""
         text_line = "- 텍스트 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n" if include_text_metric else ""
+        quant_section = ""
         reporter_context = conversation_only
         if metrics_block:
             reporter_context += "\n\n[정량 지표]\n" + metrics_block
         summary = await self._run_llm(
             role="리포터",
-            instruction=REPORTER_PROMPT.format(image_line=image_line, text_line=text_line),
+            instruction=REPORTER_PROMPT.format(
+                image_line=image_line,
+                text_line=text_line,
+                quant_section=quant_section,
+            ),
             state=state,
             context_override=reporter_context,
             transcript_override=reporter_context,
