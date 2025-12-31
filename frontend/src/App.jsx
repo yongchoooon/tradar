@@ -134,6 +134,24 @@ const resolveStaticAssetPath = (input) => {
   return input.startsWith('/') ? input : `/${input}`;
 };
 
+const resolveMediaUrl = (input) => {
+  if (!input) return '';
+  if (input.startsWith('http://') || input.startsWith('https://')) {
+    return input;
+  }
+  let normalized = input;
+  if (normalized.startsWith('/api/')) {
+    normalized = normalized.slice(4);
+  }
+  if (!normalized.startsWith('/')) {
+    normalized = `/${normalized}`;
+  }
+  if (normalized.startsWith('/media')) {
+    return buildApiUrl(normalized);
+  }
+  return normalized;
+};
+
 const fetchStaticAssetFile = async (assetPath) => {
   const normalized = resolveStaticAssetPath(assetPath);
   const res = await fetch(normalized);
@@ -229,31 +247,20 @@ const renderScoreBar = (title, value, secondary) => {
   const segmentIndex = SCORE_SEGMENTS.findIndex((segment) => safe <= segment.max);
   const hasSecondary = secondary && Number.isFinite(secondary.value);
   const secondaryValue = hasSecondary ? clampScore(secondary.value) : null;
-  const bandIsHigh = (score) => clampScore(score) >= 70;
-  const bandIsLow = (score) => clampScore(score) <= 30;
+  const mergeThreshold = 20;
   const diff = hasSecondary && secondaryValue !== null
     ? Math.abs(secondaryValue - safe)
     : Infinity;
-  const markersOverlap = hasSecondary && secondaryValue !== null && diff < 15;
+  const markersOverlap = hasSecondary && secondaryValue !== null && diff < mergeThreshold;
   const avgOffsetClass = markersOverlap
     ? (safe <= (secondaryValue ?? safe) ? 'is-offset-left' : 'is-offset-right')
     : '';
   const secondaryOffsetClass = markersOverlap
     ? (safe <= (secondaryValue ?? safe) ? 'is-offset-right' : 'is-offset-left')
     : '';
-  const withinMergeRange = hasSecondary && secondaryValue !== null && diff < 15;
-  const bandSatisfied = (() => {
-    if (!withinMergeRange || !secondary) return false;
-    if (secondary.kind === 'max') {
-      return bandIsHigh(safe) && bandIsHigh(secondaryValue);
-    }
-    if (secondary.kind === 'min') {
-      return bandIsLow(safe) && bandIsLow(secondaryValue);
-    }
-    return false;
-  })();
+  const withinMergeRange = markersOverlap;
   const nearlyEqual = hasSecondary && secondaryValue !== null && diff < 0.25;
-  const shouldCombineLabels = nearlyEqual || (withinMergeRange && bandSatisfied);
+  const shouldCombineLabels = nearlyEqual || withinMergeRange;
   const avgComesFirst = secondaryValue !== null && safe <= secondaryValue;
   const avgCollapseClass = shouldCombineLabels
     ? (avgComesFirst ? 'simulation-score-bar__marker-label--collapse-right'
@@ -670,6 +677,7 @@ function ResultCard({
   }
 
   const cardClass = ['result-card', displayChecked ? 'is-highlighted' : ''].filter(Boolean).join(' ');
+  const thumbUrl = resolveMediaUrl(item.thumb_url);
   const handleImageClick = () => {
     if (item.doi) {
       window.open(item.doi, '_blank', 'noopener,noreferrer');
@@ -691,8 +699,8 @@ function ResultCard({
         aria-label={item.doi ? `${item.title} DOI로 이동` : undefined}
       >
         <div className="result-card__thumb-inner">
-          {item.thumb_url ? (
-            <img src={item.thumb_url} alt={`${item.title} 미리보기`} loading="lazy" />
+          {thumbUrl ? (
+            <img src={thumbUrl} alt={`${item.title} 미리보기`} loading="lazy" />
           ) : (
             <div className="thumb-placeholder">이미지 없음</div>
           )}
@@ -703,13 +711,6 @@ function ResultCard({
           <strong className="result-title" title={item.title}>{item.title}</strong>
           <span className={`status-badge ${statusClass}`}>{status || '상태 미상'}</span>
         </header>
-        <div className="result-divider" />
-        <div className="result-meta">
-          <span className="meta-item" title={item.app_no}>출원번호 {item.app_no}</span>
-          {item.class_codes?.length ? (
-            <span className="meta-item" title={item.class_codes.join(', ')}>분류 {item.class_codes.join(', ')}</span>
-          ) : <span className="meta-item">분류 정보 없음</span>}
-        </div>
         <div className="result-divider" />
         <footer className="result-card__footer">
           <span className="result-card__sim-label">{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
@@ -834,21 +835,29 @@ function ResultSection({
   const startIdx = (safePage - 1) * pageSize;
   const visibleItems = items.slice(startIdx, startIdx + pageSize);
   const showPagination = totalItems > pageSize && typeof onPageChange === 'function';
-  const rangeLabel = totalItems
-    ? `${startIdx + 1}-${Math.min(totalItems, startIdx + pageSize)} / ${totalItems}`
-    : '0 / 0';
+  const countLabel = totalItems
+    ? `${startIdx + 1}-${Math.min(totalItems, startIdx + pageSize)} / ${totalItems}건`
+    : '0건';
 
   return (
     <section className="results-section">
       <div className="results-section__header">
-        <h3>{title}</h3>
+        <div className="results-section__title">
+          <h3>{title}</h3>
+          <span className="results-section__count">{countLabel}</span>
+        </div>
         {highlightMap && Object.keys(highlightMap).length > 0 && (
-          <span className="results-section__badge">가장 유사한 상위 5개 상표</span>
+          <span className="results-section__pill results-section__pill--highlight">가장 유사한 상위 5개 상표</span>
         )}
       </div>
       {hasVariants && (
         <div className="results-section__subheader">
-          <p className="variants variants--right">LLM 유사어: {variants.join(', ')}</p>
+          <span className="results-section__tag">LLM 유사어</span>
+          <div className="results-section__variants">
+            {variants.map((variant) => (
+              <span key={variant} className="results-section__variant">{variant}</span>
+            ))}
+          </div>
         </div>
       )}
       <div className="results-section__inner">
@@ -872,7 +881,10 @@ function ResultSection({
         )}
         {misc.length ? (
           <div className="results-misc">
-            <h4>기타 (등록/공고 외)</h4>
+            <div className="results-misc__header">
+              <h4>기타 결과</h4>
+              <span className="results-misc__count">{misc.length}건</span>
+            </div>
             <div className="results-grid misc-grid">
               {misc.map((item) => (
                 <ResultCard
@@ -1218,8 +1230,8 @@ function SimulationPanel({
                       <div className="simulation-panel__case-heading">
                         <div className="simulation-panel__case-info">
                           <div className="simulation-panel__case-thumb">
-                            {item.thumb_url ? (
-                              <img src={item.thumb_url} alt={`${item.title} 미리보기`} loading="lazy" />
+                            {resolveMediaUrl(item.thumb_url) ? (
+                              <img src={resolveMediaUrl(item.thumb_url)} alt={`${item.title} 미리보기`} loading="lazy" />
                             ) : (
                               <span className="simulation-panel__case-thumb-placeholder">이미지 없음</span>
                             )}
@@ -2135,11 +2147,8 @@ function App() {
           <div className="results-main">
             {response ? (
               <>
-              <p className="query-summary">
-                Top-{response.query?.k || 0} · 상표명 {response.query?.text || '미입력'} · 선택 류 {(response.query?.goods_classes || []).join(', ') || '없음'} · 유사군 {(response.query?.group_codes || []).join(', ') || '없음'}
-              </p>
               <ResultSection
-                title={`이미지 후보 (${(response.image_top || []).length}건)`}
+                title="이미지 후보"
                 items={response.image_top || []}
                 misc={response.image_misc || []}
                 variant="image"
@@ -2217,7 +2226,7 @@ function App() {
                 </div>
               </form>
               <ResultSection
-                title={`텍스트 후보 (${(response.text_top || []).length}건)`}
+                title="텍스트 후보"
                 items={response.text_top || []}
                 misc={response.text_misc || []}
                 variant="text"
