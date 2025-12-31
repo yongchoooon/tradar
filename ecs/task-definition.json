@@ -52,6 +52,9 @@
         {
           "name": "SIMULATION_LLM_MODEL",
           "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/simulation-llm-model"
+        },
+        {
+           "name": "CORS_ALLOWED_ORIGINS", "valueFrom": "/tradar/prod/cors-allowed-origins"
         }
       ],
       "logConfiguration": {
