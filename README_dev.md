@@ -50,11 +50,20 @@
 
 ## 프런트엔드 개발 환경 (Vite)
 - `frontend/` 디렉터리는 Vite 기반 React SPA입니다. `npm install` 한 번이면 모든 의존성이 설치됩니다.
-- 로컬 개발 시에는 `npm run dev`로 Vite Dev Server(기본 `http://localhost:5173`)를 띄우고, `bash scripts/run_api.sh`로 FastAPI를 별도로 구동합니다. `/search`, `/goods`, `/simulation`, `/media` 경로는 `frontend/vite.config.js`의 프록시 설정 때문에 자동으로 백엔드로 전달됩니다.
-- 운영/테스트 배포에서는 SPA를 별도 S3/CloudFront에 올리고 FastAPI는 API 전용으로 실행합니다. `FRONTEND_DIST` 환경 변수를 직접 지정한 경우에만 정적 자산을 서빙하므로, 로컬에서 `npm run build` 결과를 확인하고 싶을 때 `FRONTEND_DIST=frontend/dist uvicorn app.main:app` 형태로 실행하면 됩니다.
+- 로컬 개발 시에는 `npm run dev`로 Vite Dev Server(기본 `http://localhost:5173`)를 띄우고, `bash scripts/run_api.sh`로 FastAPI를 별도로 구동합니다. API 호출은 항상 `import.meta.env.VITE_API_BASE_URL`을 통해 절대 경로로 전송되므로, `frontend/.env.local` 파일에 `VITE_API_BASE_URL=/api`를 미리 지정해야 합니다. Vite dev proxy가 `/api` 요청을 `http://localhost:8000`으로 전달하도록 구성되어 있습니다.
+- 운영/테스트 배포에서는 SPA를 별도 S3/CloudFront에 올리고 FastAPI는 API 전용으로 실행합니다. 빌드 전에 `VITE_API_BASE_URL`을 백엔드 공개 주소(예: `https://api.tradar.com`)로 주입해야 하며, CloudFront 도메인에서는 모든 API 요청이 해당 절대 경로로 전송됩니다. `FRONTEND_DIST` 환경 변수를 직접 지정한 경우에만 정적 자산을 서빙하므로, 로컬에서 `npm run build` 결과를 확인하고 싶을 때 `FRONTEND_DIST=frontend/dist uvicorn app.main:app` 형태로 실행하면 됩니다.
 - Docker나 AWS 배포 파이프라인도 백엔드와 프런트엔드를 분리합니다. 백엔드 이미지는 `app/` 코드와 Python 의존성만 포함하고, 프런트 배포는 `frontend/dist`를 S3에 업로드하거나 CloudFront에 연결된 버킷으로 동기화하세요.
 - `docker-compose.yml`은 개발 편의용으로만 제공합니다. `.:/app` 볼륨 마운트, 로컬 Postgres/OpenSearch 컨테이너 등은 프로덕션에서 사용하지 말고, ECS/RDS/OpenSearch Service 조합에 필요한 환경 변수들은 모두 OS 환경이나 AWS SSM Parameter Store에서 주입하세요.
 - `frontend/src/index.css`는 `--viewport-scale`, `--space-scale` 같은 루트 변수를 통해 창 너비에 따라 글꼴/패딩/갭을 자동으로 조절합니다. 큰 모니터에서는 100% 크기로, 14~16인치 노트북에서는 약 80%까지 자연스럽게 축소되므로, 레이아웃 변경 시 해당 변수를 먼저 고려하세요.
+
+### 로컬/운영 API 연동 확인 방법
+1. **로컬**
+   - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000` (또는 `bash scripts/run_api.sh`) 로 백엔드를 실행합니다.
+   - `frontend/.env.local` 에 `VITE_API_BASE_URL=/api` 를 지정하고 `npm run dev` 를 실행하면, Vite dev proxy가 `/api` 요청을 자동으로 백엔드로 전달합니다.
+   - 브라우저에서 상품/서비스류 검색이나 `/search/multimodal` 요청이 모두 JSON으로 응답하는지 확인하세요.
+2. **운영**
+   - 프런트 배포 파이프라인에서 `VITE_API_BASE_URL=https://<백엔드-도메인>` 으로 빌드합니다.
+   - CloudFront 도메인으로 접속 후 개발자 콘솔에서 API 요청이 CloudFront가 아닌 백엔드 도메인으로 향하고, 응답이 JSON(`content-type: application/json`)인지 확인합니다.
 
 ## 데이터 시딩
 

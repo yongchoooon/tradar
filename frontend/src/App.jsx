@@ -14,6 +14,7 @@ import {
   FiPlayCircle,
 } from 'react-icons/fi';
 import logo from './assets/logo-tradar.png';
+import { apiFetch, buildApiUrl } from './lib/apiClient';
 
 const GOODS_LIMIT = 10;
 const RESULT_PAGE_SIZE = 18;
@@ -433,9 +434,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch(`/goods/search?q=${encodeURIComponent(term)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetch(`/goods/search?q=${encodeURIComponent(term)}`);
       const items = (data?.results || [])
         .filter((item) => Array.isArray(item.groups) && item.groups.length > 0)
         .slice(0, GOODS_LIMIT);
@@ -1475,11 +1474,7 @@ function App() {
     let ignore = false;
     const fetchConfig = async () => {
       try {
-        const res = await fetch('/simulation/config');
-        if (!res.ok) {
-          throw new Error('failed');
-        }
-        const data = await res.json();
+        const data = await apiFetch('/simulation/config');
         if (!ignore) {
           setSimulationModel(data?.model_name || '');
         }
@@ -1570,13 +1565,11 @@ function App() {
       text: Boolean(targets.text),
     });
     try {
-      const res = await fetch('/search/multimodal', {
+      const data = await apiFetch('/search/multimodal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
       setResponse((prev) => {
         if (!prev) {
           return data;
@@ -1744,7 +1737,7 @@ function App() {
 
   const startSimulationStream = (jobId) => {
     closeSimulationStream();
-    const source = new EventSource(`/simulation/stream/${jobId}`);
+    const source = new EventSource(buildApiUrl(`/simulation/stream/${jobId}`));
     simulationEventRef.current = source;
     source.onmessage = (event) => {
       try {
@@ -1850,15 +1843,11 @@ function App() {
         user_image_b64: lastImageBase64 || null,
         user_image_mime: imageFile?.type || null,
       };
-      const res = await fetch('/simulation/run', {
+      const data = await apiFetch('/simulation/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
       if (!data?.job_id) {
         throw new Error('작업 ID를 받지 못했습니다.');
       }
@@ -1877,12 +1866,9 @@ function App() {
     }
     try {
       setSimulationStatus('cancelling');
-      const res = await fetch(`/simulation/cancel/${simulationJobId}`, {
+      await apiFetch(`/simulation/cancel/${simulationJobId}`, {
         method: 'POST',
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
     } catch (err) {
       console.error(err);
       setSimulationError('시뮬레이션 취소 중 오류가 발생했습니다.');

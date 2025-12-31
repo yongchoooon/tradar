@@ -7,7 +7,6 @@ import os
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
-from dotenv import load_dotenv
 
 from app.schemas.simulation import (
     SimulationJobCreateResponse,
@@ -83,8 +82,7 @@ def _format_sse(payload: SimulationJobStatusResponse) -> str:
 
 @router.get("/simulation/config", response_model=SimulationConfigResponse)
 def get_simulation_config() -> SimulationConfigResponse:
-    load_dotenv(override=True)
-    model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-4o-mini")
+    model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-5-nano")
     return SimulationConfigResponse(model_name=model_name)
 
 

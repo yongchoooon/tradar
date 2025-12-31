@@ -28,6 +28,9 @@ from dotenv import load_dotenv
 logger = logging.getLogger("simulation")
 
 
+load_dotenv(override=False)
+
+
 class SimulationCancelled(Exception):
     """Raised when the user cancels an in-flight simulation."""
 
@@ -39,7 +42,6 @@ class SimulationEngine:
     MAX_WORKERS = 10
 
     def __init__(self) -> None:
-        load_dotenv(override=True)
         self._client: KiprisClient | None = None
         self._doc_cache: Dict[str, Dict[str, object]] = {}
         self._orchestrator = LangGraphOrchestrator()

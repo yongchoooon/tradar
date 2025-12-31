@@ -25,6 +25,8 @@ from app.services.prompt_templates import (
 )
 from app.services.model_pricing import get_model_pricing
 
+load_dotenv(override=False)
+
 
 class AgentState(TypedDict):
     context: str
@@ -74,7 +76,6 @@ class LangGraphOrchestrator:
         metrics: Optional[Dict[str, Any]] = None,
         worker_id: Optional[int] = None,
     ) -> Dict[str, Any]:
-        load_dotenv(override=True)
         self._refresh_llm_if_needed()
         state = {
             "context": context,
@@ -108,7 +109,6 @@ class LangGraphOrchestrator:
         avg_register: float,
         items: List[Dict[str, Any]],
     ) -> Tuple[str, List[Dict[str, str]]]:
-        load_dotenv(override=True)
         self._refresh_llm_if_needed()
         context_lines = [
             f"사용자 상표: {user_mark or '(상표명 미입력)'}",
@@ -473,7 +473,6 @@ class LangGraphOrchestrator:
         return 0.0
 
     def _refresh_llm_if_needed(self) -> None:
-        load_dotenv(override=True)
         desired_model = os.getenv("SIMULATION_LLM_MODEL", self._model_name)
         desired_temp = SIMULATION_LLM_TEMPERATURE
         if desired_model != self._model_name or desired_temp != self._temperature:
