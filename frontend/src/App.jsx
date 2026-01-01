@@ -231,6 +231,12 @@ const SCORE_SEGMENTS = [
 
 const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
 
+const formatScorePill = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value;
+  return Math.round(numeric);
+};
+
 const describeScoreBand = (value) => {
   const clamped = clampScore(value);
   if (!Number.isFinite(clamped)) return '정보 부족';
@@ -678,6 +684,7 @@ function ResultCard({
 
   const cardClass = ['result-card', displayChecked ? 'is-highlighted' : ''].filter(Boolean).join(' ');
   const thumbUrl = resolveMediaUrl(item.thumb_url);
+  const appNumber = item.application_number || item.applicationNumber || item.app_no || '';
   const handleImageClick = () => {
     if (item.doi) {
       window.open(item.doi, '_blank', 'noopener,noreferrer');
@@ -711,6 +718,9 @@ function ResultCard({
           <strong className="result-title" title={item.title}>{item.title}</strong>
           <span className={`status-badge ${statusClass}`}>{status || '상태 미상'}</span>
         </header>
+        {appNumber ? (
+          <span className="result-card__app-no">{appNumber}</span>
+        ) : null}
         <div className="result-divider" />
         <footer className="result-card__footer">
           <span className="result-card__sim-label">{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
@@ -1248,12 +1258,12 @@ function SimulationPanel({
                         </div>
                         <div className="simulation-panel__score-pills">
                           <span className="simulation-panel__score-pill is-risk">
-                            <label>충돌 위험</label>
-                            <strong>{item.conflict_score?.toFixed ? item.conflict_score.toFixed(1) : item.conflict_score}점</strong>
+                            <label>충돌 위험도</label>
+                            <strong>{formatScorePill(item.conflict_score)}점</strong>
                           </span>
                           <span className="simulation-panel__score-pill is-safe">
-                            <label>등록 가능</label>
-                            <strong>{item.register_score?.toFixed ? item.register_score.toFixed(1) : item.register_score}점</strong>
+                            <label>등록 가능성</label>
+                            <strong>{formatScorePill(item.register_score)}점</strong>
                           </span>
                         </div>
                       </div>

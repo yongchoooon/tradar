@@ -584,10 +584,10 @@ main.container {
 }
 
 .result-card__body {
-  padding: 1.15rem 1.25rem 1.1rem;
+  padding: 1.15rem 1.25rem 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .result-card__body header {
@@ -643,12 +643,27 @@ main.container {
   color: #334155;
 }
 
+.result-card__app-no {
+  display: block;
+  margin-top: -0.35rem;
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
 .result-meta {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.82rem;
   color: #4b5563;
+}
+
+.result-divider {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.45);
+  margin: 0.05rem 0 0.15rem;
+  width: calc(100% + 2rem);
+  transform: translateX(-1rem);
 }
 
 .meta-item {
@@ -660,14 +675,6 @@ main.container {
 .meta-link {
   font-weight: 600;
   color: var(--brand-accent);
-}
-
-.result-divider {
-  height: 1px;
-  background: rgba(148, 163, 184, 0.45);
-  margin: 0.05rem 0 0.25rem;
-  width: calc(100% + 2rem);
-  transform: translateX(-1rem);
 }
 
 .result-card__footer {
@@ -684,7 +691,7 @@ main.container {
   flex: 1 1 auto;
   display: inline-flex;
   align-items: center;
-  min-height: 1.4rem;
+  min-height: 1.25rem;
 }
 
 .result-card__select {
@@ -703,11 +710,11 @@ main.container {
 }
 
 .result-card__select input[type="checkbox"] {
-  width: 0.85rem;
-  height: 0.85rem;
-  margin: 0 0 0.4rem 0;
+  width: 0.78rem;
+  height: 0.78rem;
+  margin: 0 0 0.3rem 0;
   border-radius: 3px;
-  border: 1.2px solid #111827;
+  border: 1.1px solid #111827;
   appearance: none;
   display: inline-block;
   background: #fff;
@@ -722,9 +729,9 @@ main.container {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 0.5rem;
-  height: 0.25rem;
-  border: 1.6px solid #fff;
+  width: 0.46rem;
+  height: 0.22rem;
+  border: 1.4px solid #fff;
   border-top: none;
   border-right: none;
   transform: translate(-50%, -60%) rotate(-45deg);
@@ -2361,7 +2368,7 @@ main.container {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
-  margin-right: 0.45rem;
+  margin-right: 0.2rem;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -2405,17 +2412,21 @@ main.container {
   font-size: 0.78rem;
   display: flex;
   flex-direction: column;
-  min-width: 82px;
+  min-width: 60px;
   max-width: 100px;
 }
 
 .simulation-panel__score-pill label {
   font-weight: 600;
   color: #475467;
+  padding: 0 0.3rem 0 0.25rem;
 }
 
 .simulation-panel__score-pill strong {
   color: #0f172a;
+  padding: 0 0.3rem 0 0.25rem;
+  text-align: center;
+  width: 100%;
 }
 
 .simulation-panel__score-pill.is-risk {
