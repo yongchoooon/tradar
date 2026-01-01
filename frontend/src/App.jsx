@@ -960,7 +960,7 @@ function SimulationPanel({
     || (status === 'complete' && elapsedSeconds >= 0);
 
   const progressSteps = [
-    { key: 'collecting', label: '데이터를 불러오는 중' },
+    { key: 'collecting', label: '데이터 불러오는 중' },
     { key: 'loading', label: '시뮬레이션 진행' },
     { key: 'complete', label: '요약 완료' },
   ];
