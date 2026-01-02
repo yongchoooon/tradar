@@ -1103,9 +1103,6 @@ function SimulationPanel({
       <div className="simulation-panel__scrollable">
         <div className="simulation-panel__body">
           <section className="simulation-panel__intro">
-            <p className="simulation-panel__model" aria-live="polite">
-              사용 모델: {modelName || '불러오는 중...'}
-            </p>
             <p className="simulation-panel__description">
               {hasResults
                 ? '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.'
