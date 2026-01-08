@@ -1,7 +1,8 @@
-version: '3.8'
+version: "2.4"
+
 services:
   db:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     environment:
       POSTGRES_DB: tradar
       POSTGRES_USER: postgres
@@ -11,31 +12,57 @@ services:
     ports:
       - "5432:5432"
 
+  opensearch:
+    image: opensearchproject/opensearch:2.11.1
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.compose
+    runtime: nvidia
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     working_dir: /app
     volumes:
       - .:/app
+      - ${TRADAR_IMAGE_ROOT:-../tradar-data}:/data/images:ro
     ports:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tradar
+      - EMBED_DEVICE=${EMBED_DEVICE:-cuda:0}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - METACLIP_MODEL_NAME=/app/models/metaclip
+      - DINOV2_MODEL_NAME=/app/models/dinov2
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/tradar
+      - OPENSEARCH_URL=http://opensearch:9200
+      - MEDIA_ALLOWED_ROOTS=/data/images
     depends_on:
       - db
+      - opensearch
 
   frontend:
     image: node:18-bullseye
     working_dir: /app
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5172"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
+      - "5172:5172"
     environment:
       - CI=1
     depends_on:
@@ -43,3 +70,4 @@ services:
 
 volumes:
   pgdata:
+  opensearch-data:

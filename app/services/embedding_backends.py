@@ -104,6 +104,17 @@ class _TorchImageBackend:
                 pil_images.append(Image.new("RGB", (1, 1), color=(255, 255, 255)))
         return pil_images
 
+    def _move_inputs(
+        self, batch: Dict[str, "torch.Tensor"], dtype: "torch.dtype" | None = None
+    ) -> Dict[str, "torch.Tensor"]:
+        moved: Dict[str, "torch.Tensor"] = {}
+        for key, value in batch.items():
+            if dtype is not None and value.is_floating_point():
+                moved[key] = value.to(device=self._device, dtype=dtype)
+            else:
+                moved[key] = value.to(self._device)
+        return moved
+
     def encode(self, image_bytes: bytes) -> Dict[str, List[float]]:
         results = self.encode_batch([image_bytes])
         if not results:
@@ -116,13 +127,15 @@ class _TorchImageBackend:
             return []
 
         meta_inputs = self._metaclip_processor(images=pil_images, return_tensors="pt")
-        meta_inputs = {k: v.to(self._device) for k, v in meta_inputs.items()}
+        meta_dtype = next(self._metaclip.parameters()).dtype
+        meta_inputs = self._move_inputs(meta_inputs, meta_dtype)
         with self._torch.no_grad():
             meta_features = self._metaclip.get_image_features(**meta_inputs)
         meta_features = self._F.normalize(meta_features, dim=-1).cpu().to(self._torch.float32)
 
         dino_inputs = self._dinov2_processor(images=pil_images, return_tensors="pt")
-        dino_inputs = {k: v.to(self._device) for k, v in dino_inputs.items()}
+        dino_dtype = next(self._dinov2.parameters()).dtype
+        dino_inputs = self._move_inputs(dino_inputs, dino_dtype)
         with self._torch.no_grad():
             dino_outputs = self._dinov2(**dino_inputs)
         dino_features = self._F.normalize(

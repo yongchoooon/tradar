@@ -14,6 +14,7 @@ Once the data is in place you can immediately issue ANN searches over the
 from __future__ import annotations
 
 import argparse
+import logging
 import json
 import os
 import sys
@@ -37,6 +38,7 @@ from app.services.text_embed_service import TextEmbedder
 
 # Default DSN matches the docker-compose postgres service we add later.
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/tradar"
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -223,9 +225,12 @@ def build_records(
                     break
 
             if image_path is None:
-                raise FileNotFoundError(
-                    f"{application_number}: image not found -> {image_candidates or '[missing]'}"
+                logger.warning(
+                    "%s: image not found -> %s",
+                    application_number,
+                    image_candidates or "[missing]",
                 )
+                continue
             title_korean = coalesce(
                 item.get("title_korean"),
                 item.get("trademark_title_korean"),
@@ -264,7 +269,107 @@ def build_records(
             image_paths.append(image_path)
             text_groups.append([title_korean, title_english])
 
-        image_bytes_batch = [path.read_bytes() for path in image_paths]
+        filtered: List[
+            tuple[
+                str,
+                str,
+                str,
+                str,
+                List[str],
+                str,
+                str,
+                Path,
+                List[str],
+                bytes,
+            ]
+        ] = []
+        for (
+            application_number,
+            title_korean,
+            title_english,
+            status,
+            classes,
+            goods,
+            doi,
+            image_path,
+            text_group,
+        ) in zip(
+            application_numbers,
+            title_ko_batch,
+            title_en_batch,
+            status_batch,
+            classes_batch,
+            goods_batch,
+            doi_batch,
+            image_paths,
+            text_groups,
+        ):
+            try:
+                image_bytes = image_path.read_bytes()
+            except Exception as exc:
+                logger.warning(
+                    "%s: failed to read image %s (%s); skipping",
+                    application_number,
+                    image_path,
+                    exc,
+                )
+                continue
+            if not image_bytes:
+                logger.warning(
+                    "%s: empty image bytes %s; skipping",
+                    application_number,
+                    image_path,
+                )
+                continue
+            filtered.append(
+                (
+                    application_number,
+                    title_korean,
+                    title_english,
+                    status,
+                    classes,
+                    goods,
+                    doi,
+                    image_path,
+                    text_group,
+                    image_bytes,
+                )
+            )
+        if not filtered:
+            continue
+
+        application_numbers = []
+        title_ko_batch = []
+        title_en_batch = []
+        status_batch = []
+        classes_batch = []
+        goods_batch = []
+        doi_batch = []
+        image_paths = []
+        text_groups = []
+        image_bytes_batch: List[bytes] = []
+        for (
+            application_number,
+            title_korean,
+            title_english,
+            status,
+            classes,
+            goods,
+            doi,
+            image_path,
+            text_group,
+            image_bytes,
+        ) in filtered:
+            application_numbers.append(application_number)
+            title_ko_batch.append(title_korean)
+            title_en_batch.append(title_english)
+            status_batch.append(status)
+            classes_batch.append(classes)
+            goods_batch.append(goods)
+            doi_batch.append(doi)
+            image_paths.append(image_path)
+            text_groups.append(text_group)
+            image_bytes_batch.append(image_bytes)
         image_vectors_batch = image_embedder.encode_batch(image_bytes_batch)
         text_vectors_batch = text_embedder.encode_many_batch(text_groups)
 
@@ -483,12 +588,12 @@ def main(argv: Sequence[str]) -> int:
 
     print(f"[vector-db] Connecting to {database_url}")
     with psycopg.connect(database_url) as conn:
-        register_vector(conn)
         if args.truncate:
             print("[vector-db] Dropping existing tables")
             drop_tables(conn)
         print("[vector-db] Ensuring schema")
         create_schema(conn, records)
+        register_vector(conn)
         print(f"[vector-db] Inserting {len(records)} records")
         upsert_records(conn, records)
 

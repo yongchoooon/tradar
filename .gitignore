@@ -22,3 +22,4 @@ logs/
 eval_results/
 api_info/
 eval_dataset/
+models/
