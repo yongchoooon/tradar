@@ -3,6 +3,7 @@
 T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표를 탐색하고, KIPRIS 문서를 바탕으로 AI Agent가 충돌 가능성과 대응 방향을 요약하는 통합 상표 검색 시스템입니다. 단순 유사도 조회를 넘어, 검색 → 재검색 → 검토 → 시뮬레이션 → 리포트까지 한 화면에서 이어지는 흐름을 제공하며, 데이터 준비부터 운영 배포까지의 전체 설계를 포함합니다.
 
 ![메인 화면 스크린샷](figs/main.png)
+<p align="center"><sub>메인 화면 스크린샷</sub></p>
 
 ## 시스템 한눈에
 - **멀티모달 검색**: 이미지 임베딩(MetaCLIP2, DINOv2)과 텍스트 임베딩 + BM25를 결합해 유사 선행상표를 탐색합니다.
@@ -87,9 +88,13 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
   <tr>
     <td align="center">
       <img src="figs/image_search_results.png" alt="이미지 검색 결과" width="100%">
+      <br>
+      <sub>이미지 검색 결과</sub>
     </td>
     <td align="center">
       <img src="figs/text_search_results.png" alt="텍스트 검색 결과" width="100%">
+      <br>
+      <sub>텍스트 검색 결과</sub>
     </td>
   </tr>
 </table>
@@ -98,9 +103,13 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
   <tr>
     <td align="center">
       <img src="figs/simulation_results.png" alt="시뮬레이션 결과" width="100%">
+      <br>
+      <sub>시뮬레이션 결과</sub>
     </td>
     <td align="center">
       <img src="figs/simulation_scores.png" alt="시뮬레이션 점수" width="100%">
+      <br>
+      <sub>시뮬레이션 점수</sub>
     </td>
   </tr>
 </table>
