@@ -19,6 +19,81 @@
           └─ PostgreSQL tradar.trademarks 메타데이터
 ```
 
+## Desktop GPU Worker (신규)
+주의: `docker-compose.desktop.yml`은 **db/opensearch 컨테이너를 생성하지 않습니다.**  
+db 컨테이너가 안 뜨는 것은 정상이며, **기존 compose 스택을 먼저 실행**해야 합니다.
+
+- 운영 환경에서는 ECS 백엔드가 `/ws/worker` WebSocket으로 데스크톱 GPU 워커에 작업을 위임합니다.
+- 워커는 **기존 데스크톱의 Postgres(pgvector) + OpenSearch 컨테이너**에만 연결해 검색을 수행합니다.
+- 운영에서는 **presigned URL 방식만 사용**합니다. base64 fallback은 기본 비활성입니다.
+
+필수 환경 변수 (워커):
+- `WORKER_WS_URL` (예: `wss://<api-cloudfront-domain>/ws/worker`)
+- `WORKER_TOKEN` (SSM `/tradar/prod/desktop-worker-token` 값)
+- `WORKER_ID` (기본값 `desktop-1`)
+- `DATABASE_URL`, `OPENSEARCH_URL`
+- `WORKER_REQUIRE_GPU` (기본값 `true`)
+- `DESKTOP_COMPOSE_NETWORK` (Mode A 네트워크 이름)
+- `ALLOW_BASE64_FALLBACK` (기본값 `false`)
+- `BASE64_MAX_IMAGE_BYTES` (기본값 `204800`, 200KB)
+
+### GPU 요구사항
+- NVIDIA Container Toolkit 필요
+- 점검: `nvidia-smi`, `docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi`
+- 워커는 시작 시 GPU 사용 가능 여부와 디바이스를 로그로 출력합니다.
+- `WORKER_REQUIRE_GPU=true`이면 GPU 미탐지 시 즉시 종료합니다.
+
+### Mode A: 기존 docker-compose 네트워크에 붙이기 (권장)
+정의: 기존 compose 스택(db/opensearch)이 **이미 실행 중**이어야 합니다. 워커는 db/opensearch를 생성하지 않습니다.
+
+필수 선행 단계:
+1. 기존 db/opensearch 컨테이너가 실행 중인지 확인합니다.
+2. 해당 compose가 만든 네트워크 이름을 확인합니다.
+3. `DESKTOP_COMPOSE_NETWORK`를 올바르게 설정합니다.
+4. desktop-worker compose를 실행합니다.
+
+네트워크 이름 확인 방법:
+- `docker network ls`
+- `docker network inspect <project>_default`
+- 자동 확인: `bash scripts/find_compose_network.sh` (출력값을 `DESKTOP_COMPOSE_NETWORK`로 사용)
+
+워커 전용 컴포즈 실행:
+```bash
+export WORKER_WS_URL=wss://<api-cloudfront-domain>/ws/worker
+export WORKER_TOKEN=<shared-token>
+export DESKTOP_COMPOSE_NETWORK=<project>_default
+docker compose -f docker-compose.desktop.yml up --build
+```
+- 기본 네트워크 이름은 `tradar_default` 입니다. 프로젝트 이름이 다르면 `DESKTOP_COMPOSE_NETWORK`로 지정하세요.
+
+### Mode B: 호스트 포트( localhost:5432 / 9200 )로 접속 (fallback)
+정의: 워커가 호스트 포트로 접속합니다. 기존 컨테이너가 호스트 포트에 바인딩되어 있어야 합니다.
+```bash
+export WORKER_WS_URL=wss://<api-cloudfront-domain>/ws/worker
+export WORKER_TOKEN=<shared-token>
+export DATABASE_URL=postgresql://postgres:<pw>@localhost:5432/tradar
+export OPENSEARCH_URL=http://localhost:9200
+docker compose -f docker-compose.desktop.yml up --build
+```
+호스트에서 직접 실행하려면:
+```bash
+export WORKER_WS_URL=wss://<api-cloudfront-domain>/ws/worker
+export WORKER_TOKEN=<shared-token>
+export DATABASE_URL=postgresql://postgres:<pw>@localhost:5432/tradar
+export OPENSEARCH_URL=http://localhost:9200
+python -m worker.main
+```
+
+### 트러블슈팅
+- 네트워크 이름 불일치: `DESKTOP_COMPOSE_NETWORK`를 실제 `<project>_default`로 맞춥니다.
+- 기존 compose 미실행: db/opensearch 컨테이너가 떠 있어야 합니다.
+- 연결 실패: 워커 시작 시 DB/opensearch 연결성 체크 로그를 확인하세요.
+
+### 운영 체크리스트
+- CloudFront(tradar-api-cf): `/ws/*` behavior 분리, 캐시 비활성, Origin request policy는 AllViewer 계열, HTTPS only.
+- ALB idle timeout 300~600초로 상향.
+- ECS desired count=1 유지(워커 registry는 메모리 기반).
+
 - **PostgreSQL + pgvector**: 모든 임베딩과 상표 메타데이터를 보관합니다.
 - **OpenSearch**: BM25 텍스트 후보 확장을 담당합니다.
 - **OpenAI GPT-4o-mini**: 상표명 유사어를 생성합니다. 기본값은 꺼져 있으며, 프런트엔드의 "LLM 유사어" 체크박스를 켜면 해당 검색에만 호출합니다.

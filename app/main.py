@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes_goods import router as goods_router
 from app.api.routes_media import router as media_router
 from app.api.routes_search import router as search_router
+from app.api.routes_worker import router as worker_router
 from app.api.routes_simulation import router as simulation_router
 
 APP_ENV = os.getenv("APP_ENV")
@@ -93,6 +94,7 @@ def health_check():
     return {"status": "ok"}
 
 app.include_router(search_router)
+app.include_router(worker_router)
 app.include_router(goods_router)
 app.include_router(media_router)
 app.include_router(simulation_router)

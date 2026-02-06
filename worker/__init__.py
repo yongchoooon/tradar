@@ -1,0 +1,1 @@
+"""Desktop GPU worker package."""

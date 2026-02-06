@@ -1,0 +1,44 @@
+version: "2.4"
+
+services:
+  desktop-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: python -m worker.main
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - EMBED_DEVICE=${EMBED_DEVICE:-cuda:0}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - METACLIP_MODEL_NAME=/app/models/metaclip
+      - DINOV2_MODEL_NAME=/app/models/dinov2
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/tradar}
+      - OPENSEARCH_URL=${OPENSEARCH_URL:-http://opensearch:9200}
+      - WORKER_WS_URL=${WORKER_WS_URL}
+      - WORKER_ID=${WORKER_ID:-desktop-1}
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - WORKER_HEARTBEAT_SECONDS=${WORKER_HEARTBEAT_SECONDS:-20}
+      - WORKER_HOST_GATEWAY=${WORKER_HOST_GATEWAY:-host.docker.internal}
+      - WORKER_REQUIRE_GPU=${WORKER_REQUIRE_GPU:-true}
+      - DESKTOP_COMPOSE_NETWORK=${DESKTOP_COMPOSE_NETWORK:-tradar_default}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradar_external
+
+networks:
+  tradar_external:
+    external: true
+    name: ${DESKTOP_COMPOSE_NETWORK:-tradar_default}
