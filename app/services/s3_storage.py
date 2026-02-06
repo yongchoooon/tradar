@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import io
 import logging
+import mimetypes
 import os
 import uuid
 from dataclasses import dataclass
@@ -128,6 +129,43 @@ class S3ImageStore:
             ExpiresIn=self._presign_ttl,
         )
         return ImageRef(type="presigned_url", url=url, bucket=self._bucket, key=key)
+
+    def presign_upload(self, *, filename: str, content_type: str | None) -> dict:
+        if not filename:
+            raise ValueError("filename is required")
+        ext = _guess_extension(filename, content_type)
+        key = _build_key(self._prefix, ext)
+        params = {"Bucket": self._bucket, "Key": key}
+        if content_type:
+            params["ContentType"] = content_type
+        upload_url = self._client.generate_presigned_url(
+            "put_object",
+            Params=params,
+            ExpiresIn=self._presign_ttl,
+        )
+        read_url = self._client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": key},
+            ExpiresIn=self._presign_ttl,
+        )
+        return {
+            "upload_url": upload_url,
+            "read_url": read_url,
+            "bucket": self._bucket,
+            "key": key,
+            "content_type": content_type or "application/octet-stream",
+        }
+
+
+def _guess_extension(filename: str, content_type: str | None) -> str:
+    ext = ""
+    if filename:
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if not ext and content_type:
+        guessed = mimetypes.guess_extension(content_type.split(";")[0].strip())
+        if guessed:
+            ext = guessed.lstrip(".")
+    return ext or "bin"
 
 
 def _build_base64_ref(image_bytes: bytes, max_inline: int) -> ImageRef:

@@ -54,7 +54,7 @@ class WorkerSearchUploadFailed(WorkerSearchError):
         self.error_code = error_code
 
 
-def _decode_image_b64(payload: str) -> bytes:
+def _decode_image_b64(payload: str | None) -> bytes:
     if not payload:
         raise ValueError("image_b64 is required")
     if payload.startswith("data:"):
@@ -211,9 +211,22 @@ async def run_worker_search(req: SearchRequest) -> SearchResponse:
     settings = get_worker_settings()
     top_k = req.k if req.k > 0 else settings.topk_default
 
+    if not req.image_ref and not req.image_b64:
+        raise WorkerSearchUploadFailed(
+            "image_ref or image_b64 is required",
+            "IMAGE_MISSING",
+        )
+
     try:
-        image_bytes = _decode_image_b64(req.image_b64)
-        image_ref = build_image_ref(image_bytes)
+        if req.image_ref:
+            image_ref = ImageRef(
+                type=req.image_ref.type,
+                url=req.image_ref.url,
+                data=req.image_ref.data,
+            )
+        else:
+            image_bytes = _decode_image_b64(req.image_b64)
+            image_ref = build_image_ref(image_bytes)
     except ImageTransferError as exc:
         raise WorkerSearchUploadFailed(str(exc), exc.error_code) from exc
     except Exception as exc:

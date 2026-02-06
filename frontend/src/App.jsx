@@ -574,6 +574,33 @@ async function fileToBase64(file) {
   });
 }
 
+async function requestPresignedUpload(file) {
+  if (!file) {
+    throw new Error('이미지 파일이 없습니다.');
+  }
+  const payload = {
+    filename: file.name || 'upload.bin',
+    content_type: file.type || 'application/octet-stream',
+  };
+  const data = await apiFetch('/media/presign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!data?.upload_url || !data?.read_url) {
+    throw new Error('S3 업로드 URL을 받지 못했습니다.');
+  }
+  const uploadRes = await fetch(data.upload_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': data.content_type || payload.content_type },
+    body: file,
+  });
+  if (!uploadRes.ok) {
+    throw new Error('이미지 업로드에 실패했습니다.');
+  }
+  return { type: 'presigned_url', url: data.read_url };
+}
+
 function TrademarkSearchForm({
   title,
   onTitleChange,
@@ -1461,6 +1488,7 @@ function App() {
   const [imageBlendMode, setImageBlendMode] = useState('balanced');
   const [textBlendMode, setTextBlendMode] = useState('balanced');
   const [lastImageBase64, setLastImageBase64] = useState('');
+  const [lastImageRef, setLastImageRef] = useState(null);
   const [lastSearchText, setLastSearchText] = useState('');
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
   const [pages, setPages] = useState({ image: 1, text: 1 });
@@ -1611,6 +1639,9 @@ function App() {
       if (payload.image_b64) {
         setLastImageBase64(payload.image_b64);
       }
+      if (payload.image_ref) {
+        setLastImageRef(payload.image_ref);
+      }
       if (typeof data?.query?.text === 'string') {
         setLastSearchText(data.query.text);
       }
@@ -1651,6 +1682,8 @@ function App() {
 
   const handleImageFileUpdate = (file) => {
     setImageFile(file);
+    setLastImageRef(null);
+    setLastImageBase64('');
     if (file) {
       setPlaceholderNotice('');
     }
@@ -1859,9 +1892,12 @@ function App() {
         user_goods_classes: response?.query?.goods_classes || [],
         user_group_codes: response?.query?.group_codes || [],
         user_goods_names: buildSelectedGoodsNames(),
-        user_image_b64: lastImageBase64 || null,
+        user_image_b64: lastImageBase64 || (imageFile ? await fileToBase64(imageFile) : null),
         user_image_mime: imageFile?.type || null,
       };
+      if (!lastImageBase64 && payload.user_image_b64) {
+        setLastImageBase64(payload.user_image_b64);
+      }
       const data = await apiFetch('/simulation/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1909,9 +1945,9 @@ function App() {
       return;
     }
     try {
-      const image = await fileToBase64(imageFile);
+      const imageRef = await requestPresignedUpload(imageFile);
       await search({
-        image_b64: image,
+        image_ref: imageRef,
         goods_classes: selectedClassCodes,
         group_codes: selectedGroupCodes,
         k: RESULT_LIMIT,
@@ -1934,14 +1970,14 @@ function App() {
     if (simulationLocked) {
       return;
     }
-    if (!lastImageBase64) {
+    if (!lastImageRef) {
       alert('먼저 이미지 검색을 실행해주세요.');
       return;
     }
     const baseText = (response?.query?.text ?? lastSearchText ?? title).trim();
     const currentVariants = response?.query?.variants || null;
     await search({
-      image_b64: lastImageBase64,
+      image_ref: lastImageRef,
       goods_classes: selectedClassCodes,
       group_codes: selectedGroupCodes,
       k: response?.query?.k || RESULT_LIMIT,
@@ -1959,14 +1995,14 @@ function App() {
     if (simulationLocked) {
       return;
     }
-    if (!lastImageBase64) {
+    if (!lastImageRef) {
       alert('먼저 검색을 실행해주세요.');
       return;
     }
     const baseText = (response?.query?.text ?? lastSearchText ?? title).trim();
     const currentVariants = response?.query?.variants || null;
     await search({
-      image_b64: lastImageBase64,
+      image_ref: lastImageRef,
       goods_classes: selectedClassCodes,
       group_codes: selectedGroupCodes,
       k: response?.query?.k || RESULT_LIMIT,

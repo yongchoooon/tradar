@@ -26,6 +26,9 @@ db 컨테이너가 안 뜨는 것은 정상이며, **기존 compose 스택을 �
 - 운영 환경에서는 ECS 백엔드가 `/ws/worker` WebSocket으로 데스크톱 GPU 워커에 작업을 위임합니다.
 - 워커는 **기존 데스크톱의 Postgres(pgvector) + OpenSearch 컨테이너**에만 연결해 검색을 수행합니다.
 - 운영에서는 **presigned URL 방식만 사용**합니다. base64 fallback은 기본 비활성입니다.
+  - 브라우저는 `/media/presign`으로 업로드 URL을 받은 뒤 S3에 직접 업로드하고,
+    `/search/multimodal`에는 `image_ref`(presigned GET URL)만 전달합니다.
+  - CloudFront는 큰 POST 바디를 차단할 수 있으므로 base64 전송은 운영에서 금지합니다.
 
 필수 환경 변수 (워커):
 - `WORKER_WS_URL` (예: `wss://<api-cloudfront-domain>/ws/worker`)
@@ -36,6 +39,13 @@ db 컨테이너가 안 뜨는 것은 정상이며, **기존 compose 스택을 �
 - `DESKTOP_COMPOSE_NETWORK` (Mode A 네트워크 이름)
 - `ALLOW_BASE64_FALLBACK` (기본값 `false`)
 - `BASE64_MAX_IMAGE_BYTES` (기본값 `204800`, 200KB)
+
+### 이미지 업로드 (운영 권장 플로우)
+1. 프론트 → `POST /media/presign` (파일명, content-type 전달)
+2. 프론트 → presigned `upload_url`로 S3 `PUT`
+3. 프론트 → `/search/multimodal` 호출 시 `image_ref`에 presigned `read_url` 전달
+
+S3 버킷 CORS에 `PUT` 허용이 필요합니다.
 
 ### GPU 요구사항
 - NVIDIA Container Toolkit 필요
@@ -91,6 +101,7 @@ python -m worker.main
 
 ### 운영 체크리스트
 - CloudFront(tradar-api-cf): `/ws/*` behavior 분리, 캐시 비활성, Origin request policy는 AllViewer 계열, HTTPS only.
+- CloudFront(tradar-api-cf): `/search*`, `/media*`는 POST가 필요하므로 허용 HTTP 메서드에 POST/OPTIONS 포함.
 - ALB idle timeout 300~600초로 상향.
 - ECS desired count=1 유지(워커 registry는 메모리 기반).
 

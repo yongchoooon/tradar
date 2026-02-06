@@ -12,8 +12,16 @@ except Exception:  # fallback when Pydantic is unavailable
 
 
 @pydantic_dataclass
+class ImageRefPayload:
+    type: str
+    url: Optional[str] = None
+    data: Optional[str] = None
+
+
+@pydantic_dataclass
 class SearchRequest:
-    image_b64: str
+    image_b64: Optional[str] = None
+    image_ref: Optional[ImageRefPayload] = None
     text: Optional[str] = None
     goods_classes: List[str] = field(default_factory=list)
     group_codes: List[str] = field(default_factory=list)

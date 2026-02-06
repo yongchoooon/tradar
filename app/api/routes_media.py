@@ -8,8 +8,10 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 
+from app.services.s3_storage import S3UploadError, S3ImageStore
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -65,3 +67,28 @@ def get_media(path: str = Query(..., description="Absolute file path")) -> FileR
         raise HTTPException(status_code=403, detail="Access to path denied")
 
     return FileResponse(target)
+
+
+class PresignRequest(BaseModel):
+    filename: str
+    content_type: str | None = None
+
+
+@router.post("/media/presign")
+def presign_upload(req: PresignRequest):
+    try:
+        store = S3ImageStore()
+        return store.presign_upload(
+            filename=req.filename,
+            content_type=req.content_type,
+        )
+    except S3UploadError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"error_code": exc.error_code, "message": str(exc)},
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"error_code": "S3_UPLOAD_FAILED", "message": str(exc)},
+        ) from exc
