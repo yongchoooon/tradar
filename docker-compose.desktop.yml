@@ -17,6 +17,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
+      - ${TRADAR_IMAGE_ROOT:-../tradar-data}:/data/images:ro
     environment:
       - PYTHONUNBUFFERED=1
       - EMBED_DEVICE=${EMBED_DEVICE:-cuda:0}
@@ -33,6 +34,11 @@ services:
       - WORKER_HOST_GATEWAY=${WORKER_HOST_GATEWAY:-host.docker.internal}
       - WORKER_REQUIRE_GPU=${WORKER_REQUIRE_GPU:-true}
       - DESKTOP_COMPOSE_NETWORK=${DESKTOP_COMPOSE_NETWORK:-tradar_default}
+      - WORKER_THUMB_ENABLED=${WORKER_THUMB_ENABLED:-true}
+      - WORKER_THUMB_MAX_SIZE=${WORKER_THUMB_MAX_SIZE:-256}
+      - WORKER_THUMB_MAX_BYTES=${WORKER_THUMB_MAX_BYTES:-65536}
+      - WORKER_THUMB_QUALITY=${WORKER_THUMB_QUALITY:-70}
+      - WORKER_THUMB_FORMAT=${WORKER_THUMB_FORMAT:-jpeg}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

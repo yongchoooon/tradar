@@ -136,6 +136,9 @@ const resolveStaticAssetPath = (input) => {
 
 const resolveMediaUrl = (input) => {
   if (!input) return '';
+  if (input.startsWith('data:')) {
+    return input;
+  }
   if (input.startsWith('http://') || input.startsWith('https://')) {
     return input;
   }

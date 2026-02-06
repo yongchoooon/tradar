@@ -10,8 +10,11 @@ import os
 import socket
 import time
 from dataclasses import asdict
+from io import BytesIO
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse, urlunparse
+
+from PIL import Image
 
 import httpx
 import websockets
@@ -65,6 +68,21 @@ def _bool_env(name: str, default: bool) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def _str_env(name: str, default: str) -> str:
+    raw = os.getenv(name)
+    return raw.strip() if raw is not None and raw.strip() else default
 
 
 def _resolve_device(torch_module) -> str:
@@ -176,6 +194,11 @@ class DesktopWorker:
         self._http_timeout = float(os.getenv("WORKER_HTTP_TIMEOUT_SECONDS", "20"))
         self._pipeline = SearchPipeline()
         self._http = httpx.AsyncClient(timeout=self._http_timeout)
+        self._thumb_enabled = _bool_env("WORKER_THUMB_ENABLED", True)
+        self._thumb_max_size = _int_env("WORKER_THUMB_MAX_SIZE", 256)
+        self._thumb_max_bytes = _int_env("WORKER_THUMB_MAX_BYTES", 64 * 1024)
+        self._thumb_quality = _int_env("WORKER_THUMB_QUALITY", 70)
+        self._thumb_format = _str_env("WORKER_THUMB_FORMAT", "jpeg").lower()
 
     async def run(self) -> None:
         if not self._ws_url:
@@ -336,6 +359,10 @@ class DesktopWorker:
         self, bucket: List[Dict[str, Any]], results: List[SearchResult], bucket_name: str
     ) -> None:
         for idx, item in enumerate(results, start=1):
+            thumb_url = item.thumb_url
+            if self._thumb_enabled:
+                if not thumb_url or thumb_url.startswith("/media"):
+                    thumb_url = self._build_thumbnail_data_url(item.image_path) or thumb_url
             bucket.append(
                 {
                     "doc_id": item.trademark_id,
@@ -344,7 +371,7 @@ class DesktopWorker:
                     "title": item.title,
                     "status": item.status,
                     "nc_codes": list(item.class_codes or []),
-                    "thumbnail_ref": item.thumb_url,
+                    "thumbnail_ref": thumb_url,
                     "extra_meta": {
                         "bucket": bucket_name,
                         "rank": idx,
@@ -355,6 +382,30 @@ class DesktopWorker:
                     },
                 }
             )
+
+    def _build_thumbnail_data_url(self, image_path: Optional[str]) -> Optional[str]:
+        if not image_path:
+            return None
+        try:
+            with Image.open(image_path) as img:
+                img = img.convert("RGB")
+                img.thumbnail((self._thumb_max_size, self._thumb_max_size))
+                buffer = BytesIO()
+                if self._thumb_format == "png":
+                    img.save(buffer, format="PNG", optimize=True)
+                    mime = "image/png"
+                else:
+                    img.save(buffer, format="JPEG", quality=self._thumb_quality, optimize=True)
+                    mime = "image/jpeg"
+                data = buffer.getvalue()
+        except Exception as exc:
+            logger.debug("Thumbnail build failed path=%s error=%s", image_path, exc)
+            return None
+
+        if len(data) > self._thumb_max_bytes:
+            return None
+        encoded = base64.b64encode(data).decode("utf-8")
+        return f"data:{mime};base64,{encoded}"
 
     async def _send_error(
         self,
