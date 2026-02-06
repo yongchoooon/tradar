@@ -70,6 +70,25 @@ def _load_dinov2_bundle(
     return model, processor, torch, F
 
 
+def _extract_tensor(output, torch_module, name: str):
+    if torch_module.is_tensor(output):
+        return output
+    for attr in ("image_embeds", "text_embeds", "pooler_output"):
+        if hasattr(output, attr):
+            value = getattr(output, attr)
+            if value is not None and torch_module.is_tensor(value):
+                return value
+    if hasattr(output, "last_hidden_state"):
+        value = getattr(output, "last_hidden_state")
+        if value is not None and torch_module.is_tensor(value):
+            return value.mean(dim=1)
+    if isinstance(output, (list, tuple)) and output:
+        first = output[0]
+        if torch_module.is_tensor(first):
+            return first
+    raise RuntimeError(f"Unexpected {name} output type: {type(output)}")
+
+
 class _TorchImageBackend:
     def __init__(
         self,
@@ -119,7 +138,12 @@ class _TorchImageBackend:
         meta_inputs = {k: v.to(self._device) for k, v in meta_inputs.items()}
         with self._torch.no_grad():
             meta_features = self._metaclip.get_image_features(**meta_inputs)
-        meta_features = self._F.normalize(meta_features, dim=-1).cpu().to(self._torch.float32)
+        meta_features = _extract_tensor(meta_features, self._torch, "metaclip image")
+        meta_features = (
+            self._F.normalize(meta_features, dim=-1)
+            .cpu()
+            .to(self._torch.float32)
+        )
 
         dino_inputs = self._dinov2_processor(images=pil_images, return_tensors="pt")
         dino_inputs = {k: v.to(self._device) for k, v in dino_inputs.items()}
@@ -170,6 +194,7 @@ class _TorchTextBackend:
         inputs = {k: v.to(self._device) for k, v in inputs.items()}
         with self._torch.no_grad():
             feats = self._metaclip.get_text_features(**inputs)
+        feats = _extract_tensor(feats, self._torch, "metaclip text")
         feats = self._F.normalize(feats, dim=-1).cpu().to(self._torch.float32)
         return feats.squeeze(0).tolist()
 
@@ -193,6 +218,7 @@ class _TorchTextBackend:
         inputs = {k: v.to(self._device) for k, v in inputs.items()}
         with self._torch.no_grad():
             feats = self._metaclip.get_text_features(**inputs)
+        feats = _extract_tensor(feats, self._torch, "metaclip text")
         feats = self._F.normalize(feats, dim=-1).cpu().to(self._torch.float32)
         return [row.tolist() for row in feats]
 
