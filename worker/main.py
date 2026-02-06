@@ -241,6 +241,10 @@ class DesktopWorker:
             return
 
         msg_type = (data.get("type") or "").lower()
+        if msg_type == "registered":
+            worker_id = data.get("worker_id") or self._worker_id
+            logger.info("Worker registered worker_id=%s", worker_id)
+            return
         if msg_type == "job":
             await self._handle_job(ws, data)
             return
