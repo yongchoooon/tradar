@@ -12,7 +12,7 @@ import time
 from dataclasses import asdict
 from io import BytesIO
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from PIL import Image
 
@@ -47,6 +47,25 @@ def _replace_hostname(url: str, hostname: str) -> str:
         hostport = hostname
     netloc = f"{userinfo}@{hostport}" if userinfo else hostport
     return urlunparse(parsed._replace(netloc=netloc))
+
+
+def _shorten_url(url: str) -> str:
+    parsed = urlparse(url)
+    base = urlunparse(parsed._replace(query=""))
+    signature = None
+    for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+        if key.lower() == "x-amz-signature":
+            signature = value
+            break
+    if signature:
+        return f"{base}?sig={signature[:8]}…"
+    return base
+
+
+def _maybe_hyperlink(label: str, url: str) -> str:
+    if not _bool_env("WORKER_LOG_URL_HYPERLINKS", False):
+        return label
+    return f"\033]8;;{url}\033\\{label}\033]8;;\033\\"
 
 
 def _rewrite_localhost_env() -> None:
@@ -305,6 +324,8 @@ class DesktopWorker:
             url = image_ref.get("url")
             if not url:
                 raise ValueError("image_ref.url is required")
+            label = _shorten_url(url)
+            logger.info("Fetching image url=%s", _maybe_hyperlink(label, url))
             response = await self._http.get(url)
             response.raise_for_status()
             return response.content
@@ -426,6 +447,8 @@ async def _main() -> None:
         level=logging.INFO,
         format="[%(asctime)s] [%(name)s] %(levelname)s: %(message)s",
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     _rewrite_localhost_env()
     _log_gpu_status()
     await _run_preflight_checks()
