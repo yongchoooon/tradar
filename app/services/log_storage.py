@@ -26,11 +26,19 @@ def _env(name: str, default: Optional[str] = None) -> Optional[str]:
     return value if value else default
 
 
+def _truthy(value: Optional[str]) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 def _bucket_name() -> Optional[str]:
-    return _env("LOGS_S3_BUCKET") or _env("TRADAR_DATA_BUCKET")
+    return _env("TRADAR_DATA_BUCKET") or "tradar-data"
 
 
 def s3_logs_enabled() -> bool:
+    if _truthy(_env("TRADAR_DISABLE_S3")):
+        return False
     return bool(_bucket_name())
 
 
@@ -38,15 +46,14 @@ def s3_logs_enabled() -> bool:
 def _s3_client():
     if boto3 is None:
         raise RuntimeError("boto3 is not available for S3 logging")
-    region = _env("LOGS_S3_REGION") or _env("AWS_REGION")
-    endpoint_url = _env("LOGS_S3_ENDPOINT_URL")
+    region = _env("AWS_REGION")
+    endpoint_url = _env("TRADAR_S3_ENDPOINT_URL")
     return boto3.client("s3", region_name=region, endpoint_url=endpoint_url)
 
 
 def _build_key(key_suffix: str) -> str:
-    prefix = _env("LOGS_S3_PREFIX", "logs") or "logs"
     suffix = key_suffix.lstrip("/")
-    return f"{prefix.rstrip('/')}/{suffix}"
+    return f"logs/{suffix}"
 
 
 def upload_text(key_suffix: str, text: str, content_type: str = "text/plain") -> bool:
