@@ -196,8 +196,6 @@ const buildHighlightMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) =
   return map;
 };
 
-const cloneDeep = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
-
 const normalizeMarkdown = (value) => {
   if (!value) return '';
   return value
@@ -206,22 +204,6 @@ const normalizeMarkdown = (value) => {
     // 보정: 문장 바로 뒤에 오는 불릿을 명시적 목록으로 인식시키기 위해 빈 줄 삽입
     .replace(/([^\n])\n(-\s+)/g, '$1\n\n$2');
 };
-
-const IMAGE_BLEND_OPTIONS = [
-  { value: 'primary_strong', label: '이미지 최우선', helper: '이미지 90% · 프롬프트 10%' },
-  { value: 'primary_focus', label: '이미지 우선', helper: '이미지 70% · 프롬프트 30%' },
-  { value: 'balanced', label: '균형', helper: '이미지 50% · 프롬프트 50%' },
-  { value: 'prompt_focus', label: '문장 우선', helper: '이미지 30% · 프롬프트 70%' },
-  { value: 'prompt_strong', label: '문장 최우선', helper: '이미지 10% · 프롬프트 90%' },
-];
-
-const TEXT_BLEND_OPTIONS = [
-  { value: 'primary_strong', label: '원문 최우선', helper: '원문 90% · 프롬프트 10%' },
-  { value: 'primary_focus', label: '원문 우선', helper: '원문 70% · 프롬프트 30%' },
-  { value: 'balanced', label: '균형', helper: '원문 50% · 프롬프트 50%' },
-  { value: 'prompt_focus', label: '프롬프트 우선', helper: '원문 30% · 프롬프트 70%' },
-  { value: 'prompt_strong', label: '프롬프트 최우선', helper: '원문 10% · 프롬프트 90%' },
-];
 
 const SCORE_SEGMENTS = [
   { label: '매우 낮음', max: 17 },
@@ -771,35 +753,6 @@ function ResultCard({
         </footer>
       </div>
     </article>
-  );
-}
-
-function PromptBlendSelector({ label, options, value, onChange, disabled = false }) {
-  return (
-    <div className={`prompt-panel__blend ${disabled ? 'is-disabled' : ''}`}>
-      <span className="prompt-panel__blend-label">{label}</span>
-      <div className="prompt-panel__blend-options">
-        {options.map((option) => {
-          const isActive = value === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              className={`prompt-blend-button ${isActive ? 'is-active' : ''}`}
-              onClick={() => {
-                if (!disabled) {
-                  onChange(option.value);
-                }
-              }}
-              disabled={disabled}
-            >
-              <span>{option.label}</span>
-              <small>{option.helper}</small>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -1480,19 +1433,13 @@ function DebugPanel({ debug }) {
 function App() {
   const [selectedGroups, setSelectedGroups] = useState({});
   const [response, setResponse] = useState(null);
-  const [baseResponse, setBaseResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [placeholderNotice, setPlaceholderNotice] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [title, setTitle] = useState('');
-  const [imagePrompt, setImagePrompt] = useState('');
-  const [textPrompt, setTextPrompt] = useState('');
-  const [imageBlendMode, setImageBlendMode] = useState('balanced');
-  const [textBlendMode, setTextBlendMode] = useState('balanced');
   const [lastImageBase64, setLastImageBase64] = useState('');
   const [lastImageRef, setLastImageRef] = useState(null);
-  const [lastSearchText, setLastSearchText] = useState('');
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
   const [pages, setPages] = useState({ image: 1, text: 1 });
   const [useLlmVariants, setUseLlmVariants] = useState(false);
@@ -1507,18 +1454,8 @@ function App() {
   const [simulationModel, setSimulationModel] = useState('');
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
-  const baseVariants = baseResponse?.query?.variants;
-  const textDisplayVariants = (baseVariants && baseVariants.length)
-    ? baseVariants
-    : (response?.query?.variants || []);
+  const textDisplayVariants = response?.query?.variants || [];
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
-  const rerankPlaceholder = (variant) => (
-    simulationLocked
-      ? '상표 등록 가능성 시뮬레이션 중에는 재검색할 수 없습니다.'
-      : (variant === 'image'
-        ? '추가로 설명하고 싶은 내용을 입력하세요'
-        : '추가 텍스트 프롬프트를 입력하세요')
-  );
 
   useEffect(() => {
     let ignore = false;
@@ -1645,9 +1582,6 @@ function App() {
       if (payload.image_ref) {
         setLastImageRef(payload.image_ref);
       }
-      if (typeof data?.query?.text === 'string') {
-        setLastSearchText(data.query.text);
-      }
       if (targets.image || targets.text) {
         setSimulationSelection((prev) => {
           const next = { ...prev };
@@ -1671,7 +1605,6 @@ function App() {
         });
       }
       if (targets.image && targets.text) {
-        setBaseResponse(cloneDeep(data));
         resetSimulationProgress();
       }
       setPlaceholderNotice('');
@@ -1956,10 +1889,6 @@ function App() {
         k: RESULT_LIMIT,
         text: title.trim() || null,
         debug,
-        image_prompt: null,
-        image_prompt_mode: imageBlendMode,
-        text_prompt: null,
-        text_prompt_mode: textBlendMode,
         variants: null,
         use_llm_variants: useLlmVariants,
       }, { image: true, text: true });
@@ -1967,150 +1896,6 @@ function App() {
       console.error(err);
       alert('검색 요청 중 오류가 발생했습니다. 콘솔을 확인하세요.');
     }
-  };
-
-  const handleImageRerank = async (debug = false) => {
-    if (simulationLocked) {
-      return;
-    }
-    if (!lastImageRef) {
-      alert('먼저 이미지 검색을 실행해주세요.');
-      return;
-    }
-    const baseText = (response?.query?.text ?? lastSearchText ?? title).trim();
-    const currentVariants = response?.query?.variants || null;
-    await search({
-      image_ref: lastImageRef,
-      goods_classes: selectedClassCodes,
-      group_codes: selectedGroupCodes,
-      k: response?.query?.k || RESULT_LIMIT,
-      text: baseText || null,
-      debug,
-      image_prompt: imagePrompt.trim() || null,
-      image_prompt_mode: imageBlendMode,
-      text_prompt: null,
-      text_prompt_mode: textBlendMode,
-      variants: currentVariants,
-    }, { image: true, text: false });
-  };
-
-  const handleTextRerank = async (debug = false) => {
-    if (simulationLocked) {
-      return;
-    }
-    if (!lastImageRef) {
-      alert('먼저 검색을 실행해주세요.');
-      return;
-    }
-    const baseText = (response?.query?.text ?? lastSearchText ?? title).trim();
-    const currentVariants = response?.query?.variants || null;
-    await search({
-      image_ref: lastImageRef,
-      goods_classes: selectedClassCodes,
-      group_codes: selectedGroupCodes,
-      k: response?.query?.k || RESULT_LIMIT,
-      text: baseText || null,
-      debug,
-      image_prompt: null,
-      image_prompt_mode: imageBlendMode,
-      text_prompt: textPrompt.trim() || null,
-      text_prompt_mode: textBlendMode,
-      variants: currentVariants,
-    }, { image: false, text: true });
-  };
-
-  const buildResetDebug = (prevDebug, baseDebug, message, fields) => {
-    if (!prevDebug && !baseDebug) {
-      return undefined;
-    }
-    const nextDebug = prevDebug ? cloneDeep(prevDebug) : {};
-    if (baseDebug) {
-      fields.forEach((field) => {
-        if (field in baseDebug) {
-          nextDebug[field] = cloneDeep(baseDebug[field]);
-        }
-      });
-    }
-    nextDebug.messages = [...(nextDebug.messages ?? []), message];
-    return nextDebug;
-  };
-
-  const handleImageReset = () => {
-    if (simulationLocked) {
-      return;
-    }
-    if (!baseResponse || !response) {
-      return;
-    }
-    const baseClone = cloneDeep(baseResponse);
-    setResponse((prev) => {
-      if (!prev) {
-        return cloneDeep(baseClone);
-      }
-      return {
-        ...prev,
-        image_top: cloneDeep(baseClone.image_top) || [],
-        image_misc: cloneDeep(baseClone.image_misc) || [],
-        debug: buildResetDebug(
-          prev.debug,
-          baseClone.debug,
-          '이미지 결과를 초기 상태로 복원했습니다.',
-          ['image_dino', 'image_metaclip', 'image_blended'],
-        ),
-      };
-    });
-    setImagePrompt('');
-    setImageBlendMode('balanced');
-    setLoading(false);
-    setLoadingState({ image: false, text: false });
-    setPages((prev) => ({ ...prev, image: 1 }));
-    setSimulationSelection((prev) => ({
-      ...prev,
-      image: buildSelectionMap(baseClone.image_top || []),
-    }));
-    setSimulationDefaults((prev) => ({
-      ...prev,
-      image: buildHighlightMap(baseClone.image_top || []),
-    }));
-  };
-
-  const handleTextReset = () => {
-    if (simulationLocked) {
-      return;
-    }
-    if (!baseResponse || !response) {
-      return;
-    }
-    const baseClone = cloneDeep(baseResponse);
-    setResponse((prev) => {
-      if (!prev) {
-        return cloneDeep(baseClone);
-      }
-      return {
-        ...prev,
-        text_top: cloneDeep(baseClone.text_top) || [],
-        text_misc: cloneDeep(baseClone.text_misc) || [],
-        debug: buildResetDebug(
-          prev.debug,
-          baseClone.debug,
-          '텍스트 결과를 초기 상태로 복원했습니다.',
-          ['text_metaclip', 'text_bm25', 'text_ranked'],
-        ),
-      };
-    });
-    setTextPrompt('');
-    setTextBlendMode('balanced');
-    setLoading(false);
-    setLoadingState({ image: false, text: false });
-    setPages((prev) => ({ ...prev, text: 1 }));
-    setSimulationSelection((prev) => ({
-      ...prev,
-      text: buildSelectionMap(baseClone.text_top || []),
-    }));
-    setSimulationDefaults((prev) => ({
-      ...prev,
-      text: buildHighlightMap(baseClone.text_top || []),
-    }));
   };
 
   const resetForm = () => {
@@ -2211,66 +1996,6 @@ function App() {
                 highlightMap={simulationDefaults.image}
                 selectionLocked={simulationLocked}
               />
-              <form
-                className={`prompt-panel ${simulationLocked ? 'prompt-panel--disabled' : ''}`}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleImageRerank(false);
-                }}
-              >
-                <label className="prompt-panel__label" htmlFor="image-rerank">이미지 재검색 프롬프트</label>
-                <PromptBlendSelector
-                  label="이미지 반영 비율"
-                  options={IMAGE_BLEND_OPTIONS}
-                  value={imageBlendMode}
-                  onChange={setImageBlendMode}
-                  disabled={simulationLocked}
-                />
-                <div className="prompt-panel__content">
-                  <textarea
-                    id="image-rerank"
-                    placeholder={rerankPlaceholder('image')}
-                    value={imagePrompt}
-                    onChange={(e) => setImagePrompt(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (simulationLocked) {
-                        return;
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleImageRerank(false);
-                      }
-                    }}
-                    rows={3}
-                    disabled={simulationLocked}
-                  />
-                  <div className="prompt-panel__actions">
-                    <button
-                      type="submit"
-                      className="btn-secondary"
-                      disabled={simulationLocked}
-                    >
-                      이미지 재검색
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-debug"
-                      onClick={() => handleImageRerank(true)}
-                      disabled={simulationLocked}
-                    >
-                      이미지 재검색(디버그)
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-outline"
-                      onClick={handleImageReset}
-                      disabled={!baseResponse || simulationLocked}
-                    >
-                      원래 이미지 결과
-                    </button>
-                  </div>
-                </div>
-              </form>
               <ResultSection
                 title="텍스트 후보"
                 items={response.text_top || []}
@@ -2290,66 +2015,6 @@ function App() {
                 highlightMap={simulationDefaults.text}
                 selectionLocked={simulationLocked}
               />
-              <form
-                className={`prompt-panel ${simulationLocked ? 'prompt-panel--disabled' : ''}`}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleTextRerank(false);
-                }}
-              >
-                <label className="prompt-panel__label" htmlFor="text-rerank">텍스트 재검색 프롬프트</label>
-                <PromptBlendSelector
-                  label="텍스트 반영 비율"
-                  options={TEXT_BLEND_OPTIONS}
-                  value={textBlendMode}
-                  onChange={setTextBlendMode}
-                  disabled={simulationLocked}
-                />
-                <div className="prompt-panel__content">
-                  <textarea
-                    id="text-rerank"
-                    placeholder={rerankPlaceholder('text')}
-                    value={textPrompt}
-                    onChange={(e) => setTextPrompt(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (simulationLocked) {
-                        return;
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleTextRerank(false);
-                      }
-                    }}
-                    rows={3}
-                    disabled={simulationLocked}
-                  />
-                  <div className="prompt-panel__actions">
-                    <button
-                      type="submit"
-                      className="btn-secondary"
-                      disabled={simulationLocked}
-                    >
-                      텍스트 재검색
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-debug"
-                      onClick={() => handleTextRerank(true)}
-                      disabled={simulationLocked}
-                    >
-                      텍스트 재검색(디버그)
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-outline"
-                      onClick={handleTextReset}
-                      disabled={!baseResponse || simulationLocked}
-                    >
-                      원래 텍스트 결과
-                    </button>
-                  </div>
-                </div>
-              </form>
               <DebugPanel debug={response.debug} />
               </>
             ) : (
