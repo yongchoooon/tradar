@@ -1,7 +1,9 @@
 # T-RADAR 프로젝트 인프라 & CI/CD 가이드라인
 
 > 이 문서는 **“처음 AWS/CI/CD를 접하는 사람”**을 기준으로  
-> T-RADAR 프로젝트의 로컬 개발 환경, AWS 인프라, CI/CD 개념을 한 번에 이해할 수 있도록 정리한 가이드입니다.
+> T-RADAR 프로젝트의 로컬 개발 환경, AWS 인프라, CI/CD 개념을 한 번에 이해할 수 있도록 정리한 가이드입니다.  
+> **현재 운영 검색은 데스크톱 GPU 워커 + 로컬 Postgres/OpenSearch로 오프로딩**하며,
+> RDS/OpenSearch Service 관련 섹션은 **클라우드로 검색 인프라를 옮길 때 참고용**입니다.
 
 ---
 
@@ -10,7 +12,8 @@
 T-RADAR는 크게 세 레벨로 나뉩니다.
 
 1. **로컬 개발 환경** (Docker, Make)
-2. **AWS 인프라** (S3, CloudFront, ECS/Fargate, RDS, OpenSearch, VPC 등)
+2. **AWS 인프라** (S3, CloudFront, ECS/Fargate, ALB 등) + **데스크톱 GPU 워커(WebSocket)**  
+   *(RDS/OpenSearch Service는 검색 인프라를 클라우드로 옮길 때 선택)*
 3. **CI/CD 파이프라인** (GitHub Actions → AWS)
 
 대략적인 그림은 다음과 같습니다.
@@ -23,10 +26,12 @@ T-RADAR는 크게 세 레벨로 나뉩니다.
    └─ OpenAI / KIPRIS 키를 .env에 설정
 
 [원격 프로덕션 환경 (AWS)]
-  프론트엔드: S3 버킷 + CloudFront + Route 53
+  프론트엔드: S3 버킷 + CloudFront (+ 선택적으로 Route 53)
   백엔드: ECR(이미지 저장소) + ECS(Fargate로 컨테이너 실행) + ALB(로드밸런서)
-  데이터: RDS(Postgres+pgvector), OpenSearch Service, S3(대용량 이미지)
+  검색 실행: 데스크톱 GPU 워커(WebSocket, outbound) + 로컬 Postgres/pgvector + OpenSearch
+  이미지: S3 presigned 업로드
   설정/비밀값: SSM Parameter Store
+  (선택) 검색 인프라를 클라우드로 옮길 경우 RDS/OpenSearch Service 사용
 
 [CI/CD]
   GitHub Repo에 push
@@ -174,6 +179,9 @@ make migrate-history
 │     VPC(사설 네트워크), Subnet, Security Group, Parameter Store │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+현재 운영에서는 위 `데이터` 블록 대신 **데스크톱 GPU 워커 + 로컬 Postgres/OpenSearch**가 검색을 수행하고,
+ECS 백엔드는 `/ws/worker`로 작업을 위임합니다. RDS/OpenSearch Service 구성은 클라우드로 이전할 때만 사용하세요.
 
 이제 하나씩 역할을 설명합니다.
 
@@ -364,7 +372,7 @@ ECS/Fargate는 배포할 때 항상 **ECR에서 이미지를 가져와(pull)** �
 
 ---
 
-### 2.8 RDS (PostgreSQL + pgvector)
+### 2.8 RDS (PostgreSQL + pgvector) - 선택
 
 - AWS의 관리형 데이터베이스 서비스.
 - T-RADAR에서는:
@@ -373,13 +381,13 @@ ECS/Fargate는 배포할 때 항상 **ECR에서 이미지를 가져와(pull)** �
     - 벡터 컬럼을 저장하고, 벡터 유사도 검색 지원
     - 텍스트/이미지 임베딩을 저장하는 데 사용
 
-RDS를 사용하면:
+클라우드로 검색 인프라를 옮길 경우 RDS를 사용하면:
 - 백업, 장애 조치, 모니터링 등을 AWS가 상당 부분 대신 처리해주기 때문에,
 - 직접 EC2에 Postgres를 설치하는 것보다 운영 부담이 적습니다.
 
 ---
 
-### 2.9 OpenSearch Service
+### 2.9 OpenSearch Service - 선택
 
 - Elasticsearch 호환 검색엔진의 AWS 관리형 서비스.
 - T-RADAR에서의 역할:

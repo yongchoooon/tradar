@@ -1,6 +1,6 @@
 # T-RADAR 프로젝트 설정 & 배포 가이드
 
-이 문서는 현재 레포지토리(`FastAPI + LangGraph 백엔드`, `Vite 기반 React 프런트엔드`, `PostgreSQL + pgvector + OpenSearch` 검색 데이터베이스)를 그대로 기준으로 삼아, 로컬 개발부터 AWS 배포까지의 전체 흐름을 쉽게 설명합니다. 원본 문서에 있던 `make` 명령이나 추가 툴은 이 저장소에는 없으므로 아래 절차만 따라 하면 됩니다.
+이 문서는 현재 레포지토리(`FastAPI + LangGraph 백엔드`, `Vite 기반 React 프런트엔드`, **Desktop GPU 워커(WebSocket) + 로컬 Postgres/OpenSearch 검색**)를 기준으로 로컬 개발부터 AWS 배포까지의 전체 흐름을 쉽게 설명합니다. 원본 문서에 있던 `make` 명령이나 추가 툴은 이 저장소에는 없으므로 아래 절차만 따라 하면 됩니다.
 
 ---
 ## 1. 로컬 개발 환경
@@ -53,8 +53,10 @@ cd tradar
    | `OPENAI_API_KEY` | 검색/시뮬레이션 모두에 쓰이는 OpenAI 키 |
    | `KIPRIS_ACCESS_KEY` | KIPRIS IntermediateDocument API 호출용 |
    | `OPENSEARCH_URL` + `OPENSEARCH_INDEX` | BM25 후보 조회용 OpenSearch 도메인 |
-| `TRADEMARK_LLM_*`, `SIMULATION_LLM_MODEL` | 검색/시뮬레이션 LLM 모델명 (기본값: `gpt-4o-mini`, `gpt-5-nano`) |
-   | `MEDIA_ALLOWED_ROOTS` | `/media/{path}` 다운로드 허용 경로 (기본적으로 `tradar-data`, `tradar`) |
+   | `TRADEMARK_LLM_*`, `SIMULATION_LLM_MODEL` | 검색/시뮬레이션 LLM 모델명 (기본값: `gpt-4o-mini`, `gpt-5-nano`) |
+   | `MEDIA_ALLOWED_ROOTS` | `/media?path=...` 다운로드 허용 경로 (로컬 개발용) |
+   | `TRADAR_DATA_BUCKET`, `TRADAR_IMAGE_PREFIX`, `TRADAR_PRESIGN_TTL_SECONDS` | S3 presign 업로드 설정 |
+   | `ALLOW_BASE64_FALLBACK`, `BASE64_MAX_IMAGE_BYTES` | base64 fallback 정책(기본 비활성, 200KB 제한) |
 
 ### 1.5 데이터베이스 및 임베딩 시딩
 1. **PostgreSQL + pgvector 준비**
@@ -92,14 +94,14 @@ cd frontend
 npm run dev  # http://localhost:5173, FastAPI로 프록시 자동 연결
 ```
 
-**B. Docker Compose (Postgres/백엔드/프런트 일체 실행)**
+**B. Docker Compose (Postgres/OpenSearch/백엔드/프런트 일체 실행)**
 ```bash
 export POSTGRES_PASSWORD=postgres  # docker-compose.yml에서 참조
 export OPENAI_API_KEY=...          # 필요한 변수들을 동일하게 export
 export KIPRIS_ACCESS_KEY=...
 docker compose up --build
 ```
-- Compose 파일에는 OpenSearch 서비스가 포함되어 있지 않으므로, 로컬에서 OpenSearch를 별도로 실행하거나 AWS OpenSearch 엔드포인트를 `.env`에 지정해야 합니다.
+- `docker-compose.yml`에는 `db` + `opensearch` 서비스가 포함되어 있으며, 기본 포트는 5432/9200입니다.
 - 코드 변경 시 `api` 컨테이너가 볼륨으로 소스를 마운트하므로 자동 리로드됩니다.
 
 ### 1.7 주요 URL
@@ -108,15 +110,34 @@ docker compose up --build
 | 프런트엔드 (Vite Dev) | http://localhost:5173 |
 | FastAPI (Swagger 포함) | http://localhost:8000 / http://localhost:8000/docs |
 | 멀티모달 검색 API | POST http://localhost:8000/search/multimodal |
+| 이미지 presign | POST http://localhost:8000/media/presign |
 | 시뮬레이션 스트림 | GET http://localhost:8000/simulation/stream/{job_id} |
 | OpenSearch health | http://localhost:9200/_cluster/health |
 
-### 1.8 로그 & 디버그 팁
+### 1.8 Desktop GPU Worker (운영 검색 오프로딩)
+- 운영 검색은 **ECS 백엔드 → WebSocket(`/ws/worker`) → 데스크톱 워커** 흐름으로 처리됩니다.
+- 워커는 **로컬 Postgres(pgvector) + OpenSearch**에만 연결해 검색을 수행합니다.
+- `docker-compose.desktop.yml`은 **db/opensearch를 생성하지 않으므로** 기존 컨테이너가 이미 떠 있어야 합니다.
+
+실행 예시 (Mode A, 권장):
+```bash
+export WORKER_WS_URL=wss://<api-cloudfront-domain>/ws/worker
+export WORKER_TOKEN=<shared-token>
+export DESKTOP_COMPOSE_NETWORK=<project>_default
+docker compose -f docker-compose.desktop.yml up --build
+```
+
+체크 포인트:
+- 이미지 썸네일 생성을 위해 로컬 이미지 데이터가 컨테이너에 마운트되어 있어야 합니다.
+  기본 마운트는 `${TRADAR_IMAGE_ROOT:-../tradar-data}:/data/images`이며 DB의 `image_path`가 `/data/images/...`인지 확인하세요.
+- GPU 사용이 기본이며, `WORKER_REQUIRE_GPU=true` 상태에서 GPU가 없으면 워커가 종료됩니다.
+
+### 1.9 로그 & 디버그 팁
 - `logs/simulation_debug/<타임스탬프>/` 디렉터리에 LangGraph 프롬프트와 응답이 저장됩니다. 디버그 모드를 활성화하려면 UI에서 "시뮬레이션 실행(디버그)" 버튼을 사용하세요.
 - `uvicorn` 표준 출력에는 `simulation` 로거가 남기는 KIPRIS/에이전트 진행 로그가 실시간으로 찍힙니다.
 - 프런트엔드는 `npm run dev` 터미널에서 Vite 빌드 오류를 바로 확인할 수 있습니다.
 
-### 1.9 자주 쓰는 스크립트/명령
+### 1.10 자주 쓰는 스크립트/명령
 | 목적 | 명령 |
 | --- | --- |
 | 단위 테스트 | `pytest` |
@@ -131,16 +152,20 @@ docker compose up --build
 ### 2.1 구성 개요
 - **Frontend**: S3 정적 호스팅 + CloudFront CDN. Vite로 빌드한 `frontend/dist`를 업로드합니다.
 - **Backend**: FastAPI + LangGraph 컨테이너를 AWS Fargate(ECS)에서 실행하고, ALB가 HTTPS 요청을 받아 8000번 포트로 전달합니다.
-- **데이터 계층**: Amazon RDS for PostgreSQL (pgvector 활성화) + Amazon OpenSearch Service. 둘 다 VPC 내부 사설 서브넷에 둡니다.
+- **검색 실행**: 데스크톱 GPU 워커(WebSocket, outbound) + 로컬 Postgres/pgvector + OpenSearch.
+- **데이터 계층(선택)**: 검색 인프라를 클라우드로 옮길 경우 Amazon RDS + Amazon OpenSearch Service를 사용합니다.
 - **시크릿 관리**: AWS Systems Manager Parameter Store(`/tradar/prod/*`).
 - **이미지 저장소**: Amazon ECR(`tradar-backend`).
+
+> 현재 운영은 **데스크톱 워커 + 로컬 DB/OS**가 검색을 수행합니다.  
+> 아래 RDS/OpenSearch 절차는 **클라우드로 검색 인프라를 이전할 때만** 적용하세요.
 
 ### 2.2 리소스 구축 순서
 1. **VPC/네트워크**
    - CIDR `10.0.0.0/16` 예시, 공용 서브넷(Load Balancer) 2개 + 사설 서브넷(ECS/RDS/OpenSearch) 2개.
    - NAT 게이트웨이를 추가해 사설 서브넷 ECS가 인터넷으로 나가도록 합니다.
 
-2. **RDS (PostgreSQL 17)**
+2. **RDS (PostgreSQL 17) — 선택**
    - 파라미터 그룹에서 `shared_preload_libraries=vector` 설정 후 인스턴스를 생성합니다.
    - 초기화 후 다음을 실행하세요:
      ```sql
@@ -150,7 +175,7 @@ docker compose up --build
      ```
    - 보안 그룹: ALB는 접근이 필요 없고, ECS 서비스 SG만 5432 포트를 열어 둡니다.
 
-3. **Amazon OpenSearch Service**
+3. **Amazon OpenSearch Service — 선택**
    - 도메인 이름 예: `tradar-search`. t3.medium.search 2노드, 100GB gp3.
    - Advanced 옵션에서 `indices.knn=true`를 켜면 pgvector 데이터와 병행해 BM25를 사용할 수 있습니다.
    - 액세스 정책은 VPC 보안 그룹 기준으로 제한합니다.
@@ -179,19 +204,23 @@ docker compose up --build
    - 클러스터: `tradar-cluster`.
    - Task Definition: 1 컨테이너(`uvicorn app.main:app --host 0.0.0.0 --port 8000`), CPU/메모리는 LangGraph 사용량(예: 2vCPU/4GB) 기준으로 조정.
    - 환경 변수/시크릿: Parameter Store 값을 Task Definition에 매핑합니다 (다음 표 참고).
-   - 서비스: ALB 타깃 그룹(포트 8000)과 연결하고, 최소 2개의 Fargate 태스크로 구성해 무중단 배포를 준비합니다.
+   - 서비스: ALB 타깃 그룹(포트 8000)과 연결합니다.  
+     워커 registry가 메모리 기반이므로 **운영에서는 desired count=1**을 권장합니다.
 
 7. **Parameter Store**
    | 이름 | 예시 값 | 비고 |
    | --- | --- | --- |
-| `/tradar/prod/database-url` | `postgresql://user:pass@tradar-db.cluster-xxx.ap-northeast-2.rds.amazonaws.com:5432/tradar` | SecureString |
-| `/tradar/prod/opensearch-url` | `https://vpc-tradar-search-xxx.ap-northeast-2.es.amazonaws.com` | SecureString |
+| `/tradar/prod/database-url` | `postgresql://user:pass@...` | (선택) 클라우드 DB 사용 시 |
+| `/tradar/prod/opensearch-url` | `https://vpc-tradar-search-...` | (선택) 클라우드 OpenSearch 사용 시 |
 | `/tradar/prod/opensearch-username` | `tradar-opensearch` | (필요 시) Basic Auth |
 | `/tradar/prod/opensearch-password` | `****` | Basic Auth 비밀번호 |
 | `/tradar/prod/openai-api-key` | `sk-...` | SecureString |
 | `/tradar/prod/kipris-access-key` | `...` | SecureString |
 | `/tradar/prod/frontend-base-url` | `https://app.tradar.com` | CloudFront 배포 주소 |
 | `/tradar/prod/cors-allowed-origins` | `https://app.tradar.com` | 백엔드 CORS 허용 Origin |
+| `/tradar/prod/desktop-worker-token` | `<token>` | 워커 인증 토큰 |
+| `/tradar/prod/search-timeout-seconds` | `30` | 워커 응답 타임아웃 |
+| `/tradar/prod/topk-default` | `20` | 기본 Top-K |
 
 ### 2.3 GitHub Actions용 IAM 사용자
 - 이름: `tradar-github-actions`
@@ -274,8 +303,8 @@ docker compose up --build
 | 이름 | 값 예시 | 설명 |
 | --- | --- | --- |
 | `APP_ENV` | `prod` | 배포 환경 스위치 |
-| `DATABASE_URL` | Parameter Store 참조 | RDS 접속 URL |
-| `OPENSEARCH_URL` | Parameter Store 참조 | Amazon OpenSearch 엔드포인트 |
+| `DATABASE_URL` | Parameter Store 참조 | (검색은 워커에서 실행되지만, 백엔드 기동 체크 때문에 필수) |
+| `OPENSEARCH_URL` | Parameter Store 참조 | (검색은 워커에서 실행되지만, 백엔드 기동 체크 때문에 필수) |
 | `OPENSEARCH_USERNAME` | Parameter Store 참조 | (선택) Basic Auth 사용자 |
 | `OPENSEARCH_PASSWORD` | Parameter Store 참조 | (선택) Basic Auth 비밀번호 |
 | `OPENAI_API_KEY` | Parameter Store 참조 | LangChain/LLM |
@@ -285,6 +314,12 @@ docker compose up --build
 | `SIMULATION_LLM_MODEL` | `gpt-5-nano` | LangGraph 시뮬레이션용 |
 | `MEDIA_ALLOWED_ROOTS` | `/data` | 컨테이너 내 허용 파일 루트 |
 | `UVICORN_WORKERS`(선택) | `2` | 동시성 확장 |
+| `DESKTOP_WORKER_TOKEN` | Parameter Store 참조 | 워커 인증 토큰(`/tradar/prod/desktop-worker-token`) |
+| `DESKTOP_WORKER_ID_ALLOWLIST` | `desktop-1` | (선택) 워커 ID 허용 목록 |
+| `SEARCH_TIMEOUT_SECONDS` | `30` | 워커 응답 타임아웃 |
+| `TOPK_DEFAULT` | `20` | 기본 Top-K |
+| `TRADAR_DATA_BUCKET` | `tradar-data` | S3 presign 버킷 |
+| `TRADAR_IMAGE_PREFIX` | `queries` | presign 업로드 경로 접두사 |
 
 ---
 ## 3. CI/CD 파이프라인

@@ -5,7 +5,8 @@
 ## 엔드포인트 요약
 - 멀티모달 검색: `POST /search/multimodal`
 - 상품/서비스류 추천: `GET /goods/search`
-- 이미지 프록시: `GET /media?path=...`
+- 이미지 업로드 presign: `POST /media/presign`
+- 이미지 프록시(로컬 개발용): `GET /media?path=...`
 
 ## 루트 컴포넌트
 - 파일: `frontend/src/App.jsx`
@@ -17,7 +18,7 @@
 ### TrademarkSearchForm
 - 상표명 텍스트와 이미지 업로드 입력 제공
 - 선택된 유사군/류 요약을 보여 주며, 최소 1개 이상 선택해야 검색 요청을 보낼 수 있습니다(현재 점수 계산에는 사용되지 않음).
-- 제출 시 이미지 파일을 Base64 로 읽어 `/search/multimodal`에 전송
+- 제출 시 `/media/presign`으로 업로드 URL을 발급받아 S3에 직접 업로드하고, `/search/multimodal`에는 `image_ref`(presigned GET URL)만 전송
 
 ### GoodsSearchPanel
 - 키워드로 유사군을 찾는 보조 UI
@@ -26,6 +27,7 @@
 ### ResultSection / ResultCard
 - `response.image_top`, `response.text_top`을 최대 200건까지 받아둔 뒤 `RESULT_PAGE_SIZE(18)` 단위로 페이지네이션하고, 상태가 `등록`/`공고`가 아닌 후보는 `image_misc`, `text_misc` 섹션에 노출
 - 카드에는 출원번호, 상태 배지, 분류, DOI 링크(있는 경우), 이미지/텍스트 점수를 보여 주며 썸네일이 상단에 표시됩니다.
+- 썸네일은 `thumb_url`이 `data:` URL(워커에서 생성)일 수도 있고, 로컬 개발에서는 `/media?path=...`일 수도 있습니다.
 - 각 결과 섹션 아래에는 프롬프트 입력창과 `이미지 재검색`, `텍스트 재검색` 버튼(디버그 모드 포함)이 노출됩니다. 입력 영역에서 Enter 키(Shift+Enter 제외)를 누르면 기본 재검색이 즉시 실행되며, "최우선"/"우선"/"균형"/"프롬프트 우선"(90/10 · 70/30 · 50/50 · 30/70 · 10/90) 프리셋 중 하나를 선택해 기존 검색과 프롬프트 임베딩의 비중을 조절할 수 있습니다.
 - 디버그 모드를 활성화하면 재검색 가중치·LLM 해석 결과·폴백 여부가 "추가 메시지" 블록으로 함께 표시됩니다.
 - 재검색 후에는 `원래 이미지 결과`, `원래 텍스트 결과` 버튼으로 초기 응답으로 되돌릴 수 있으며, 내부 캐시를 사용해 추가 API 호출 없이 즉시 복원합니다.
@@ -58,4 +60,4 @@
 ## 변경 시 체크리스트
 - `SearchResult` 필드가 바뀌면 이 문서와 `ResultCard` 렌더링 코드를 함께 수정합니다.
 - 새로운 필터/옵션을 추가할 경우 `selectedGroups` 구조와 API 계약을 문서화합니다.
-- 이미지 업로드 방식이나 미리보기 로직을 변경하면 메모리 관리(Blob URL 해제 등)도 검토하세요.
+- 이미지 업로드 방식(`/media/presign` → `image_ref`)이나 미리보기 로직을 변경하면 메모리 관리(Blob URL 해제 등)도 검토하세요.

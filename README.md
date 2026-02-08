@@ -7,6 +7,7 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 
 ## 시스템 한눈에
 - **멀티모달 검색**: 이미지 임베딩(MetaCLIP2, DINOv2)과 텍스트 임베딩 + BM25를 결합해 유사 선행상표를 탐색합니다.
+- **오프로딩 아키텍처**: ECS 백엔드는 `/ws/worker`로 데스크톱 GPU 워커에 검색 작업을 위임하고, 워커가 로컬 Postgres/OpenSearch에서 결과를 반환합니다.
 - **의도 보정**: 프롬프트 재검색과 LLM 기반 유사어 확장으로 검색 의도를 더 정확히 반영합니다.
 - **AI Agent 시뮬레이션**: KIPRIS 의견제출통지서/거절결정서를 바탕으로 다중 에이전트가 충돌 위험과 등록 가능성을 평가합니다.
 - **상품/서비스류 탐색**: 대규모 지정상품 분류 데이터를 검색해 실제 출원 맥락을 반영합니다.
@@ -23,7 +24,7 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 - **Vector/DB**: PostgreSQL + pgvector (임베딩/메타데이터 저장)
 - **Search**: OpenSearch(BM25) + pgvector ANN
 - **Frontend**: Vite + React SPA
-- **Infra**: Docker/Docker Compose, AWS ECS/Fargate, RDS, OpenSearch Service, S3/CloudFront
+- **Infra**: Docker/Docker Compose, AWS ECS/Fargate + ALB/CloudFront, S3, Desktop GPU Worker(WebSocket). (선택) 검색 인프라를 클라우드로 옮길 경우 RDS/OpenSearch Service 사용
 - **Data Sources**: KIPRIS REST API, 상품/서비스류 TSV 데이터
 
 ## 사용 흐름
@@ -56,8 +57,9 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 ### 배포/운영 흐름
 1. 백엔드는 컨테이너 이미지로 빌드해 ECS/Fargate에 배포합니다.
 2. 프런트엔드는 정적 빌드 산출물을 S3에 업로드하고 CloudFront로 배포합니다.
-3. RDS(PostgreSQL+pgvector)와 OpenSearch를 운영 데이터 계층으로 사용합니다.
-4. 환경 변수/시크릿은 외부 스토리지에서 주입하고, 로그로 비용과 품질을 추적합니다.
+3. **검색은 데스크톱 GPU 워커로 오프로딩**하며, 워커가 로컬 Postgres(pgvector) + OpenSearch 컨테이너에 연결해 결과를 생성합니다.
+4. 이미지는 `/media/presign`으로 S3 presigned URL을 발급받아 업로드하고, `/search/multimodal`에는 `image_ref`만 전달합니다.
+5. 환경 변수/시크릿은 외부 스토리지에서 주입하고, 로그로 비용과 품질을 추적합니다.
 
 ## 구성 요소
 
@@ -118,8 +120,8 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 ### 배포/운영
 - FastAPI 백엔드는 컨테이너로 배포하고, 프런트는 정적 빌드로 분리 배포합니다.
 - 로컬에서는 Docker/Docker Compose로 DB·검색엔진·API·UI를 한 번에 구동할 수 있습니다.
-- 운영 환경에서는 ECS/Fargate + RDS + OpenSearch + S3/CloudFront 구성을 기준으로 설계되어 있습니다.
-- 비용 이슈로 AWS 실배포는 진행하지 않았고, 로컬 디바이스에서 docker-compose로 학교 내부 전용 배포만 운영했습니다.
+- 운영 환경에서는 ECS/Fargate + S3/CloudFront + **데스크톱 GPU 워커(WebSocket)** 구성을 기준으로 설계되어 있습니다.
+- 검색 인프라를 클라우드로 옮기고 싶다면 RDS/OpenSearch Service로 대체할 수 있습니다.
 - 환경 변수와 시크릿은 외부 스토리지(예: Parameter Store)로 관리하며, 운영 환경에서는 필수 키가 없으면 서버가 기동되지 않습니다.
 - LLM 사용량과 시뮬레이션 디버그 로그를 누적 기록해 비용과 품질을 추적할 수 있습니다.
 

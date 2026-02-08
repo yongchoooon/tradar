@@ -1,6 +1,8 @@
 # 검색 파이프라인
 
-이 문서는 `/search/multimodal` 엔드포인트에서 수행되는 단계별 로직을 설명합니다. 구현은 `app/pipelines/search_pipeline.py`에 있으며, 아래 구성요소들과 연동됩니다.
+이 문서는 `/search/multimodal` 엔드포인트에서 수행되는 단계별 로직을 설명합니다.  
+현재 **ECS 백엔드는 WebSocket(`/ws/worker`)으로 데스크톱 GPU 워커에 작업을 위임**하며,
+실제 검색 파이프라인(`app/pipelines/search_pipeline.py`)은 **워커 컨테이너 내부**에서 실행됩니다.
 
 - `app/services/image_embed_service.py`: MetaCLIP2 + DINOv2 임베딩
 - `app/services/text_embed_service.py`: MetaCLIP2 텍스트 임베딩
@@ -12,7 +14,8 @@
 ## 요청 스키마
 
 - `SearchRequest`
-- `image_b64` (필수): 업로드된 상표 이미지
+- `image_ref` (권장): `{type: "presigned_url", url: "..."}` 형태의 이미지 참조
+- `image_b64` (선택): 작은 이미지에 한해 Base64 전송 (운영에서는 기본 비활성)
 - `text` (선택): 사용자가 입력한 상표명
 - `image_prompt`: 이미지 재검색용 프롬프트(선택)
 - `image_prompt_mode`: 가중치 프리셋 (`primary_strong`·`primary_focus`·`balanced`·`prompt_focus`·`prompt_strong` → 90/10·70/30·50/50·30/70·10/90)
@@ -21,8 +24,16 @@
   - `variants`: 기존 검색에서 생성된 유사어를 재사용하고 싶을 때 전달하는 문자열 배열
   - `use_llm_variants`: `false`로 설정하면 LLM을 호출하지 않고 원문만 사용
   - `goods_classes`, `group_codes`: 선택된 서비스류/유사군 (향후 인접군/비인접군 구분에 활용 예정)
-  - `k`: 반환할 Top-K (기본 20, 프런트엔드는 최대 200으로 호출해 한 번에 더 많은 후보를 받아옵니다)
-  - `debug`: 디버그 세부정보를 포함할지 여부 (기본 비활성)
+- `k`: 반환할 Top-K (기본 20, 프런트엔드는 최대 200으로 호출해 한 번에 더 많은 후보를 받아옵니다)
+- `debug`: 디버그 세부정보를 포함할지 여부 (기본 비활성)
+
+이미지 업로드 권장 플로우:
+1. 프런트 → `POST /media/presign`  
+2. 프런트 → presigned `upload_url`로 S3 `PUT`  
+3. 프런트 → `/search/multimodal` 호출 시 `image_ref`로 presigned `read_url` 전달
+
+Base64 전송은 `ALLOW_BASE64_FALLBACK=true`일 때만 허용되며,
+`BASE64_MAX_IMAGE_BYTES`(기본 200KB)를 초과하면 `IMAGE_TOO_LARGE` 에러로 실패합니다.
 
 `QueryInfo`에는 요청에 사용된 텍스트, 유사어 목록, 선택한 분류 정보가 반영됩니다. `goods_classes`/`group_codes`는 현재 응답에 그대로 포함되며, 차후 인접군 표시 로직에 활용될 예정입니다.
 
@@ -81,7 +92,7 @@
   - `trademark_id`, `app_no`: DB의 `application_number`
   - `title`: 한글/영문 제목 중 우선값
   - `image_sim`, `text_sim`: 각각 블렌딩된 이미지 점수, MetaCLIP 텍스트 점수
-  - `thumb_url`: `/media?path=...` 형태의 썸네일 경로 또는 원본 URL
+  - `thumb_url`: 워커가 만든 `data:` URL 또는 외부 URL (로컬 개발에서는 `/media?path=...`도 가능)
   - `image_path`: 원본 이미지 절대 경로(프록시용) 또는 외부 URL
   - `goods_services`: 지정상품 요약 텍스트
   - `doi`: 연계 문서가 있는 경우 DOI 링크
@@ -91,8 +102,10 @@
 
 | 서비스 | 모듈 | 주요 환경 변수 |
 | ------ | ---- | --------------- |
-| PostgreSQL + pgvector | `app/services/db.py`, `vector_client.py`, `catalog.py` | `DATABASE_URL` |
-| OpenSearch | `app/services/bm25_client.py` | `OPENSEARCH_URL`, `OPENSEARCH_INDEX`, `OPENSEARCH_SEARCH_FIELDS` |
+| Desktop Worker (WebSocket) | `app/services/worker_bridge.py` | `DESKTOP_WORKER_TOKEN`, `SEARCH_TIMEOUT_SECONDS`, `TOPK_DEFAULT` |
+| PostgreSQL + pgvector (워커) | `app/services/db.py`, `vector_client.py`, `catalog.py` | `DATABASE_URL` |
+| OpenSearch (워커) | `app/services/bm25_client.py` | `OPENSEARCH_URL`, `OPENSEARCH_INDEX`, `OPENSEARCH_SEARCH_FIELDS` |
+| S3 Presign | `app/services/s3_storage.py` | `TRADAR_DATA_BUCKET`, `TRADAR_IMAGE_PREFIX`, `TRADAR_PRESIGN_TTL_SECONDS`, `ALLOW_BASE64_FALLBACK` |
 | OpenAI GPT-4o-mini | `app/services/synonym_service.py` | `OPENAI_API_KEY`, `SearchRequest.use_llm_variants` |
 
 ## 업데이트 가이드

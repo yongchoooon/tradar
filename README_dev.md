@@ -9,14 +9,18 @@
           │
           ▼
   FastAPI /search/multimodal
-          │
-          ├─ ImageEmbedder (MetaCLIP2 + DINOv2)
-          ├─ TextEmbedder  (MetaCLIP2)
-          ├─ TextVariantService → LLM 유사어
-          │
-          ├─ pgvector (image_embeddings_dino, image_embeddings_metaclip, text_embeddings_metaclip)
-          ├─ OpenSearch (BM25)
-          └─ PostgreSQL tradar.trademarks 메타데이터
+          │  (WorkerBridge)
+          ▼
+  WebSocket /ws/worker
+          │  (outbound, Desktop Worker)
+          ▼
+SearchPipeline (Desktop GPU Worker)
+ ├─ ImageEmbedder (MetaCLIP2 + DINOv2)
+ ├─ TextEmbedder  (MetaCLIP2)
+ ├─ TextVariantService → LLM 유사어
+ ├─ pgvector (image_embeddings_dino, image_embeddings_metaclip, text_embeddings_metaclip)
+ ├─ OpenSearch (BM25)
+ └─ PostgreSQL tradar.trademarks 메타데이터
 ```
 
 ## Desktop GPU Worker (신규)
@@ -29,6 +33,8 @@ db 컨테이너가 안 뜨는 것은 정상이며, **기존 compose 스택을 �
   - 브라우저는 `/media/presign`으로 업로드 URL을 받은 뒤 S3에 직접 업로드하고,
     `/search/multimodal`에는 `image_ref`(presigned GET URL)만 전달합니다.
   - CloudFront는 큰 POST 바디를 차단할 수 있으므로 base64 전송은 운영에서 금지합니다.
+- 검색 결과 썸네일은 **워커가 로컬 파일을 읽어 작은 data URL로 만들어 반환**합니다.
+  (ECS 백엔드는 데스크톱 파일을 직접 접근할 수 없으므로 `/media?path=...`를 운영에서 사용하지 않습니다.)
 
 필수 환경 변수 (워커):
 - `WORKER_WS_URL` (예: `wss://<api-cloudfront-domain>/ws/worker`)
@@ -39,6 +45,13 @@ db 컨테이너가 안 뜨는 것은 정상이며, **기존 compose 스택을 �
 - `DESKTOP_COMPOSE_NETWORK` (Mode A 네트워크 이름)
 - `ALLOW_BASE64_FALLBACK` (기본값 `false`)
 - `BASE64_MAX_IMAGE_BYTES` (기본값 `204800`, 200KB)
+- `TRADAR_DATA_BUCKET`, `TRADAR_IMAGE_PREFIX`, `TRADAR_PRESIGN_TTL_SECONDS` (S3 presign 설정)
+- `TRADAR_DISABLE_S3` (개발용: `true`면 S3 업로드 시도 자체를 비활성)
+- `WORKER_THUMB_ENABLED` (기본값 `true`)
+- `WORKER_THUMB_MAX_SIZE` (기본값 `256`)
+- `WORKER_THUMB_MAX_BYTES` (기본값 `65536`)
+- `WORKER_THUMB_QUALITY` (기본값 `70`)
+- `WORKER_THUMB_FORMAT` (기본값 `jpeg`)
 
 ### 이미지 업로드 (운영 권장 플로우)
 1. 프론트 → `POST /media/presign` (파일명, content-type 전달)
@@ -52,6 +65,12 @@ S3 버킷 CORS에 `PUT` 허용이 필요합니다.
 - 점검: `nvidia-smi`, `docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi`
 - 워커는 시작 시 GPU 사용 가능 여부와 디바이스를 로그로 출력합니다.
 - `WORKER_REQUIRE_GPU=true`이면 GPU 미탐지 시 즉시 종료합니다.
+
+### 썸네일/이미지 경로
+- 워커는 검색 결과의 `image_path`를 이용해 **로컬 파일에서 썸네일을 생성**합니다.
+- 따라서 워커 컨테이너 안에서 DB에 저장된 `image_path`가 실제로 존재해야 합니다.
+- 기본 `docker-compose.desktop.yml`은 `${TRADAR_IMAGE_ROOT:-../tradar-data}`를 `/data/images`로 마운트합니다.
+  DB의 `image_path`가 `/data/images/...` 형식인지 확인하거나, 경로가 다르면 마운트를 맞춰주세요.
 
 ### Mode A: 기존 docker-compose 네트워크에 붙이기 (권장)
 정의: 기존 compose 스택(db/opensearch)이 **이미 실행 중**이어야 합니다. 워커는 db/opensearch를 생성하지 않습니다.
@@ -127,7 +146,8 @@ python -m worker.main
 - 작업 정보는 메모리 내 `SimulationJobManager`가 관리하며, 서버 재시작 시 초기화되므로 장기 저장이 필요한 경우 외부 스토리지를 추가해야 합니다.
 
 필수 환경 변수:
-- 운영(`APP_ENV=prod`)에서는 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`, `KIPRIS_ACCESS_KEY`, `CORS_ALLOWED_ORIGINS` 값을 반드시 OS 환경 또는 AWS SSM Parameter Store에서 주입해야 합니다. 값이 하나라도 비어 있으면 FastAPI가 즉시 종료합니다.
+- 운영(`APP_ENV=prod`)에서는 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`, `KIPRIS_ACCESS_KEY`, `CORS_ALLOWED_ORIGINS`, `DESKTOP_WORKER_TOKEN` 값을 반드시 OS 환경 또는 AWS SSM Parameter Store에서 주입해야 합니다. 값이 하나라도 비어 있으면 FastAPI가 즉시 종료합니다.
+- 검색은 워커가 처리하지만 **백엔드는 기동 체크 때문에 `DATABASE_URL`/`OPENSEARCH_URL`이 필요**합니다.
 - 로컬 개발(`APP_ENV!=prod`)에서는 `.env`가 있으면 자동으로 로드하고, `DATABASE_URL`/`OPENSEARCH_URL`은 각각 `postgresql://postgres:postgres@localhost:5432/tradar`, `http://localhost:9200`로 기본값을 채웁니다.
 - `CORS_ALLOWED_ORIGINS`는 콤마로 구분된 허용 Origin 목록입니다. 기본값은 `http://localhost:5173`이며, 운영 환경에서는 `https://<cloudfront-domain>`처럼 구체적인 도메인을 지정해야 합니다.
 - 시뮬레이션 LLM 모델(`SIMULATION_LLM_MODEL`)은 환경 변수로 조정할 수 있고, 온도는 코드 상에서 1.0으로 고정되어 별도 설정이 필요 없습니다.
@@ -139,7 +159,7 @@ python -m worker.main
 - 로컬 개발 시에는 `npm run dev`로 Vite Dev Server(기본 `http://localhost:5173`)를 띄우고, `bash scripts/run_api.sh`로 FastAPI를 별도로 구동합니다. API 호출은 항상 `import.meta.env.VITE_API_BASE_URL`을 통해 절대 경로로 전송됩니다. 로컬에서 직접 실행할 때는 `frontend/.env.local`에 `VITE_API_BASE_URL=http://localhost:8000`을 지정하세요. Docker Compose 환경에서는 `VITE_API_BASE_URL=/api`로 두고, Vite dev proxy(기본 `http://api:8000`)를 사용합니다.
 - 운영/테스트 배포에서는 SPA를 별도 S3/CloudFront에 올리고 FastAPI는 API 전용으로 실행합니다. 빌드 전에 `VITE_API_BASE_URL`을 백엔드 공개 주소(예: `https://api.tradar.com`)로 주입해야 하며, CloudFront 도메인에서는 모든 API 요청이 해당 절대 경로로 전송됩니다. `FRONTEND_DIST` 환경 변수를 직접 지정한 경우에만 정적 자산을 서빙하므로, 로컬에서 `npm run build` 결과를 확인하고 싶을 때 `FRONTEND_DIST=frontend/dist uvicorn app.main:app` 형태로 실행하면 됩니다.
 - Docker나 AWS 배포 파이프라인도 백엔드와 프런트엔드를 분리합니다. 백엔드 이미지는 `app/` 코드와 Python 의존성만 포함하고, 프런트 배포는 `frontend/dist`를 S3에 업로드하거나 CloudFront에 연결된 버킷으로 동기화하세요.
-- `docker-compose.yml`은 개발 편의용으로만 제공합니다. `.:/app` 볼륨 마운트, 로컬 Postgres/OpenSearch 컨테이너 등은 프로덕션에서 사용하지 말고, ECS/RDS/OpenSearch Service 조합에 필요한 환경 변수들은 모두 OS 환경이나 AWS SSM Parameter Store에서 주입하세요.
+- `docker-compose.yml`은 개발 편의용으로만 제공합니다. `.:/app` 볼륨 마운트, 로컬 Postgres/OpenSearch 컨테이너 등은 프로덕션에서 사용하지 말고, **ECS 백엔드 + 데스크톱 워커(WebSocket) + S3 presign** 구성에 필요한 환경 변수는 모두 OS 환경이나 AWS SSM Parameter Store에서 주입하세요.
 - `frontend/src/index.css`는 `--viewport-scale`, `--space-scale` 같은 루트 변수를 통해 창 너비에 따라 글꼴/패딩/갭을 자동으로 조절합니다. 큰 모니터에서는 100% 크기로, 14~16인치 노트북에서는 약 80%까지 자연스럽게 축소되므로, 레이아웃 변경 시 해당 변수를 먼저 고려하세요.
 
 ### 로컬/운영 API 연동 확인 방법
