@@ -25,6 +25,7 @@ from app.schemas.simulation import (
 )
 from app.services.kipris_client import KiprisClient, format_document_context
 from app.services.langgraph_orchestrator import LangGraphOrchestrator
+from app.services.log_storage import upload_text, s3_logs_enabled
 from dotenv import load_dotenv
 
 logger = logging.getLogger("simulation")
@@ -407,7 +408,14 @@ class SimulationEngine:
             "context": context_text,
             "documents": docs,
         }
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        path.write_text(text, encoding="utf-8")
+        if s3_logs_enabled():
+            upload_text(
+                f"simulation_debug/{job_tag}/{job_tag}_{app_no}_context.json",
+                text,
+                content_type="application/json",
+            )
 
     def _log_debug_llm(
         self,
@@ -428,7 +436,14 @@ class SimulationEngine:
             chunks.append(
                 f"[{idx}] 역할: {role}\n--- Prompt ---\n{prompt}\n--- Response ---\n{response}\n"
             )
-        path.write_text("\n".join(chunks), encoding="utf-8")
+        text = "\n".join(chunks)
+        path.write_text(text, encoding="utf-8")
+        if s3_logs_enabled():
+            upload_text(
+                f"simulation_debug/{job_tag}/{job_tag}_{app_no}_llm.txt",
+                text,
+                content_type="text/plain",
+            )
 
     def _sanitize_filename(self, value: str) -> str:
         return re.sub(r"[^0-9A-Za-z_-]", "_", value or "unknown")

@@ -1110,12 +1110,13 @@ function SimulationPanel({
                 <button
                   type="button"
                   className="action-button action-button--primary simulation-panel__button"
-                  onClick={() => onRun?.(false)}
+                  onClick={() => onRun?.(true)}
                   disabled={buttonDisabled}
                 >
                   <FiPlayCircle aria-hidden="true" />
                   <span>시뮬레이션 시작</span>
                 </button>
+                {/*
                 <button
                   type="button"
                   className="action-button action-button--debug simulation-panel__button"
@@ -1125,6 +1126,7 @@ function SimulationPanel({
                   <FiTerminal aria-hidden="true" />
                   <span>시뮬레이션 디버그</span>
                 </button>
+                */}
               </div>
             )}
             {( ['collecting', 'loading', 'cancelling' ].includes(status) && canCancel) && (
@@ -1983,8 +1985,9 @@ function App() {
             onClick={() => executeSearch(false)}
           >
             <FiSearch aria-hidden="true" />
-            <span>일반 검색</span>
+            <span>검색</span>
           </button>
+          {/*
           <button
             type="button"
             className="action-button action-button--debug"
@@ -1993,6 +1996,7 @@ function App() {
             <FiTerminal aria-hidden="true" />
             <span>디버그 검색</span>
           </button>
+          */}
         </div>
         <label className="llm-toggle" aria-label="LLM 유사어 사용 여부">
           <input
