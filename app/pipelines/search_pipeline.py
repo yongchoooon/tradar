@@ -20,11 +20,10 @@ from app.schemas.search import (
 )
 from app.services.bm25_client import BM25Client
 from app.services.catalog import TrademarkRecord, bulk_by_ids
-from app.services.embedding_utils import normalize_accumulator, cosine
+from app.services.embedding_utils import normalize_accumulator
 # goods metadata currently not used for grouping; import retained for future use
 # from app.services.goods import load_goods_groups
 from app.services.image_embed_service import ImageEmbedder
-from app.services.prompt_interpreter import PromptInterpretation, PromptInterpreter
 from app.services.text_embed_service import TextEmbedder
 from app.services.text_variant_service import TextVariantService
 from app.services.vector_client import VectorClient
@@ -38,15 +37,6 @@ DEBUG_LIMIT: Optional[int] = None  # None means show all debug rows
 
 IMAGE_WEIGHT_DINO = 0.5
 IMAGE_WEIGHT_METACLIP = 0.5
-
-PROMPT_BLEND_PRESETS = {
-    "primary_strong": 0.9,
-    "primary_focus": 0.7,
-    "image_focus": 0.7,
-    "balanced": 0.5,
-    "prompt_focus": 0.3,
-    "prompt_strong": 0.1,
-}
 
 EMBED_CACHE_SIZE = int(os.getenv("PIPELINE_EMBED_CACHE_SIZE", "128"))
 
@@ -91,7 +81,6 @@ class SearchPipeline:
         self._img_embed = ImageEmbedder()
         self._txt_embed = TextEmbedder()
         self._variants = TextVariantService()
-        self._prompt_interpreter = PromptInterpreter()
         self._image_cache: OrderedDict[str, Dict[str, List[float]]] = OrderedDict()
         self._text_cache: OrderedDict[str, List[float]] = OrderedDict()
         try:
@@ -106,20 +95,8 @@ class SearchPipeline:
         image_bytes = base64.b64decode(req.image_b64)
         image_embeddings = self._get_cached_image_embeddings(image_bytes)
         dino_query = list(image_embeddings["dino"])
-        base_metaclip_query = list(image_embeddings["metaclip"])
-        metaclip_query = list(base_metaclip_query)
-
-        image_prompt = (req.image_prompt or "").strip()
-        image_mode = (req.image_prompt_mode or "balanced").lower()
-        image_primary_weight = _resolve_blend_weight(image_mode)
+        metaclip_query = list(image_embeddings["metaclip"])
         image_weights = (IMAGE_WEIGHT_DINO, IMAGE_WEIGHT_METACLIP)
-        if image_prompt:
-            prompt_vector = self._encode_text_cached(image_prompt)
-            prompt_similarity = cosine(base_metaclip_query, prompt_vector)
-            metaclip_query = _blend_vectors(base_metaclip_query, prompt_vector, image_primary_weight)
-            debug_messages.append(
-                f"Image prompt applied (mode={image_mode}, cosine={prompt_similarity:.4f}, blend={image_primary_weight:.2f}/{1 - image_primary_weight:.2f})"
-            )
         debug_messages.append(
             f"Image similarity weights fixed -> DINO {image_weights[0]:.2f}, MetaCLIP {image_weights[1]:.2f}"
         )
@@ -146,43 +123,7 @@ class SearchPipeline:
                 manual_text, use_llm=req.use_llm_variants
             )
 
-        text_prompt = (req.text_prompt or "").strip()
-        interpretation: PromptInterpretation | None = None
-        if text_prompt:
-            interpretation = self._prompt_interpreter.interpret(manual_text, text_prompt)
-            added = self._extend_variants(variants, interpretation.additional_terms)
-            if added:
-                debug_messages.append(
-                    "Added prompt-derived terms: " + ", ".join(added)
-                )
-            if interpretation.fallback_reason:
-                debug_messages.append(
-                    f"Text prompt fallback: {interpretation.fallback_reason}"
-                )
-            if interpretation.notes:
-                debug_messages.append(interpretation.notes)
-
         text_query = self._build_text_query_vector(manual_text, variants)
-        base_text_query = list(text_query) if text_query is not None else None
-        text_mode = (req.text_prompt_mode or "balanced").lower()
-        text_primary_weight = _resolve_blend_weight(text_mode)
-        if text_prompt:
-            prompt_vector = self._encode_text_cached(text_prompt)
-            if text_query is None:
-                text_query = prompt_vector
-                debug_messages.append(
-                    f"Text prompt used as sole vector (mode={text_mode})"
-                )
-            else:
-                prompt_similarity = cosine(base_text_query, prompt_vector)
-                text_query = _blend_vectors(base_text_query, prompt_vector, text_primary_weight)
-                debug_messages.append(
-                    f"Text prompt applied (mode={text_mode}, cosine={prompt_similarity:.4f})"
-                )
-        text_secondary_weight = 1.0 - text_primary_weight
-        debug_messages.append(
-            f"Text weight preset '{text_mode}' -> base {text_primary_weight:.2f}, prompt {text_secondary_weight:.2f}"
-        )
 
         text_hits: List[dict] = []
         if text_query is not None:
@@ -209,16 +150,6 @@ class SearchPipeline:
             + text_misc_candidate_ids
         )
         metadata = bulk_by_ids(required_ids)
-
-        if interpretation and interpretation.has_constraints:
-            text_sorted_ids = self._apply_text_constraints(
-                text_sorted_ids,
-                metadata,
-                interpretation,
-                debug_messages,
-            )
-            text_top_ids = text_sorted_ids[:topk]
-            text_misc_candidate_ids = text_sorted_ids[topk : topk + MISC_LIMIT]
 
         image_top = self._build_results(
             image_top_ids, metadata, image_candidates, text_candidates
@@ -312,23 +243,6 @@ class SearchPipeline:
     def _trim_cache(self, cache: OrderedDict) -> None:  # type: ignore[name-defined]
         while len(cache) > EMBED_CACHE_SIZE:
             cache.popitem(last=False)
-
-    def _extend_variants(self, variants: List[str], additions: Sequence[str]) -> List[str]:
-        added: List[str] = []
-        if not additions:
-            return added
-        seen = {item.lower() for item in variants}
-        for term in additions:
-            cleaned = (term or "").strip()
-            if not cleaned:
-                continue
-            key = cleaned.lower()
-            if key in seen:
-                continue
-            variants.append(cleaned)
-            added.append(cleaned)
-            seen.add(key)
-        return added
 
     def _build_text_query_vector(
         self, text: str, variants: Sequence[str]
@@ -499,69 +413,6 @@ class SearchPipeline:
             misc.append(result)
         return misc
     
-    def _apply_text_constraints(
-        self,
-        ids: Sequence[str],
-        metadata: Dict[str, TrademarkRecord],
-        interpretation: PromptInterpretation,
-        debug_messages: List[str],
-    ) -> List[str]:
-        prefix = _normalize_text(interpretation.must_prefix) if interpretation.must_prefix else ""
-        includes = [_normalize_text(term) for term in interpretation.must_include if term]
-        excludes = [_normalize_text(term) for term in interpretation.must_exclude if term]
-
-        if not prefix and not includes and not excludes:
-            return list(ids)
-
-        prefix_matches: List[str] = []
-        include_matches: List[str] = []
-        remainder: List[str] = []
-        excluded: List[str] = []
-
-        for tm_id in ids:
-            record = metadata.get(tm_id)
-            if not record:
-                remainder.append(tm_id)
-                continue
-            normalized_titles = self._normalized_title_tokens(record)
-            combined = " ".join(normalized_titles)
-
-            prefix_ok = True if not prefix else any(title.startswith(prefix) for title in normalized_titles if title)
-            include_ok = True if not includes else all(term in combined for term in includes)
-            exclude_ok = True if not excludes else all(term not in combined for term in excludes)
-
-            if not exclude_ok:
-                excluded.append(tm_id)
-                continue
-
-            if prefix_ok and include_ok:
-                prefix_matches.append(tm_id)
-            elif include_ok:
-                include_matches.append(tm_id)
-            else:
-                remainder.append(tm_id)
-
-        summary_parts: List[str] = []
-        if prefix:
-            summary_parts.append(f"prefix='{prefix}' matches={len(prefix_matches)}")
-        if includes:
-            summary_parts.append(f"must_include={includes} matches={len(prefix_matches) + len(include_matches)}")
-        if excludes:
-            summary_parts.append(f"excluded={len(excluded)}")
-        if summary_parts:
-            debug_messages.append("Text constraint summary: " + ", ".join(summary_parts))
-
-        return prefix_matches + include_matches + remainder + excluded
-
-    def _normalized_title_tokens(self, record: TrademarkRecord) -> List[str]:
-        values = [record.title_korean, record.title_english, record.application_number]
-        tokens = []
-        for value in values:
-            normalized = _normalize_text(value)
-            if normalized:
-                tokens.append(normalized)
-        return tokens
-
     def _build_debug_info(
         self,
         image_candidates: Dict[str, ImageCandidate],
@@ -610,23 +461,6 @@ def _blend_scores(pairs: Iterable[tuple[float, float]]) -> float:
         return 0.0
     return sum(score * weight for score, weight in valid) / weight_sum
 
-
-def _blend_vectors(
-    primary: Sequence[float],
-    secondary: Sequence[float],
-    primary_weight: float,
-) -> List[float]:
-    if len(primary) != len(secondary):
-        raise ValueError("Prompt blending requires equal-length vectors")
-    alpha = max(0.0, min(1.0, primary_weight))
-    beta = 1.0 - alpha
-    combined = [alpha * a + beta * b for a, b in zip(primary, secondary)]
-    return normalize_accumulator(combined)
-
-
-def _resolve_blend_weight(mode: str) -> float:
-    key = (mode or "balanced").lower()
-    return max(0.0, min(1.0, PROMPT_BLEND_PRESETS.get(key, PROMPT_BLEND_PRESETS["balanced"])))
 
 
 def _sorted_ids(scores: Dict[str, float]) -> List[str]:

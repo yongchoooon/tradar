@@ -27,10 +27,6 @@ class SearchRequest:
     group_codes: List[str] = field(default_factory=list)
     k: int = 20
     debug: bool = False
-    image_prompt: Optional[str] = None
-    image_prompt_mode: str = "balanced"
-    text_prompt: Optional[str] = None
-    text_prompt_mode: str = "balanced"
     variants: Optional[List[str]] = None
     use_llm_variants: bool = True
 

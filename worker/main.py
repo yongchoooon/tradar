@@ -324,10 +324,6 @@ class DesktopWorker:
             group_codes=list(request_meta.get("group_codes") or []),
             k=top_k,
             debug=bool(request_meta.get("debug")),
-            image_prompt=request_meta.get("image_prompt"),
-            image_prompt_mode=request_meta.get("image_prompt_mode") or "balanced",
-            text_prompt=request_meta.get("text_prompt"),
-            text_prompt_mode=request_meta.get("text_prompt_mode") or "balanced",
             variants=request_meta.get("variants"),
             use_llm_variants=bool(request_meta.get("use_llm_variants", True)),
         )
