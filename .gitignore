@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 *.log
 .DS_Store
+prompt.md
+.prompt.md
 build/
 dist/
 .vite/
