@@ -1436,6 +1436,7 @@ function App() {
   const [simulationModel, setSimulationModel] = useState('');
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
+  const simulationPollRef = useRef(null);
   const textDisplayVariants = response?.query?.variants || [];
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
 
@@ -1693,6 +1694,76 @@ function App() {
       simulationEventRef.current.close();
       simulationEventRef.current = null;
     }
+    if (simulationPollRef.current) {
+      window.clearInterval(simulationPollRef.current);
+      simulationPollRef.current = null;
+    }
+  };
+
+  const handleSimulationStatusPayload = (data) => {
+    const status = (data?.status || '').toLowerCase();
+    if (status === 'pending' || status === 'queued') {
+      setSimulationStatus('collecting');
+      return false;
+    }
+    if (status === 'collecting') {
+      setSimulationStatus('collecting');
+      return false;
+    }
+    if (status === 'simulating' || status === 'running') {
+      setSimulationStatus('loading');
+      return false;
+    }
+    if (status === 'complete' && data?.result) {
+      setSimulationStatus('complete');
+      setSimulationResult(data.result);
+      setSimulationJobId(null);
+      setSimulationError('');
+      return true;
+    }
+    if (status === 'failed') {
+      setSimulationStatus('error');
+      setSimulationError(data?.error || '시뮬레이션에 실패했습니다.');
+      setSimulationJobId(null);
+      return true;
+    }
+    if (status === 'cancelled') {
+      setSimulationStatus('cancelled');
+      setSimulationResult((prev) => data.result || prev || null);
+      setSimulationJobId(null);
+      setSimulationError('사용자가 시뮬레이션을 취소했습니다.');
+      return true;
+    }
+    if (status === 'not_found') {
+      setSimulationStatus('error');
+      setSimulationError('작업을 찾을 수 없습니다.');
+      setSimulationJobId(null);
+      return true;
+    }
+    return false;
+  };
+
+  const startSimulationPolling = (jobId) => {
+    if (simulationPollRef.current) {
+      return;
+    }
+    const pollOnce = async () => {
+      try {
+        const data = await apiFetch(`/simulation/status/${jobId}`);
+        const done = handleSimulationStatusPayload(data);
+        if (done) {
+          closeSimulationStream();
+        }
+      } catch (err) {
+        console.error(err);
+        setSimulationStatus('error');
+        setSimulationError('상태 조회 중 오류가 발생했습니다.');
+        setSimulationJobId(null);
+        closeSimulationStream();
+      }
+    };
+    pollOnce();
+    simulationPollRef.current = window.setInterval(pollOnce, 2000);
   };
 
   const startSimulationStream = (jobId) => {
@@ -1702,34 +1773,8 @@ function App() {
     source.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data || '{}');
-        const status = (data.status || '').toLowerCase();
-        if (status === 'pending' || status === 'queued') {
-          setSimulationStatus('collecting');
-        } else if (status === 'collecting') {
-          setSimulationStatus('collecting');
-        } else if (status === 'simulating' || status === 'running') {
-          setSimulationStatus('loading');
-      } else if (status === 'complete' && data.result) {
-          setSimulationStatus('complete');
-          setSimulationResult(data.result);
-          setSimulationJobId(null);
-          setSimulationError('');
-          closeSimulationStream();
-        } else if (status === 'failed') {
-          setSimulationStatus('error');
-          setSimulationError(data.error || '시뮬레이션에 실패했습니다.');
-          setSimulationJobId(null);
-          closeSimulationStream();
-        } else if (status === 'cancelled') {
-          setSimulationStatus('cancelled');
-          setSimulationResult((prev) => data.result || prev || null);
-          setSimulationJobId(null);
-          setSimulationError('사용자가 시뮬레이션을 취소했습니다.');
-          closeSimulationStream();
-        } else if (status === 'not_found') {
-          setSimulationStatus('error');
-          setSimulationError('작업을 찾을 수 없습니다.');
-          setSimulationJobId(null);
+        const done = handleSimulationStatusPayload(data);
+        if (done) {
           closeSimulationStream();
         }
       } catch (err) {
@@ -1741,10 +1786,11 @@ function App() {
       }
     };
     source.onerror = () => {
-      setSimulationStatus('error');
-      setSimulationError('스트림 연결이 종료되었습니다.');
-      setSimulationJobId(null);
-      closeSimulationStream();
+      if (simulationEventRef.current) {
+        simulationEventRef.current.close();
+        simulationEventRef.current = null;
+      }
+      startSimulationPolling(jobId);
     };
   };
 
