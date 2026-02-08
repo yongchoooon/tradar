@@ -1666,9 +1666,7 @@ function App() {
       text_sim: item.text_sim,
       status: item.status,
       class_codes: item.class_codes || [],
-      image_path: item.image_path || null,
       thumb_url: item.thumb_url || null,
-      goods_services: item.goods_services || null,
     }));
     const images = mapItems(simulationSelection.image, 'image');
     const texts = mapItems(simulationSelection.text, 'text');
@@ -1690,7 +1688,7 @@ function App() {
       const prefix = entry.groupCode ? `(${entry.groupCode}) ` : '';
       rows.push(`${prefix}${cleanedNames.join(', ')}`);
     });
-    return rows;
+    return rows.slice(0, 30);
   };
 
   const closeSimulationStream = () => {
