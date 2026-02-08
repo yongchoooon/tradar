@@ -84,6 +84,7 @@ class QueryInfo:
 
 @pydantic_dataclass
 class SearchResponse:
+    search_id: Optional[str] = None
     query: QueryInfo
     image_top: List[SearchResult]
     image_misc: List[SearchResult]

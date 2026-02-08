@@ -24,6 +24,7 @@ from app.services.worker_registry import (
     WorkerUnavailableError,
     worker_registry,
 )
+from app.services.search_cache import search_cache
 from app.services.worker_settings import get_worker_settings
 
 
@@ -268,6 +269,10 @@ async def run_worker_search(req: SearchRequest) -> SearchResponse:
         raise WorkerSearchFailed("invalid_worker_response")
 
     response = _map_worker_result(result, req, top_k)
+    try:
+        response.search_id = search_cache.store(response)
+    except Exception:  # pragma: no cover - cache failures should not block search
+        logger.exception("Failed to store search response in cache")
     debug_payload = result.get("debug")
     if isinstance(debug_payload, dict):
         debug_payload.setdefault("elapsed_ms", elapsed_ms)

@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import os
 
@@ -15,6 +15,7 @@ from app.schemas.simulation import (
     SimulationConfigResponse,
 )
 from app.services.simulation_jobs import job_manager
+from app.services.search_cache import search_cache
 
 router = APIRouter()
 logger = logging.getLogger("simulation")
@@ -25,11 +26,44 @@ def run_simulation_endpoint(
     request: SimulationRequest,
     background_tasks: BackgroundTasks,
 ) -> SimulationJobCreateResponse:
-    if not request.selections:
+    if not request.search_id:
+        raise HTTPException(status_code=400, detail="검색 컨텍스트가 없습니다. 다시 검색해 주세요.")
+    if not request.selection_refs:
         raise HTTPException(status_code=400, detail="선택된 상표가 없습니다.")
+
+    cache_entry = search_cache.get(request.search_id)
+    if not cache_entry:
+        raise HTTPException(status_code=400, detail="검색 컨텍스트가 만료되었습니다. 다시 검색해 주세요.")
+    selections = []
+    missing = 0
+    for ref in request.selection_refs:
+        key = (ref.application_number, ref.variant)
+        selection = cache_entry.selections.get(key)
+        if selection is None:
+            missing += 1
+            continue
+        selections.append(selection)
+    if not selections:
+        raise HTTPException(status_code=400, detail="선택된 상표를 찾을 수 없습니다.")
+    if missing:
+        logger.warning(
+            "[/simulation/run] missing selections=%d search_id=%s",
+            missing,
+            request.search_id,
+        )
+    request = replace(request, selections=selections)
+    try:
+        payload_bytes = len(json.dumps(asdict(request), default=str).encode("utf-8"))
+    except Exception:
+        payload_bytes = -1
     logger.info(
-        "[/simulation/run] enqueue request with %d selections",
+        "[/simulation/run] enqueue selections=%d refs=%d search_id=%s goods_names=%d image_ref=%s payload_bytes=%s",
         len(request.selections or []),
+        len(request.selection_refs or []),
+        request.search_id,
+        len(request.user_goods_names or []),
+        bool(request.user_image_ref),
+        payload_bytes,
     )
     job_id = job_manager.enqueue(request)
     background_tasks.add_task(job_manager.run_job, job_id)

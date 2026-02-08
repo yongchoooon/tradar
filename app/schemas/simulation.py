@@ -31,8 +31,16 @@ class SimulationSelection:
 
 
 @pydantic_dataclass
+class SimulationSelectionRef:
+    application_number: str
+    variant: VariantType
+
+
+@pydantic_dataclass
 class SimulationRequest:
-    selections: List[SimulationSelection]
+    search_id: Optional[str] = None
+    selection_refs: List[SimulationSelectionRef] = field(default_factory=list)
+    selections: List[SimulationSelection] = field(default_factory=list)
     debug: bool = False
     query_title: Optional[str] = None
     user_goods_classes: List[str] = field(default_factory=list)
