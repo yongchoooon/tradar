@@ -15,6 +15,8 @@ from pathlib import Path
 from statistics import mean
 from typing import Callable, Dict, List, Optional, Sequence
 
+import httpx
+
 from app.schemas.simulation import (
     SimulationCandidateResult,
     SimulationRequest,
@@ -68,9 +70,16 @@ class SimulationEngine:
         user_groups = list(getattr(request, "user_group_codes", []) or [])
         user_goods_names = list(getattr(request, "user_goods_names", []) or [])
         user_image_b64_raw = getattr(request, "user_image_b64", None)
+        user_image_mime = getattr(request, "user_image_mime", None)
+        user_image_ref = getattr(request, "user_image_ref", None)
+        if user_image_ref:
+            ref_b64, ref_mime = await self._load_user_image_ref(user_image_ref)
+            if ref_b64:
+                user_image_b64_raw = ref_b64
+                user_image_mime = ref_mime or user_image_mime
         user_image_data_url = self._build_user_image_data_url(
             user_image_b64_raw,
-            getattr(request, "user_image_mime", None),
+            user_image_mime,
         )
         if progress_callback:
             try:
@@ -424,6 +433,44 @@ class SimulationEngine:
     def _sanitize_filename(self, value: str) -> str:
         return re.sub(r"[^0-9A-Za-z_-]", "_", value or "unknown")
 
+    async def _load_user_image_ref(
+        self,
+        image_ref: object,
+    ) -> tuple[Optional[str], Optional[str]]:
+        ref_type = (getattr(image_ref, "type", "") or "").lower()
+        if ref_type in {"presigned_url", "url"}:
+            url = getattr(image_ref, "url", None)
+            if not url:
+                return None, None
+            data, mime = await self._fetch_image_bytes(url)
+            if not data:
+                return None, None
+            encoded = base64.b64encode(data).decode("ascii")
+            return encoded, mime
+        if ref_type == "base64":
+            data = getattr(image_ref, "data", None)
+            if not data:
+                return None, None
+            if isinstance(data, str) and data.startswith("data:"):
+                parts = data.split(",", 1)
+                data = parts[1] if len(parts) == 2 else data
+            return data, None
+        if ref_type:
+            logger.warning("Unsupported user_image_ref type=%s", ref_type)
+        return None, None
+
+    async def _fetch_image_bytes(self, url: str) -> tuple[Optional[bytes], Optional[str]]:
+        timeout = httpx.Timeout(10.0, connect=5.0)
+        try:
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                mime = response.headers.get("content-type")
+                return response.content, mime
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning("Failed to fetch user image from url=%s: %s", url, exc)
+            return None, None
+
     def _build_user_image_data_url(
         self,
         data_b64: Optional[str],
@@ -431,7 +478,7 @@ class SimulationEngine:
     ) -> Optional[str]:
         if not data_b64:
             return None
-        mime_type = mime or "image/png"
+        mime_type = (mime or "image/png").split(";", 1)[0].strip() or "image/png"
         return f"data:{mime_type};base64,{data_b64}"
 
     def _build_metrics(

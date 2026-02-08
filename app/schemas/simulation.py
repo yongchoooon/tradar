@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
+from app.schemas.search import ImageRefPayload
+
 try:  # pragma: no cover
     from pydantic.dataclasses import dataclass as pydantic_dataclass  # type: ignore
 except Exception:  # pragma: no cover
@@ -38,6 +40,7 @@ class SimulationRequest:
     user_goods_names: List[str] = field(default_factory=list)
     user_image_b64: Optional[str] = None
     user_image_mime: Optional[str] = None
+    user_image_ref: Optional[ImageRefPayload] = None
 
 
 @pydantic_dataclass

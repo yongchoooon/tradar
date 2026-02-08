@@ -541,24 +541,6 @@ function PreviewImage({ file }) {
   return <img src={url} alt="업로드 미리보기" />;
 }
 
-async function fileToBase64(file) {
-  if (!file) return '';
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === 'string') {
-        const base64 = result.split(',')[1] || '';
-        resolve(base64);
-      } else {
-        resolve('');
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 async function requestPresignedUpload(file) {
   if (!file) {
     throw new Error('이미지 파일이 없습니다.');
@@ -1438,7 +1420,6 @@ function App() {
   const [placeholderNotice, setPlaceholderNotice] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [title, setTitle] = useState('');
-  const [lastImageBase64, setLastImageBase64] = useState('');
   const [lastImageRef, setLastImageRef] = useState(null);
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
   const [pages, setPages] = useState({ image: 1, text: 1 });
@@ -1576,9 +1557,6 @@ function App() {
         image: targets.image ? 1 : prev.image,
         text: targets.text ? 1 : prev.text,
       }));
-      if (payload.image_b64) {
-        setLastImageBase64(payload.image_b64);
-      }
       if (payload.image_ref) {
         setLastImageRef(payload.image_ref);
       }
@@ -1619,7 +1597,6 @@ function App() {
   const handleImageFileUpdate = (file) => {
     setImageFile(file);
     setLastImageRef(null);
-    setLastImageBase64('');
     if (file) {
       setPlaceholderNotice('');
     }
@@ -1821,6 +1798,11 @@ function App() {
       setSimulationJobId(null);
       setSimulationStartTime(Date.now());
       setSimulationElapsed(0);
+      let imageRef = lastImageRef;
+      if (!imageRef && imageFile) {
+        imageRef = await requestPresignedUpload(imageFile);
+        setLastImageRef(imageRef);
+      }
       const payload = {
         selections: buildSimulationSelections(),
         debug,
@@ -1828,12 +1810,9 @@ function App() {
         user_goods_classes: response?.query?.goods_classes || [],
         user_group_codes: response?.query?.group_codes || [],
         user_goods_names: buildSelectedGoodsNames(),
-        user_image_b64: lastImageBase64 || (imageFile ? await fileToBase64(imageFile) : null),
+        user_image_ref: imageRef || null,
         user_image_mime: imageFile?.type || null,
       };
-      if (!lastImageBase64 && payload.user_image_b64) {
-        setLastImageBase64(payload.user_image_b64);
-      }
       const data = await apiFetch('/simulation/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
