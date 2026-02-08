@@ -1421,6 +1421,7 @@ function App() {
   const [imageFile, setImageFile] = useState(null);
   const [title, setTitle] = useState('');
   const [lastImageRef, setLastImageRef] = useState(null);
+  const [lastSearchId, setLastSearchId] = useState(null);
   const [loadingState, setLoadingState] = useState({ image: false, text: false });
   const [pages, setPages] = useState({ image: 1, text: 1 });
   const [useLlmVariants, setUseLlmVariants] = useState(false);
@@ -1560,6 +1561,7 @@ function App() {
       if (payload.image_ref) {
         setLastImageRef(payload.image_ref);
       }
+      setLastSearchId(data?.search_id || null);
       if (targets.image || targets.text) {
         setSimulationSelection((prev) => {
           const next = { ...prev };
@@ -1597,6 +1599,7 @@ function App() {
   const handleImageFileUpdate = (file) => {
     setImageFile(file);
     setLastImageRef(null);
+    setLastSearchId(null);
     if (file) {
       setPlaceholderNotice('');
     }
@@ -1657,19 +1660,13 @@ function App() {
   const selectedTextCount = Object.keys(simulationSelection.text || {}).length;
   const totalSimulationSelected = selectedImageCount + selectedTextCount;
 
-  const buildSimulationSelections = () => {
-    const mapItems = (items = {}, variant) => Object.values(items || {}).map((item) => ({
+  const buildSimulationSelectionRefs = () => {
+    const mapRefs = (items = {}, variant) => Object.values(items || {}).map((item) => ({
       application_number: item.app_no,
-      title: item.title,
       variant,
-      image_sim: item.image_sim,
-      text_sim: item.text_sim,
-      status: item.status,
-      class_codes: item.class_codes || [],
-      thumb_url: item.thumb_url || null,
     }));
-    const images = mapItems(simulationSelection.image, 'image');
-    const texts = mapItems(simulationSelection.text, 'text');
+    const images = mapRefs(simulationSelection.image, 'image');
+    const texts = mapRefs(simulationSelection.text, 'text');
     return [...images, ...texts];
   };
 
@@ -1688,7 +1685,7 @@ function App() {
       const prefix = entry.groupCode ? `(${entry.groupCode}) ` : '';
       rows.push(`${prefix}${cleanedNames.join(', ')}`);
     });
-    return rows.slice(0, 30);
+    return rows;
   };
 
   const closeSimulationStream = () => {
@@ -1796,13 +1793,25 @@ function App() {
       setSimulationJobId(null);
       setSimulationStartTime(Date.now());
       setSimulationElapsed(0);
+      if (!lastSearchId) {
+        alert('검색 컨텍스트가 없습니다. 다시 검색해 주세요.');
+        setSimulationStatus('idle');
+        return;
+      }
       let imageRef = lastImageRef;
       if (!imageRef && imageFile) {
         imageRef = await requestPresignedUpload(imageFile);
         setLastImageRef(imageRef);
       }
+      const selectionRefs = buildSimulationSelectionRefs();
+      if (!selectionRefs.length) {
+        alert('시뮬레이션에 포함할 상표를 선택해 주세요.');
+        setSimulationStatus('idle');
+        return;
+      }
       const payload = {
-        selections: buildSimulationSelections(),
+        search_id: lastSearchId,
+        selection_refs: selectionRefs,
         debug,
         query_title: (response?.query?.text ?? title ?? '').trim() || null,
         user_goods_classes: response?.query?.goods_classes || [],
@@ -1879,6 +1888,7 @@ function App() {
     setImageFile(null);
     setTitle('');
     setPlaceholderNotice('');
+    setLastSearchId(null);
   };
 
   return (
