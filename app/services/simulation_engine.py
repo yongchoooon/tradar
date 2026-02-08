@@ -26,6 +26,7 @@ from app.schemas.simulation import (
 from app.services.kipris_client import KiprisClient, format_document_context
 from app.services.langgraph_orchestrator import LangGraphOrchestrator
 from app.services.log_storage import upload_text, s3_logs_enabled
+from app.services.model_pricing import get_model_pricing
 from dotenv import load_dotenv
 
 logger = logging.getLogger("simulation")
@@ -97,7 +98,9 @@ class SimulationEngine:
                 pass
         sem = asyncio.Semaphore(self.MAX_WORKERS)
 
-        async def evaluate_with_limit(selection: SimulationSelection, worker_id: int) -> SimulationCandidateResult:
+        async def evaluate_with_limit(
+            selection: SimulationSelection, worker_id: int
+        ) -> tuple[SimulationCandidateResult, List[Dict[str, Any]]]:
             async with sem:
                 if cancel_checker and cancel_checker():
                     raise SimulationCancelled()
@@ -123,8 +126,9 @@ class SimulationEngine:
             tasks.append(evaluate_with_limit(selection, worker_id))
         candidates_raw = await asyncio.gather(*tasks, return_exceptions=True)
         candidates: List[SimulationCandidateResult] = []
+        usage_events: List[Dict[str, Any]] = []
         for selection, result in zip(trimmed, candidates_raw):
-            if isinstance(result, SimulationCancelled):
+            if isinstance(result, (SimulationCancelled, SimulationTimeout)):
                 raise result
             if isinstance(result, Exception):  # pragma: no cover - defensive logging
                 logger.exception(
@@ -133,7 +137,10 @@ class SimulationEngine:
                     result,
                 )
                 continue
-            candidates.append(result)
+            candidate_result, timeline = result
+            candidates.append(candidate_result)
+            if timeline:
+                usage_events.extend(timeline)
         candidates.sort(key=lambda item: item.conflict_score, reverse=True)
 
         if cancel_checker and cancel_checker():
@@ -149,8 +156,9 @@ class SimulationEngine:
             raise SimulationCancelled()
         overall_report = None
         overall_logs: List[Dict[str, str]] = []
+        overall_timeline: List[Dict[str, Any]] = []
         if candidates:
-            overall_report, overall_logs, _ = await self._orchestrator.summarize_overall(
+            overall_report, overall_logs, overall_timeline = await self._orchestrator.summarize_overall(
                 user_mark=user_mark,
                 avg_conflict=avg_conflict,
                 avg_register=avg_register,
@@ -167,6 +175,20 @@ class SimulationEngine:
             )
             if debug_enabled and debug_tag and overall_logs:
                 self._log_debug_llm(debug_tag, "overall", overall_logs)
+            if overall_timeline:
+                for event in overall_timeline:
+                    if isinstance(event, dict):
+                        event.setdefault("application_number", "overall")
+                        event.setdefault("variant", "overall")
+                usage_events.extend(overall_timeline)
+        if usage_events and s3_logs_enabled():
+            self._upload_usage_bundle(
+                usage_events,
+                run_tag,
+                request,
+                total_selected=len(candidates),
+                query_title=user_mark,
+            )
         return SimulationResponse(
             total_selected=len(candidates),
             high_risk=high_risk,
@@ -278,7 +300,7 @@ class SimulationEngine:
         user_image_b64: Optional[str],
         worker_id: int,
         cancel_checker: Optional[Callable[[], bool]] = None,
-    ) -> SimulationCandidateResult:
+    ) -> tuple[SimulationCandidateResult, List[Dict[str, Any]]]:
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
         variant_label = "이미지" if selection.variant == "image" else "텍스트"
@@ -339,7 +361,16 @@ class SimulationEngine:
         for factor in llm_factors[:3]:
             notes.append(f"- {factor}")
 
-        return SimulationCandidateResult(
+        timeline = agent_result.get("timeline") or []
+        if isinstance(timeline, list):
+            for event in timeline:
+                if isinstance(event, dict):
+                    event.setdefault("application_number", selection.application_number)
+                    event.setdefault("variant", selection.variant)
+        else:
+            timeline = []
+
+        result = SimulationCandidateResult(
             application_number=selection.application_number,
             title=selection.title,
             variant=selection.variant,
@@ -358,6 +389,7 @@ class SimulationEngine:
             llm_factors=list(llm_factors[:5]),
             reporter_markdown=reporter_markdown,
         )
+        return result, list(timeline)
 
     def _build_summary(
         self,
@@ -383,6 +415,55 @@ class SimulationEngine:
         if summaries:
             base += " 주요 쟁점: " + " / ".join(summaries[:2])
         return base
+
+    def _upload_usage_bundle(
+        self,
+        events: List[Dict[str, Any]],
+        run_tag: str,
+        request: SimulationRequest,
+        *,
+        total_selected: int,
+        query_title: str,
+    ) -> None:
+        if not events:
+            return
+
+        def _parse_time(value: object) -> datetime:
+            if isinstance(value, str) and value:
+                try:
+                    return datetime.fromisoformat(value)
+                except ValueError:
+                    return datetime.min
+            return datetime.min
+
+        sorted_events = sorted(events, key=lambda ev: _parse_time(ev.get("start_time")))
+        total_cost = 0.0
+        for event in sorted_events:
+            model = event.get("model")
+            pricing = get_model_pricing(model) if model else {}
+            in_rate = pricing.get("input", 0.0)
+            out_rate = pricing.get("output", 0.0)
+            input_tokens = event.get("input_tokens") or 0
+            output_tokens = event.get("output_tokens") or 0
+            call_cost = (input_tokens * in_rate + output_tokens * out_rate) / 1_000_000
+            total_cost += call_cost
+            event["call_cost_usd"] = round(call_cost, 10)
+            event["total_cost_usd"] = round(total_cost, 10)
+
+        payload = {
+            "simulation_run_id": run_tag,
+            "search_id": getattr(request, "search_id", None),
+            "query_title": query_title,
+            "total_selected": total_selected,
+            "total_calls": len(sorted_events),
+            "events": sorted_events,
+        }
+        date_tag = datetime.utcnow().strftime("%Y/%m/%d")
+        upload_text(
+            f"openai_ai_agent_usage/{date_tag}/{run_tag}.json",
+            json.dumps(payload, ensure_ascii=False),
+            content_type="application/json",
+        )
 
     def _normalize_score(self, value: object, fallback: float) -> float:
         try:

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import uuid
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -14,7 +13,6 @@ from typing import Iterable, List
 from openai import OpenAI, OpenAIError
 
 from app.services.model_pricing import get_model_pricing
-from app.services.log_storage import upload_text, s3_logs_enabled
 
 _HANGUL_RE = re.compile(r"[가-힣]")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -174,25 +172,6 @@ class TrademarkLLMSynonymService:
         )
         with self._usage_log_path.open("a", encoding="utf-8") as fh:
             fh.write(line)
-
-        if s3_logs_enabled():
-            date_tag = datetime.utcnow().strftime("%Y/%m/%d")
-            entry_id = uuid.uuid4().hex
-            payload = {
-                "timestamp": timestamp,
-                "model": self._model_id,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": total_tokens,
-                "input_cost_usd": input_cost,
-                "output_cost_usd": output_cost,
-                "total_cost_usd": total_cost,
-            }
-            upload_text(
-                f"openai_usage/{date_tag}/{entry_id}.json",
-                json.dumps(payload, ensure_ascii=False),
-                content_type="application/json",
-            )
 
     def _build_prompt(self, text: str, limit: int) -> list[dict]:
         system_prompt = (

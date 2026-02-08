@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import json
-import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, TypedDict, Any, Tuple, Optional
@@ -26,7 +24,6 @@ from app.services.prompt_templates import (
     SYSTEM_MESSAGE_TEMPLATE,
 )
 from app.services.model_pricing import get_model_pricing
-from app.services.log_storage import upload_text, s3_logs_enabled
 
 load_dotenv(override=False)
 
@@ -441,24 +438,6 @@ class LangGraphOrchestrator:
         )
         with self._usage_log_path.open("a", encoding="utf-8") as fh:
             fh.write(line)
-        if s3_logs_enabled():
-            date_tag = datetime.utcnow().strftime("%Y/%m/%d")
-            entry_id = uuid.uuid4().hex
-            payload = {
-                "timestamp": timestamp,
-                "model": self._model_name,
-                "role": role,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": total_tokens,
-                "call_cost_usd": call_cost,
-                "total_cost_usd": self._running_total,
-            }
-            upload_text(
-                f"openai_ai_agent_usage/{date_tag}/{entry_id}.json",
-                json.dumps(payload, ensure_ascii=False),
-                content_type="application/json",
-            )
         return counts
 
     @staticmethod
