@@ -15,12 +15,13 @@ import {
 } from 'react-icons/fi';
 import logo from './assets/logo-tradar.png';
 import { apiFetch, buildApiUrl } from './lib/apiClient';
+import { getLandingCopy } from './i18n/landingCopy';
 
 const GOODS_LIMIT = 10;
 const RESULT_PAGE_SIZE = 18;
 const RESULT_LIMIT = 200;
 const SIMULATION_DEFAULT_PER_VARIANT = 5;
-const SIMULATION_MAX_SELECTION = 40;
+const SIMULATION_MAX_SELECTION = 20;
 const STATIC_PUBLIC_PREFIX = '/home/work/workspace/tradar/frontend/public';
 
 const buildGoodsSelectionKey = (classCode, groupCode, names = []) => {
@@ -409,13 +410,14 @@ function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, se
 }
 
 
-function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
+function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(new Set());
   const selectedGroupsRef = useRef(selectedGroups);
+  const text = copy || {};
 
   useEffect(() => {
     selectedGroupsRef.current = selectedGroups;
@@ -459,11 +461,11 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
         setExpanded(new Set());
       }
     } catch (err) {
-      setError(err?.message || '검색 중 오류가 발생했습니다');
+      setError(err?.message || text.error || '검색 중 오류가 발생했습니다');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [text.error]);
 
   const fetchGoods = async (e) => {
     e?.preventDefault();
@@ -493,23 +495,26 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
 
   return (
     <section className="goods-panel">
-      <h2>상품/서비스류 검색</h2>
+      <div className="goods-panel__heading">
+        <h2>{text.sectionTitle || '상품/서비스류 검색'}</h2>
+        <span className="goods-panel__note">{text.note || '검색은 한국어만 가능합니다.'}</span>
+      </div>
       <form className="goods-search" onSubmit={fetchGoods}>
         <input
           type="search"
-          placeholder="예: 커피, 애플리케이션, 교육"
+          placeholder={text.placeholder || '예: 커피, 애플리케이션, 교육'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <button type="submit" className="action-button action-button--primary goods-search__submit">
           <FiSearch aria-hidden="true" />
-          <span>검색</span>
+          <span>{text.search || '검색'}</span>
         </button>
       </form>
       {error && <p role="alert" className="goods-error">{error}</p>}
-      {loading && <p>검색 중입니다…</p>}
+      {loading && <p>{text.loading || '검색 중입니다…'}</p>}
       {!loading && !error && !results.length && query.trim() && (
-        <p>일치하는 분류를 찾지 못했습니다.</p>
+        <p>{text.noResults || '일치하는 분류를 찾지 못했습니다.'}</p>
       )}
       <div className="goods-results">
         {results.map((item) => (
@@ -527,18 +532,23 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset }) {
   );
 }
 
-function PreviewImage({ file }) {
+function PreviewImage({
+  file,
+  placeholderTitle = '이미지를 선택하세요',
+  placeholderHint = '클릭하여 파일 선택',
+  previewAlt = '업로드 미리보기',
+}) {
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   if (!url) {
     return (
       <div className="placeholder">
-        <span className="placeholder__title">이미지를 선택하세요</span>
-        <small>클릭하여 파일 선택</small>
+        <span className="placeholder__title">{placeholderTitle}</span>
+        <small>{placeholderHint}</small>
       </div>
     );
   }
-  return <img src={url} alt="업로드 미리보기" />;
+  return <img src={url} alt={previewAlt} />;
 }
 
 async function requestPresignedUpload(file) {
@@ -576,8 +586,11 @@ function TrademarkSearchForm({
   onSubmit,
   onReset,
   onExample,
+  copy,
 }) {
   const fileInputRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const text = copy || {};
 
   useEffect(() => {
     if (!imageFile && fileInputRef.current) {
@@ -595,30 +608,67 @@ function TrademarkSearchForm({
     onReset?.();
   };
 
-  const dropzoneClass = ['dropzone', imageFile ? '' : 'dropzone--empty'].filter(Boolean).join(' ');
+  const dropzoneClass = [
+    'dropzone',
+    imageFile ? '' : 'dropzone--empty',
+    isDragging ? 'dropzone--drag' : '',
+  ].filter(Boolean).join(' ');
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (file.type && !file.type.startsWith('image/')) {
+      return;
+    }
+    onImageFileChange?.(file);
+  };
 
   return (
     <section className="search-section">
       <div className="search-section__heading">
-        <h2>상표 검색</h2>
-        <div className="example-button-group" role="group" aria-label="예시 불러오기">
+        <h2>{text.sectionTitle || '상표 검색'}</h2>
+        <div
+          className="example-button-group"
+          role="group"
+          aria-label={text.exampleGroupLabel || '예시 불러오기'}
+        >
           <button type="button" className="btn-outline" onClick={() => onExample?.('example1')}>
-            예시 1 : T-RADAR
+            {text.example1 || '예시 1 : T-RADAR'}
           </button>
           <button type="button" className="btn-outline" onClick={() => onExample?.('example2')}>
-            예시 2 : Hard Rock
+            {text.example2 || '예시 2 : Hard Rock'}
           </button>
         </div>
       </div>
       <form className="search-card" onSubmit={handleSubmit} onReset={handleReset}>
         <div className="search-card__top">
           <label className="field-group">
-            <span className="field-label">상표명</span>
+            <span className="field-label">{text.fieldLabel || '상표명'}</span>
             <input
               type="text"
               value={title}
               onChange={(e) => onTitleChange?.(e.target.value)}
-              placeholder="예: 커피한잔"
+              placeholder={text.fieldPlaceholder || '예: 커피한잔'}
             />
           </label>
         </div>
@@ -635,6 +685,10 @@ function TrademarkSearchForm({
             role="button"
             tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -642,7 +696,12 @@ function TrademarkSearchForm({
               }
             }}
           >
-            <PreviewImage file={imageFile} />
+            <PreviewImage
+              file={imageFile}
+              placeholderTitle={text.imagePlaceholderTitle}
+              placeholderHint={text.imagePlaceholderHint}
+              previewAlt={text.imagePreviewAlt}
+            />
           </div>
         </div>
       </form>
@@ -653,6 +712,7 @@ function TrademarkSearchForm({
 function ResultCard({
   item,
   variant,
+  simLabel,
   selectable = false,
   checked = false,
   onToggleSelection,
@@ -661,7 +721,7 @@ function ResultCard({
 }) {
   const status = (item.status || '').trim();
   const statusClass = STATUS_MAP[status.toLowerCase()] || 'status-default';
-  const simLabel = variant === 'image' ? '이미지 유사도' : '텍스트 유사도';
+  const resolvedSimLabel = simLabel || (variant === 'image' ? '이미지 유사도' : '텍스트 유사도');
   const simValue = variant === 'image' ? item.image_sim : item.text_sim;
   const showSelector = selectable && typeof onToggleSelection === 'function';
   const disableToggle = showSelector && !checked && !canSelectMore;
@@ -717,7 +777,7 @@ function ResultCard({
         ) : null}
         <div className="result-divider" />
         <footer className="result-card__footer">
-          <span className="result-card__sim-label">{simLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
+          <span className="result-card__sim-label">{resolvedSimLabel} {simValue?.toFixed ? simValue.toFixed(3) : simValue}</span>
           {showSelector && (
             <label
               className={['result-card__select', locked ? 'result-card__select--locked' : ''].filter(Boolean).join(' ')}
@@ -791,6 +851,7 @@ function ResultSection({
   variants = [],
   loading = false,
   loadingLabel,
+  copy,
   page = 1,
   pageSize = RESULT_PAGE_SIZE,
   onPageChange,
@@ -803,16 +864,28 @@ function ResultSection({
   selectionLocked = false,
 }) {
   const hasVariants = Array.isArray(variants) && variants.length > 0;
-  const overlayLabel = loadingLabel || '재검색 중…';
+  const text = copy || {};
+  const overlayLabel = loadingLabel || text.overlaySearching || '재검색 중…';
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIdx = (safePage - 1) * pageSize;
   const visibleItems = items.slice(startIdx, startIdx + pageSize);
   const showPagination = totalItems > pageSize && typeof onPageChange === 'function';
-  const countLabel = totalItems
-    ? `${startIdx + 1}-${Math.min(totalItems, startIdx + pageSize)} / ${totalItems}건`
-    : '0건';
+  const formatCount = (start, end, total) => {
+    if (!total) {
+      return text.countZero || '0건';
+    }
+    const template = text.countFormat || '{start}-{end} / {total}건';
+    return template
+      .replace('{start}', start)
+      .replace('{end}', end)
+      .replace('{total}', total);
+  };
+  const countLabel = formatCount(startIdx + 1, Math.min(totalItems, startIdx + pageSize), totalItems);
+  const simLabel = variant === 'image'
+    ? (text.simLabelImage || '이미지 유사도')
+    : (text.simLabelText || '텍스트 유사도');
 
   return (
     <section className="results-section">
@@ -822,12 +895,14 @@ function ResultSection({
           <span className="results-section__count">{countLabel}</span>
         </div>
         {highlightMap && Object.keys(highlightMap).length > 0 && (
-          <span className="results-section__pill results-section__pill--highlight">가장 유사한 상위 5개 상표</span>
+          <span className="results-section__pill results-section__pill--highlight">
+            {text.top5Label || '가장 유사한 상위 5개 상표'}
+          </span>
         )}
       </div>
       {hasVariants && (
         <div className="results-section__subheader">
-          <span className="results-section__tag">LLM 유사어</span>
+          <span className="results-section__tag">{text.llmTag || 'LLM 유사어'}</span>
           <div className="results-section__variants">
             {variants.map((variant) => (
               <span key={variant} className="results-section__variant">{variant}</span>
@@ -843,6 +918,7 @@ function ResultSection({
                 key={`${variant}-top-${item.trademark_id}`}
                 item={item}
                 variant={variant}
+                simLabel={simLabel}
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
@@ -852,13 +928,15 @@ function ResultSection({
             ))}
           </div>
         ) : (
-          <p className="empty">결과가 없습니다.</p>
+          <p className="empty">{text.empty || '결과가 없습니다.'}</p>
         )}
         {misc.length ? (
           <div className="results-misc">
             <div className="results-misc__header">
-              <h4>기타 결과</h4>
-              <span className="results-misc__count">{misc.length}건</span>
+              <h4>{text.miscTitle || '기타 결과'}</h4>
+              <span className="results-misc__count">
+                {`${misc.length}${text.countSuffix || '건'}`}
+              </span>
             </div>
             <div className="results-grid misc-grid">
               {misc.map((item) => (
@@ -866,6 +944,7 @@ function ResultSection({
                   key={`${variant}-misc-${item.trademark_id}`}
                   item={item}
                   variant={variant}
+                  simLabel={simLabel}
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
@@ -904,8 +983,13 @@ function SimulationPanel({
   elapsedSeconds = 0,
   modelName = '',
   docked = false,
+  copy,
 }) {
   const [focusHighRiskOnly, setFocusHighRiskOnly] = useState(false);
+  const text = copy || {};
+  const statusText = text.status || {};
+  const progressText = text.progress || {};
+  const timeText = text.time || {};
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
@@ -918,16 +1002,18 @@ function SimulationPanel({
     const safeSeconds = Math.max(0, Number(seconds) || 0);
     const minutes = Math.floor(safeSeconds / 60);
     const secs = safeSeconds % 60;
-    return `${minutes}분 ${secs.toString().padStart(2, '0')}초`;
+    const minuteLabel = timeText.minute || '분';
+    const secondLabel = timeText.second || '초';
+    return `${minutes}${minuteLabel} ${secs.toString().padStart(2, '0')}${secondLabel}`;
   };
   const shouldShowElapsed =
     ['collecting', 'loading', 'cancelling'].includes(status)
     || (status === 'complete' && elapsedSeconds >= 0);
 
   const progressSteps = [
-    { key: 'collecting', label: '데이터 불러오는 중' },
-    { key: 'loading', label: '시뮬레이션 진행' },
-    { key: 'complete', label: '요약 완료' },
+    { key: 'collecting', label: progressText.collecting || '데이터 불러오는 중' },
+    { key: 'loading', label: progressText.loading || '시뮬레이션 진행' },
+    { key: 'complete', label: progressText.complete || '요약 완료' },
   ];
   const stepOrder = progressSteps.map((step) => step.key);
   let progressIndex = stepOrder.indexOf(status);
@@ -942,51 +1028,51 @@ function SimulationPanel({
   }
   const statusMetaMap = {
     idle: {
-      title: '시뮬레이션 준비 필요',
-      message: '검색 후 자동으로 상위 후보가 선택됩니다.',
+      title: statusText.idle?.title || '시뮬레이션 준비 필요',
+      message: statusText.idle?.message || '검색 후 자동으로 상위 후보가 선택됩니다.',
       tone: 'neutral',
       icon: FiInfo,
     },
     collecting: {
-      title: '데이터를 불러오는 중',
-      message: 'KIPRIS 의견제출통지서와 거절결정서를 수집·정리하는 단계입니다.',
+      title: statusText.collecting?.title || '데이터를 불러오는 중',
+      message: statusText.collecting?.message || 'KIPRIS 의견제출통지서와 거절결정서를 수집·정리하는 단계입니다.',
       tone: 'waiting',
       icon: FiFileText,
     },
     loading: {
-      title: 'LangGraph 에이전트 실행 중',
-      message: '수집된 자료를 바탕으로 에이전트 시뮬레이션이 진행 중입니다.',
+      title: statusText.loading?.title || 'LangGraph 에이전트 실행 중',
+      message: statusText.loading?.message || '수집된 자료를 바탕으로 에이전트 시뮬레이션이 진행 중입니다.',
       tone: 'running',
       icon: FiRefreshCcw,
     },
     cancelling: {
-      title: '취소 처리 중',
-      message: '백엔드 작업을 중단하고 있습니다.',
+      title: statusText.cancelling?.title || '취소 처리 중',
+      message: statusText.cancelling?.message || '백엔드 작업을 중단하고 있습니다.',
       tone: 'warning',
       icon: FiStopCircle,
     },
     complete: {
-      title: '결과가 준비되었습니다',
-      message: '아래 요약과 후보별 세부 정보를 확인하세요.',
+      title: statusText.complete?.title || '결과가 준비되었습니다',
+      message: statusText.complete?.message || '아래 요약과 후보별 세부 정보를 확인하세요.',
       tone: 'complete',
       icon: FiCheckCircle,
     },
     error: {
-      title: '시뮬레이션에 실패했습니다',
-      message: '',
+      title: statusText.error?.title || '시뮬레이션에 실패했습니다',
+      message: statusText.error?.message || '',
       tone: 'danger',
       icon: FiAlertTriangle,
     },
     cancelled: {
-      title: '시뮬레이션이 취소되었습니다',
-      message: '필요 시 다시 실행해 주세요.',
+      title: statusText.cancelled?.title || '시뮬레이션이 취소되었습니다',
+      message: statusText.cancelled?.message || '필요 시 다시 실행해 주세요.',
       tone: 'warning',
       icon: FiXCircle,
     },
   };
   const currentStatus = statusMetaMap[status] || statusMetaMap.idle;
   const statusMessage = status === 'error'
-    ? (error || '잠시 후 다시 시도해 주세요.')
+    ? (error || text.errorFallback || '잠시 후 다시 시도해 주세요.')
     : currentStatus.message;
   const statusContent = (
     <div className={`simulation-panel__status-card simulation-panel__status-card--${currentStatus.tone}`}>
@@ -1003,17 +1089,22 @@ function SimulationPanel({
         </div>
       </div>
       {shouldShowElapsed && (
-        <span className="simulation-panel__elapsed">경과 시간 {formatElapsed(elapsedSeconds)}</span>
+        <span className="simulation-panel__elapsed">
+          {text.elapsedLabel || '경과 시간'} {formatElapsed(elapsedSeconds)}
+        </span>
       )}
     </div>
   );
-  const guidanceMarkdown = [
-    'AI Agent가 KIPRIS 의견제출통지서·거절결정서를 참고해 충돌 위험과 등록 가능성을 추정합니다.',
-    '',
-    `- 이미지/텍스트 상위 5건이 기본 선택되며 최대 ${maxSelection}건까지 확장할 수 있습니다.`,
-    '- “시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.',
-    '- 완료 시 후보별 Markdown 요약과 LLM 근거, 대화 로그가 제공됩니다.',
-  ].join('\n');
+  const guidanceLines = Array.isArray(text.guidance) && text.guidance.length
+    ? text.guidance.map((line) => line.replace('{maxSelection}', maxSelection))
+    : [
+        'AI Agent가 KIPRIS 의견제출통지서·거절결정서를 참고해 충돌 위험과 등록 가능성을 추정합니다.',
+        '',
+        `- 이미지/텍스트 상위 5건이 기본 선택되며 최대 ${maxSelection}건까지 확장할 수 있습니다.`,
+        '- “시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.',
+        '- 완료 시 후보별 Markdown 요약과 LLM 근거, 대화 로그가 제공됩니다.',
+      ];
+  const guidanceMarkdown = guidanceLines.join('\n');
   const guidanceBlock = (
     <MarkdownBlock
       className="simulation-panel__instructions"
@@ -1060,18 +1151,20 @@ function SimulationPanel({
   const resultIsStale = hasResultData && status !== 'complete';
 
   return (
-    <aside className={panelClass} aria-label="상표 등록 가능성 시뮬레이션">
+    <aside className={panelClass} aria-label={text.ariaLabel || '상표 등록 가능성 시뮬레이션'}>
       <div className="simulation-panel__header">
-        <p className="simulation-panel__tag">AI Agent</p>
-        <h3>상표 등록 가능성 시뮬레이션</h3>
+        <p className="simulation-panel__tag">{text.tag || 'AI Agent'}</p>
+        <h3>{text.title || '상표 등록 가능성 시뮬레이션'}</h3>
       </div>
       <div className="simulation-panel__scrollable">
         <div className="simulation-panel__body">
           <section className="simulation-panel__intro">
             <p className="simulation-panel__description">
               {hasResults
-                ? '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.'
-                : '검색을 먼저 실행하면 위험도가 높은 후보 10건을 자동으로 선택해줍니다.'}
+                ? (text.description?.withResults
+                  || '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.')
+                : (text.description?.noResults
+                  || '검색을 먼저 실행하면 위험도가 높은 후보 10건을 자동으로 선택해줍니다.')}
             </p>
             <div className="simulation-panel__progress" aria-hidden={progressIndex < 0}>
               {progressSteps.map((step, idx) => {
@@ -1092,15 +1185,15 @@ function SimulationPanel({
             {hasResults ? (
               <div className="simulation-panel__summary-grid">
                 <div className="simulation-panel__summary-card">
-                  <p>이미지 후보</p>
+                  <p>{text.summary?.image || '이미지 후보'}</p>
                   <strong>{imageCount}</strong>
                 </div>
                 <div className="simulation-panel__summary-card">
-                  <p>텍스트 후보</p>
+                  <p>{text.summary?.text || '텍스트 후보'}</p>
                   <strong>{textCount}</strong>
                 </div>
                 <div className="simulation-panel__summary-card">
-                  <p>총 선택 수</p>
+                  <p>{text.summary?.total || '총 선택 수'}</p>
                   <strong>{totalCount} / {maxSelection}</strong>
                 </div>
               </div>
@@ -1114,7 +1207,7 @@ function SimulationPanel({
                   disabled={buttonDisabled}
                 >
                   <FiPlayCircle aria-hidden="true" />
-                  <span>시뮬레이션 시작</span>
+                  <span>{text.buttons?.run || '시뮬레이션 시작'}</span>
                 </button>
                 {/*
                 <button
@@ -1135,7 +1228,7 @@ function SimulationPanel({
                 className="ghost-button simulation-panel__button"
                 onClick={onCancel}
               >
-                실행 취소
+                {text.buttons?.cancel || '실행 취소'}
               </button>
             )}
           </section>
@@ -1415,6 +1508,7 @@ function DebugPanel({ debug }) {
 }
 
 function App() {
+  const [language, setLanguage] = useState('en');
   const [selectedGroups, setSelectedGroups] = useState({});
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1439,6 +1533,7 @@ function App() {
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
+  const copy = useMemo(() => getLandingCopy(language), [language]);
   const textDisplayVariants = response?.query?.variants || [];
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
 
@@ -1904,13 +1999,13 @@ function App() {
 
   const executeSearch = async (debug = false) => {
     if (!imageFile) {
-      setPlaceholderNotice('이미지를 먼저 선택하고 검색을 실행해 주세요.');
+      setPlaceholderNotice('image');
       setError('');
       focusImageUploader();
       return;
     }
     if (selectedGroupCodes.length === 0) {
-      setPlaceholderNotice('상품/서비스류를 선택해 주세요.');
+      setPlaceholderNotice('goods');
       focusGoodsPanel();
       return;
     }
@@ -1939,6 +2034,27 @@ function App() {
     setLastSearchId(null);
   };
 
+  const toggleLanguage = () => {
+    setLanguage((prev) => (prev === 'en' ? 'ko' : 'en'));
+  };
+
+  const placeholderCopy = copy.results?.placeholder || {};
+  const placeholderKind = placeholderNotice;
+  const placeholderTitle = placeholderKind === 'goods'
+    ? (placeholderCopy.goodsTitle || '상품/서비스류 선택이 필요합니다')
+    : placeholderKind === 'image'
+      ? (placeholderCopy.imageTitle || '이미지 업로드가 필요합니다')
+      : (placeholderCopy.defaultTitle || '검색을 시작해 주세요');
+  const placeholderMessage = placeholderKind === 'goods'
+    ? (placeholderCopy.goodsMessage || '상품/서비스류를 선택해 주세요.')
+    : placeholderKind === 'image'
+      ? (placeholderCopy.imageMessage || '이미지를 먼저 선택하고 검색을 실행해 주세요.')
+      : (placeholderCopy.defaultMessage
+        || '이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.');
+  const placeholderActionLabel = placeholderKind === 'goods'
+    ? (placeholderCopy.goodsAction || '상품/서비스류 선택하러 가기')
+    : (placeholderCopy.imageAction || '이미지 선택하러 가기');
+
   return (
     <div className="app-shell">
       <div className="search-column">
@@ -1947,19 +2063,37 @@ function App() {
         <div className="hero-text">
           <div className="hero-heading">
             <h1 className="title">T-RADAR</h1>
-            <a
-              className="github-link hero-github"
-              href="https://github.com/yongchoooon/tradar"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="GitHub 저장소"
-              title="GitHub 저장소"
-            >
-              <span className="github-link__icon">⭐</span>
-              <span className="github-link__label">GitHub</span>
-            </a>
+            <div className="hero-actions">
+              <button
+                type="button"
+                className="github-link language-toggle"
+                onClick={toggleLanguage}
+                aria-label={copy.toggleAria || '언어 전환'}
+                title={copy.toggleAria || '언어 전환'}
+              >
+                <span className="language-toggle__label">
+                  <span className="language-toggle__flag" aria-hidden="true">
+                    {language === 'en' ? '🇬🇧' : '🇰🇷'}
+                  </span>
+                  <span className={`language-toggle__item ${language === 'en' ? 'is-active' : ''}`}>Eng</span>
+                  <span className="language-toggle__divider">/</span>
+                  <span className={`language-toggle__item ${language === 'ko' ? 'is-active' : ''}`}>한</span>
+                </span>
+              </button>
+              <a
+                className="github-link hero-github"
+                href="https://github.com/yongchoooon/tradar"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={copy.hero?.githubLabel || 'GitHub 저장소'}
+                title={copy.hero?.githubLabel || 'GitHub 저장소'}
+              >
+                <span className="github-link__icon">⭐</span>
+                <span className="github-link__label">GitHub</span>
+              </a>
+            </div>
           </div>
-          <p className="subtitle">텍스트·이미지 기반 유사 상표 검색 서비스</p>
+          <p className="subtitle">{copy.hero?.subtitle || '텍스트·이미지 기반 유사 상표 검색 서비스'}</p>
         </div>
       </section>
       <TrademarkSearchForm
@@ -1970,14 +2104,18 @@ function App() {
         onSubmit={executeSearch}
         onReset={resetForm}
         onExample={handleExampleLoad}
+        copy={copy.search}
       />
       <GoodsSearchPanel
         selectedGroups={selectedGroups}
         onToggleGroup={toggleGroup}
         preset={goodsPreset}
+        copy={copy.goods}
       />
       <div className="search-actions-row">
-        <button type="button" className="secondary btn-wide" onClick={resetForm}>초기화</button>
+        <button type="button" className="secondary btn-wide" onClick={resetForm}>
+          {copy.search?.reset || '초기화'}
+        </button>
         <div className="search-actions">
           <button
             type="button"
@@ -1985,7 +2123,7 @@ function App() {
             onClick={() => executeSearch(false)}
           >
             <FiSearch aria-hidden="true" />
-            <span>검색</span>
+            <span>{copy.search?.search || '검색'}</span>
           </button>
           {/*
           <button
@@ -1998,30 +2136,31 @@ function App() {
           </button>
           */}
         </div>
-        <label className="llm-toggle" aria-label="LLM 유사어 사용 여부">
+        <label className="llm-toggle" aria-label={copy.search?.llmToggle || 'LLM 유사어 사용 여부'}>
           <input
             id="llm-variants-checkbox"
             type="checkbox"
             checked={useLlmVariants}
             onChange={(e) => setUseLlmVariants(e.target.checked)}
           />
-          <span>LLM 유사어</span>
+          <span>{copy.search?.llmToggle || 'LLM 유사어'}</span>
         </label>
       </div>
       <section className="search-results">
-        <h2>검색 결과</h2>
+        <h2>{copy.results?.sectionTitle || '검색 결과'}</h2>
         {error && <p role="alert">{error}</p>}
         <div className="search-results__body">
           <div className="results-main">
             {response ? (
               <>
               <ResultSection
-                title="이미지 후보"
+                title={copy.results?.imageTitle || '이미지 후보'}
                 items={response.image_top || []}
                 misc={response.image_misc || []}
                 variant="image"
                 loading={loadingState.image}
-                loadingLabel="이미지 결과 업데이트 중..."
+                loadingLabel={copy.results?.imageUpdating || '이미지 결과 업데이트 중...'}
+                copy={copy.results}
                 page={pages.image}
                 pageSize={RESULT_PAGE_SIZE}
                 onPageChange={(next) => setPages((prev) => ({ ...prev, image: next }))}
@@ -2034,13 +2173,14 @@ function App() {
                 selectionLocked={simulationLocked}
               />
               <ResultSection
-                title="텍스트 후보"
+                title={copy.results?.textTitle || '텍스트 후보'}
                 items={response.text_top || []}
                 misc={response.text_misc || []}
                 variant="text"
                 variants={textDisplayVariants}
                 loading={loadingState.text}
-                loadingLabel="텍스트 결과 업데이트 중..."
+                loadingLabel={copy.results?.textUpdating || '텍스트 결과 업데이트 중...'}
+                copy={copy.results}
                 page={pages.text}
                 pageSize={RESULT_PAGE_SIZE}
                 onPageChange={(next) => setPages((prev) => ({ ...prev, text: next }))}
@@ -2058,27 +2198,20 @@ function App() {
               <div className="search-placeholder">
               <div className={`search-placeholder__card ${placeholderNotice ? 'is-alert' : ''}`}>
                 <h3>
-                  {placeholderNotice === '상품/서비스류를 선택해 주세요.'
-                    ? '상품/서비스류 선택이 필요합니다'
-                    : placeholderNotice ? '이미지 업로드가 필요합니다' : '검색을 시작해 주세요'}
+                  {placeholderTitle}
                 </h3>
-                <p>
-                  {placeholderNotice
-                    || '이미지와 상표명을 입력한 뒤 검색 버튼을 누르면 결과가 여기 표시됩니다.'}
-                </p>
+                <p>{placeholderMessage}</p>
                 {placeholderNotice && (
                   <button
                     type="button"
                     className="placeholder-action"
                     onClick={
-                      placeholderNotice === '상품/서비스류를 선택해 주세요.'
+                      placeholderNotice === 'goods'
                         ? focusGoodsPanel
                         : focusImageUploader
                     }
                   >
-                    {placeholderNotice === '상품/서비스류를 선택해 주세요.'
-                      ? '상품/서비스류 선택하러 가기'
-                      : '이미지 선택하러 가기'}
+                    {placeholderActionLabel}
                   </button>
                 )}
               </div>
@@ -2087,7 +2220,7 @@ function App() {
           </div>
           {loading && (
             <div className="search-overlay">
-              <span>검색 중..</span>
+              <span>{copy.results?.loading || '검색 중..'}</span>
             </div>
           )}
         </div>
@@ -2111,6 +2244,7 @@ function App() {
           elapsedSeconds={simulationElapsed}
           modelName={simulationModel}
           docked
+          copy={copy.simulation}
         />
       </div>
     </div>
