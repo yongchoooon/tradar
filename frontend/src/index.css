@@ -1201,9 +1201,6 @@ main.container {
   box-shadow: none;
 }
 
-.goods-search__notice-action {
-  text-decoration: underline;
-}
 
 .goods-error {
   color: #dc2626;

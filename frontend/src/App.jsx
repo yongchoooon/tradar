@@ -652,10 +652,8 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
             className="goods-search__notice"
             onClick={handleLanguageRefresh}
           >
-            <span>{text.languageChangeNotice || '언어를 변경하셨습니다. 다시 검색하려면'}</span>
-            <span className="goods-search__notice-action">
-              {' '}
-              {text.languageChangeAction || '여기를 클릭하세요.'}
+            <span>
+              {text.languageChangeNotice || '언어를 변경하셨습니다. 다시 검색하세요.'}
             </span>
           </button>
         )}
@@ -2167,6 +2165,7 @@ function App() {
         search_id: lastSearchId,
         selection_refs: selectionRefs,
         debug,
+        language,
         query_title: (response?.query?.text ?? title ?? '').trim() || null,
         user_goods_classes: response?.query?.goods_classes || [],
         user_group_codes: response?.query?.group_codes || [],

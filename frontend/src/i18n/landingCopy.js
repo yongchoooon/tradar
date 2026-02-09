@@ -36,8 +36,8 @@ export const landingCopy = {
       noResults: 'No matching classes found.',
       error: 'An error occurred while searching.',
       note: '',
-      languageChangeNotice: 'Language changed. To search again,',
-      languageChangeAction: 'click here.',
+      languageChangeNotice: 'Language changed. Search again.',
+      languageChangeAction: '',
       classBadgeFormat: 'Class {class}',
     },
     results: {
@@ -225,8 +225,8 @@ export const landingCopy = {
       noResults: '일치하는 분류를 찾지 못했습니다.',
       error: '검색 중 오류가 발생했습니다',
       note: '',
-      languageChangeNotice: '언어를 변경하셨습니다. 다시 검색하려면',
-      languageChangeAction: '여기를 클릭하세요.',
+      languageChangeNotice: '언어를 변경하셨습니다. 다시 검색하세요.',
+      languageChangeAction: '',
       classBadgeFormat: '{class}류',
     },
     results: {
