@@ -33,90 +33,153 @@ const EXAMPLE_PRESETS = {
   example1: {
     title: 'T-RADAR',
     imagePath: '/home/work/workspace/tradar/frontend/public/logo-tradar.png',
-    goodsQuery: { ko: '검색', en: 'Search' },
-    groups: [
-      {
-        classCode: '45',
-        className: '법률·IP 서비스',
-        groupCode: 'S120402',
-        names: [
-          '상표정보검색조사업',
-          '선행기술 조사 및 검색업',
-          '온라인 검색가능 데이터베이스를 통한 특허 애플리케이션 분야 정보제공업',
-          '칭호검색업',
-        ],
-      },
-      {
-        classCode: '35',
-        className: '광고·사업관리',
-        groupCode: 'S123301',
-        names: [
-          '인터넷 자료 검색제공업',
-          '인터넷상의 정보검색대행업',
-          '컴퓨터 데이터베이스 검색업',
-          '컴퓨터 자료 검색업',
-        ],
-      },
-      {
-        classCode: '38',
-        className: '통신 서비스',
-        groupCode: 'S0601',
-        names: [
-          '검색엔진 이용자 접속제공업',
-          '스마트폰애플리케이션을 통한 검색엔진 사용자 접속제공업',
-          '정보검색용 전자식 온라인 네트워크 접속제공업',
-          '정보검색용 전자온라인네트워크 접속제공업',
-        ],
-      },
-      {
-        classCode: '09',
-        className: '과학·전자기기',
-        groupCode: 'G390802',
-        names: [
-          '검색가능 데이터베이스 생성용 컴퓨터 소프트웨어',
-          '데이터 검색용 컴퓨터 소프트웨어',
-          '데이터 검색이 가능한 컴퓨터 소프트웨어',
-          '정보 및 데이터의 검색 가능한 데이터베이스 제작용 컴퓨터 소프트웨어',
-          '컴퓨터 및 컴퓨터네트워크 콘텐츠용 원격검색 컴퓨터프로그램',
-          '컴퓨터네트워크를 통한 정보 검색/송신용 소프트웨어',
-          '컴퓨터용 검색엔진 소프트웨어',
-        ],
-      },
-    ],
+    goodsQuery: { ko: '검색', en: 'Retrieval' },
+    groups: {
+      ko: [
+        {
+          classCode: '45',
+          className: '법률·IP 서비스',
+          groupCode: 'S120402',
+          names: [
+            '상표정보검색조사업',
+            '선행기술 조사 및 검색업',
+            '온라인 검색가능 데이터베이스를 통한 특허 애플리케이션 분야 정보제공업',
+            '칭호검색업',
+          ],
+        },
+        {
+          classCode: '35',
+          className: '광고·사업관리',
+          groupCode: 'S123301',
+          names: [
+            '인터넷 자료 검색제공업',
+            '인터넷상의 정보검색대행업',
+            '컴퓨터 데이터베이스 검색업',
+            '컴퓨터 자료 검색업',
+          ],
+        },
+        {
+          classCode: '38',
+          className: '통신 서비스',
+          groupCode: 'S0601',
+          names: [
+            '검색엔진 이용자 접속제공업',
+            '스마트폰애플리케이션을 통한 검색엔진 사용자 접속제공업',
+            '정보검색용 전자식 온라인 네트워크 접속제공업',
+            '정보검색용 전자온라인네트워크 접속제공업',
+          ],
+        },
+        {
+          classCode: '09',
+          className: '과학·전자기기',
+          groupCode: 'G390802',
+          names: [
+            '검색가능 데이터베이스 생성용 컴퓨터 소프트웨어',
+            '데이터 검색용 컴퓨터 소프트웨어',
+            '데이터 검색이 가능한 컴퓨터 소프트웨어',
+            '정보 및 데이터의 검색 가능한 데이터베이스 제작용 컴퓨터 소프트웨어',
+            '컴퓨터 및 컴퓨터네트워크 콘텐츠용 원격검색 컴퓨터프로그램',
+            '컴퓨터네트워크를 통한 정보 검색/송신용 소프트웨어',
+            '컴퓨터용 검색엔진 소프트웨어',
+          ],
+        },
+      ],
+      en: [
+        {
+          classCode: '45',
+          className: 'Legal/IP services',
+          groupCode: 'S120402',
+          names: ['trademark information retrieval research'],
+        },
+        {
+          classCode: '42',
+          className: 'Science & technology services',
+          groupCode: 'S123301',
+          names: ['design and development of data retrieval software'],
+        },
+        {
+          classCode: '42',
+          className: 'Science & technology services',
+          groupCode: 'G390802',
+          names: ['design and development of data retrieval software'],
+        },
+        {
+          classCode: '35',
+          className: 'Advertising & business management',
+          groupCode: 'S123301',
+          names: [
+            'retrieval services for internet data',
+            'information retrieval services on the internet for others',
+            'computer database retrieval services',
+          ],
+        },
+      ],
+    },
   },
   example2: {
     title: 'Hard Rock',
     imagePath: '/home/work/workspace/tradar/frontend/public/logo-hard_rock.jpg',
     goodsQuery: { ko: '맥주', en: 'Beer' },
-    groups: [
-      {
-        classCode: '32',
-        className: '무알콜 음료',
-        groupCode: 'G0602',
-        names: [
-          '맥아맥주',
-          '맥주',
-          '맥주/에일 및 라거',
-          '맥주/에일 및 포터',
-          '맥주/에일/라거/스타우트 및 포터',
-          '맥주용 맥아즙',
-          '맥주음료',
-          '맥주함유 칵테일',
-          '무알코올 맥주',
-          '밀맥주',
-          '발리 와인(맥주)',
-          '비알코올성 맥주',
-          '비알코올성 맥주맛 음료',
-          '비알코올성 맥주함유 칵테일',
-          '비알코올성 맥주향 음료',
-          '알코올성분을 제거한 맥주',
-          '에일(맥주)',
-          '유사맥주',
-          '커피맛 맥주',
-          '필젠맥주',
-        ],
-      },
-    ],
+    groups: {
+      ko: [
+        {
+          classCode: '32',
+          className: '무알콜 음료',
+          groupCode: 'G0602',
+          names: [
+            '맥아맥주',
+            '맥주',
+            '맥주/에일 및 라거',
+            '맥주/에일 및 포터',
+            '맥주/에일/라거/스타우트 및 포터',
+            '맥주용 맥아즙',
+            '맥주음료',
+            '맥주함유 칵테일',
+            '무알코올 맥주',
+            '밀맥주',
+            '발리 와인(맥주)',
+            '비알코올성 맥주',
+            '비알코올성 맥주맛 음료',
+            '비알코올성 맥주함유 칵테일',
+            '비알코올성 맥주향 음료',
+            '알코올성분을 제거한 맥주',
+            '에일(맥주)',
+            '유사맥주',
+            '커피맛 맥주',
+            '필젠맥주',
+          ],
+        },
+      ],
+      en: [
+        {
+          classCode: '32',
+          className: 'Beers',
+          groupCode: 'G0602',
+          names: [
+            'lager beers',
+            'low-alcohol beer',
+            'root beer',
+            'malt beer',
+            'beer',
+            'beers',
+            'beer, ale and lager',
+            'beer, ale and porter',
+            'beer, ale, lager, stout and porter',
+            'beer wort',
+            'beer-based beverages',
+            'beer-based cocktails',
+            'alcohol-free beers',
+            'de-alcoholized beer',
+            'wheat beer',
+            'barley wine [beer]',
+            'bock beer',
+            'non-alcoholic beer',
+            'non-alcoholic beer flavored beverages',
+            'non-alcoholic beer-based cocktails',
+          ],
+        },
+      ],
+    },
   },
 };
 
@@ -525,7 +588,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
     <section className="goods-panel">
       <div className="goods-panel__heading">
         <h2>{text.sectionTitle || '상품/서비스류 검색'}</h2>
-        <span className="goods-panel__note">{text.note || '검색은 한국어만 가능합니다.'}</span>
+        {text.note ? <span className="goods-panel__note">{text.note}</span> : null}
       </div>
       <form className="goods-search" onSubmit={fetchGoods}>
         <input
@@ -1807,7 +1870,10 @@ function App() {
       setError('');
       const file = await fetchStaticAssetFile(config.imagePath);
       const groupMap = {};
-      (config.groups || []).forEach((group) => {
+      const groups = Array.isArray(config.groups)
+        ? config.groups
+        : (config.groups?.[language] || config.groups?.ko || []);
+      groups.forEach((group) => {
         if (!group?.groupCode) {
           return;
         }
