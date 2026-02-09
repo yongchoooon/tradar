@@ -39,6 +39,10 @@ class SimulationCancelled(Exception):
     """Raised when the user cancels an in-flight simulation."""
 
 
+class SimulationTimeout(Exception):
+    """Raised when the simulation exceeds the allowed time."""
+
+
 class SimulationEngine:
     """외부 데이터를 수집하고 LangGraph 에이전트를 호출한다."""
 
