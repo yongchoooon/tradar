@@ -132,9 +132,9 @@ python -m worker.main
 
 ### 시뮬레이션 파이프라인 요약
 
-1. 프런트엔드에서 기본 이미지/텍스트 상위 5건(최대 40건) 출원번호를 `/simulation/run`으로 전송합니다.
+1. 프런트엔드에서 기본 이미지/텍스트 상위 5건(최대 20건) 출원번호를 `/simulation/run`으로 전송합니다.
 2. 백엔드는 `KIPRIS_ACCESS_KEY`로 IntermediateDocument OP/RE API를 호출하여 거절사유/추가사유/이미지/최종변동일자를 수집합니다.
-3. 사용자 UI에서 선택한 상품류·유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록(`user_goods_names`)과 업로드 이미지(`user_image_b64` + `user_image_mime`)를 그대로 전달해 LangGraph 프롬프트가 실제 사용자의 지정상품과 외관을 참고하도록 합니다.
+3. 사용자 UI에서 선택한 상품류·유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록(`user_goods_names`)과 업로드 이미지(`user_image_ref` + `user_image_mime`, 필요 시 `user_image_b64` 폴백)를 전달해 LangGraph 프롬프트가 실제 사용자의 지정상품과 외관을 참고하도록 합니다.
 4. 수집된 텍스트 및 사용자 맥락을 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-5-nano)로 대화/요약/위험 분석을 생성합니다.
 5. 각 후보별 결과에는 충돌 위험도(`conflict_score`), 등록 가능성(`register_score`), LLM 근거(`rationale`, `factors[]`), 대화 로그가 포함됩니다. 시뮬레이션 워커는 최대 10개까지 병렬 실행되어 지연을 줄입니다.
 6. 모든 후보 평가가 끝나면 평균 점수, 고위험 건수, `overall_report`(여러 후보를 묶어 Markdown으로 정리한 최종 리포트)를 계산해 프런트엔드 상단 요약 카드에 사용합니다.
@@ -243,32 +243,28 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 1. 입력 이미지를 MetaCLIP2/DINOv2로 임베딩 (임베딩 결과는 LRU 캐시에 저장돼 동일 이미지 재검색 시 재사용)
 2. pgvector에서 각각 ANN Top-N 후보 검색
 3. 각 후보에 대해 누락된 공간의 임베딩을 다시 읽어 코사인 유사도 계산
-4. 기본 스코어 가중치는 DINO:MetaCLIP = 0.5:0.5로 고정되며, 재검색 프롬프트를 사용해도 최종 점수 비율은 변하지 않고 MetaCLIP 질의 벡터만 프리셋(90/10 · 70/30 · 50/50 · 30/70 · 10/90)에 맞춰 섞입니다.
-5. 이미지 프롬프트가 제공되면 MetaCLIP 이미지 벡터와 프롬프트 텍스트 임베딩을 가중 평균해 새 질의를 구성합니다.
-6. Top-K를 선정합니다. API 기본값은 20이지만 프런트엔드는 한 번의 호출로 최대 200건(`k=200`)을 요청해 이후 페이징/재선택에 활용합니다.
+4. 기본 스코어 가중치는 DINO:MetaCLIP = 0.5:0.5로 고정됩니다.
+5. Top-K를 선정합니다. API 기본값은 20이지만 프런트엔드는 한 번의 호출로 최대 200건(`k=200`)을 요청해 이후 페이징/재선택에 활용합니다.
 
 ### 텍스트 흐름
-1. 상표명 → TextVariantService → GPT-4o-mini 유사어 생성 (활성화 시). LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
-2. 텍스트 프롬프트가 있으면 LLM 기반 `PromptInterpreter`가 추가 키워드/필터(접두어, 포함/제외 토큰)를 추출하며, 실패 시 프롬프트 문장을 보조 키워드로만 사용한다고 디버그 메시지로 알려줍니다.
-3. 원본 질의, 유사어, 프롬프트 키워드를 MetaCLIP2 텍스트 임베딩으로 변환한 뒤 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치 프리셋에 맞춰 재결합합니다. 첫 입력 상표명은 4.5배 가중치를 부여하고, 나머지 유사어는 0.5배로 처리해 원본 질의가 항상 가장 큰 비중을 차지하도록 했습니다. 프런트엔드의 “LLM 유사어” 토글은 기본적으로 꺼져 있으며, 사용자가 켜면 LLM 유사어 10개를 생성해 이 단계에 포함하고 끄면 원문만 사용합니다 (`use_llm_variants`).
-4. 재결합된 벡터로 pgvector ANN Top-N 검색을 수행하고, LLM에서 생성한 필터(예: 접두어)는 결과 재정렬 단계에서 적용합니다.
-5. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색
-6. BM25 전용 후보는 텍스트 임베딩을 DB에서 읽어 코사인 유사도 계산 (동일하게 `<#>` 결과의 부호를 보정)
-7. MetaCLIP 유사도와 프롬프트 필터를 반영해 Top-K를 선택합니다. 기본값은 20이며, 프런트엔드는 이미지와 동일하게 200건까지 받아 자체 페이징합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
+1. 상표명 → `use_llm_variants=true`일 때 TextVariantService가 기본 변형(대소문자/공백 등) + (옵션) GPT-4o-mini 유사어를 생성합니다. LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
+2. 원본 질의와 유사어를 MetaCLIP2 텍스트 임베딩으로 변환한 뒤 가중 평균해 정규화합니다. 첫 입력 상표명은 4.5배, 나머지 유사어는 0.5배로 처리해 원본 질의가 항상 가장 큰 비중을 차지하도록 했습니다.
+3. 재결합된 벡터로 pgvector ANN Top-N 검색을 수행합니다.
+4. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색을 수행합니다.
+5. ANN + BM25 후보 전체에 대해 MetaCLIP 코사인 유사도를 계산합니다.
+6. MetaCLIP 유사도로 Top-K를 선택합니다. 기본값은 20이며, 프런트엔드는 이미지와 동일하게 200건까지 받아 자체 페이징합니다. 향후 선택한 상품 분류 정보를 활용한 그룹화가 추가될 예정입니다.
 
-### 프롬프트 재검색
-- 프런트엔드에서 "최우선"/"우선"/"균형"/"프롬프트 우선"/"프롬프트 최우선" 프리셋을 제공하며, 각각 90/10 · 70/30 · 50/50 · 30/70 · 10/90 가중치로 이미지/텍스트 임베딩이 보정됩니다.
-- 이미지 프롬프트는 MetaCLIP 이미지 벡터만 재가중하며 DINO 스코어 비중은 항상 0.5로 유지됩니다 (MetaCLIP 질의 벡터만 프리셋 비율로 조정).
-- 텍스트 프롬프트는 LLM을 통해 추가 키워드·접두 조건을 추출하고, 실패 시 보조 검색어만 추가한 뒤 그 사실을 디버그 메시지에 남깁니다.
-- 재검색 요청에 `variants` 필드를 전달하면 기존 LLM 유사어를 그대로 재사용하고 TextVariantService를 재호출하지 않습니다.
-- 모든 재검색은 Top-N을 다시 질의하는 방식으로 동작하여 기존 후보에 국한되지 않습니다.
+- 프런트엔드의 “LLM 유사어” 토글은 기본적으로 꺼져 있으며, 사용자가 켜면 기본 변형 + LLM 유사어(최대 10개)를 포함합니다 (`use_llm_variants`). 요청에 `variants`가 포함되면 TextVariantService를 재호출하지 않고 그대로 사용합니다.
+
+### 재검색 참고
+- 검색은 항상 Top-N을 다시 질의하는 방식으로 동작하여 기존 후보에 국한되지 않습니다.
 
 ### 응답 필드
 - `image_top`, `text_top`: 각각 Top-K 리스트 (기본 20, 프런트엔드는 `k=200`으로 호출해 18개씩 페이징)
 - `image_misc`, `text_misc`: Top-K 이외 후보 중 `등록`/`공고`가 아닌 상태를 가진 항목(최대 10)
 - `SearchResult`: `trademark_id`, `title`, `status`, `class_codes`, `app_no`, `image_sim`, `text_sim`, `thumb_url`, `image_path`, `goods_services`
 - `QueryInfo`: `k`, `text`, `goods_classes`, `group_codes`, `variants` (`goods_classes`/`group_codes`는 향후 인접군 분류를 위해 예약된 필드이며 현재 점수에는 영향을 주지 않음)
-- `DebugInfo.messages`: 재검색 가중치, 프롬프트 LLM 해석, 폴백 여부 등 텍스트 메시지를 배열로 반환합니다.
+- `DebugInfo.messages`: 이미지 가중치 고정 여부, variants 재사용 여부 등 파이프라인 메시지를 배열로 반환합니다.
 
 ## 세션 부팅
 
@@ -279,11 +275,10 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 ## 운영 팁
 
 - **LLM 사용**: `.env` 또는 AWS SSM에 `OPENAI_API_KEY`만 설정하면 됩니다. 검색 화면의 "LLM 유사어" 체크박스가 켜진 요청에서만 OpenAI API를 호출하고, 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 충돌 위험도/등록 가능성을 산출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
-- **프롬프트 LLM**: 재검색 프롬프트 전용 모델을 조정하려면 `PROMPT_LLM_MODEL`, `PROMPT_LLM_TEMPERATURE` 환경 변수를 사용하세요 (기본값은 `TRADEMARK_LLM_MODEL`/`0.1`).
 - **임베딩 모델 경로**: 기본값은 `/home/work/workspace/models/{metaclip,dinov2}`. 변경 시 `METACLIP_MODEL_NAME`, `DINOV2_MODEL_NAME` 환경변수를 사용하세요.
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.
 - **백엔드 선택**: FastAPI와 모든 시딩/부팅 스크립트는 Torch 백엔드를 기본 사용합니다. 더미(해시) 백엔드는 제거되었으며, 모델이 없을 경우 스크립트가 즉시 실패합니다.
-- **임베딩 캐시**: `PIPELINE_EMBED_CACHE_SIZE`(기본 128) 환경 변수로 이미지·텍스트 임베딩 LRU 캐시 크기를 조절해 재검색 성능을 최적화할 수 있습니다.
+- **임베딩 캐시**: `PIPELINE_EMBED_CACHE_SIZE`(기본 128) 환경 변수로 이미지·텍스트 임베딩 LRU 캐시 크기를 조절해 검색 성능을 최적화할 수 있습니다.
 - **.env 로딩**: FastAPI 기동 시 `python-dotenv`가 프로젝트 루트의 `.env`를 자동 로드합니다. `KIPRIS_ACCESS_KEY`, `OPENAI_API_KEY` 등 시크릿은 이 파일에 정의하면 됩니다.
 
 ## 개발 지침
