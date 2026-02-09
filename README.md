@@ -67,6 +67,7 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 - 상표 메타데이터 JSON과 이미지 경로를 기준으로 검색 데이터베이스를 구축합니다.
 - 2021년부터 2025년 10월까지의 상표 공보/거절 데이터를 수집했으며, KIPRIS Plus에서 구매하여 확보했습니다. (https://plus.kipris.or.kr/portal/main.do)
 - 상품/서비스류 분류(약 30만 항목) TSV를 기반으로 검색 보조 패널을 구성합니다 (`app/data/goods_services/`).
+- 상품/서비스류 분류 원본은 지식재산처 고시 자료를 기반으로 합니다. (https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0201120)
 
 ### 검색
 - 이미지 검색은 **DINOv2 + MetaCLIP2** 두 임베딩을 모두 생성해 pgvector ANN으로 Top‑N 후보를 찾고, 두 점수를 보정해 하나의 스코어로 통합합니다.
