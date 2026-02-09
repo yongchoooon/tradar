@@ -16,6 +16,8 @@ frontend/dist/
 frontend/.env
 frontend/.env.local
 
+app/data/goods_services/*.xlsx
+
 
 
 data/
