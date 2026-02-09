@@ -206,14 +206,25 @@ const normalizeMarkdown = (value) => {
     .replace(/([^\n])\n(-\s+)/g, '$1\n\n$2');
 };
 
-const SCORE_SEGMENTS = [
-  { label: '매우 낮음', max: 17 },
-  { label: '낮음', max: 34 },
-  { label: '약간 낮음', max: 50 },
-  { label: '약간 높음', max: 66 },
-  { label: '높음', max: 83 },
-  { label: '매우 높음', max: 100 },
+const SCORE_THRESHOLDS = [17, 34, 50, 66, 83, 100];
+const DEFAULT_SCORE_SEGMENT_LABELS = [
+  '매우 낮음',
+  '낮음',
+  '약간 낮음',
+  '약간 높음',
+  '높음',
+  '매우 높음',
 ];
+
+const buildScoreSegments = (labels = []) => {
+  const safeLabels = Array.isArray(labels) && labels.length === SCORE_THRESHOLDS.length
+    ? labels
+    : DEFAULT_SCORE_SEGMENT_LABELS;
+  return SCORE_THRESHOLDS.map((max, idx) => ({
+    label: safeLabels[idx] || DEFAULT_SCORE_SEGMENT_LABELS[idx],
+    max,
+  }));
+};
 
 const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
 
@@ -223,20 +234,21 @@ const formatScorePill = (value) => {
   return Math.round(numeric);
 };
 
-const describeScoreBand = (value) => {
+const describeScoreBand = (value, labels = DEFAULT_SCORE_SEGMENT_LABELS, fallback = '정보 부족') => {
   const clamped = clampScore(value);
-  if (!Number.isFinite(clamped)) return '정보 부족';
-  if (clamped < 10) return '매우 낮음';
-  if (clamped < 30) return '낮음';
-  if (clamped < 50) return '약간 낮음';
-  if (clamped < 70) return '약간 높음';
-  if (clamped < 90) return '높음';
-  return '매우 높음';
+  if (!Number.isFinite(clamped)) return fallback;
+  if (clamped < 10) return labels[0];
+  if (clamped < 30) return labels[1];
+  if (clamped < 50) return labels[2];
+  if (clamped < 70) return labels[3];
+  if (clamped < 90) return labels[4];
+  return labels[5];
 };
 
-const renderScoreBar = (title, value, secondary) => {
+const renderScoreBar = (title, value, secondary, labels = {}) => {
+  const segments = buildScoreSegments(labels.segmentLabels);
   const safe = clampScore(value);
-  const segmentIndex = SCORE_SEGMENTS.findIndex((segment) => safe <= segment.max);
+  const segmentIndex = segments.findIndex((segment) => safe <= segment.max);
   const hasSecondary = secondary && Number.isFinite(secondary.value);
   const secondaryValue = hasSecondary ? clampScore(secondary.value) : null;
   const mergeThreshold = 20;
@@ -258,11 +270,15 @@ const renderScoreBar = (title, value, secondary) => {
     ? (avgComesFirst ? 'simulation-score-bar__marker-label--collapse-right'
       : 'simulation-score-bar__marker-label--collapse-left')
     : '';
-  const markerLabel = secondary?.kind === 'max' ? '최댓값' : '최솟값';
-  const avgLabelText = `평균 ${safe.toFixed(1)}점`;
+  const markerLabel = secondary?.kind === 'max'
+    ? (labels.maxLabel || '최댓값')
+    : (labels.minLabel || '최솟값');
+  const pointSuffix = labels.pointSuffix || '점';
+  const avgLabel = labels.avgLabel || '평균';
+  const avgLabelText = `${avgLabel} ${safe.toFixed(1)}${pointSuffix}`;
   const secondaryLabelText = shouldCombineLabels && secondaryValue !== null
     ? null
-    : `${markerLabel} ${secondaryValue?.toFixed(1)}점`;
+    : `${markerLabel} ${secondaryValue?.toFixed(1)}${pointSuffix}`;
   return (
     <div className="simulation-score-bar" key={title}>
       <div className="simulation-score-bar__header">
@@ -270,7 +286,7 @@ const renderScoreBar = (title, value, secondary) => {
       </div>
       <div className="simulation-score-bar__body">
         <div className="simulation-score-bar__track">
-          {SCORE_SEGMENTS.map((segment, idx) => (
+          {segments.map((segment, idx) => (
             <div
               key={segment.label}
               className={[
@@ -361,14 +377,24 @@ function MarkdownBlock({ text, className }) {
   );
 }
 
-function GoodsGroupList({ classItem, expanded, onToggleExpand, onToggleGroup, selectedGroups }) {
+function GoodsGroupList({
+  classItem,
+  expanded,
+  onToggleExpand,
+  onToggleGroup,
+  selectedGroups,
+  classBadgeFormat,
+}) {
   const hasGroups = classItem.groups && classItem.groups.length > 0;
   if (!hasGroups) return null;
+  const classCode = classItem.nc_class;
+  const badgeTemplate = classBadgeFormat || '{class}류';
+  const badgeLabel = badgeTemplate.replace('{class}', classCode);
   return (
     <article className={`goods-class ${expanded ? 'is-open' : ''}`}>
       <header onClick={() => onToggleExpand(classItem.nc_class)}>
         <div className="goods-class__title">
-          <span className="goods-class__badge">{classItem.nc_class}류</span>
+          <span className="goods-class__badge">{badgeLabel}</span>
           <span className="goods-class__name">{classItem.class_name}</span>
         </div>
         <button type="button" className="icon-button" aria-label="토글">
@@ -525,6 +551,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy }) {
             onToggleExpand={toggleExpand}
             onToggleGroup={onToggleGroup}
             selectedGroups={selectedGroups}
+            classBadgeFormat={text.classBadgeFormat}
           />
         ))}
       </div>
@@ -713,6 +740,8 @@ function ResultCard({
   item,
   variant,
   simLabel,
+  statusLabels,
+  emptyImageLabel,
   selectable = false,
   checked = false,
   onToggleSelection,
@@ -721,6 +750,7 @@ function ResultCard({
 }) {
   const status = (item.status || '').trim();
   const statusClass = STATUS_MAP[status.toLowerCase()] || 'status-default';
+  const displayStatus = translateStatus(status, statusLabels);
   const resolvedSimLabel = simLabel || (variant === 'image' ? '이미지 유사도' : '텍스트 유사도');
   const simValue = variant === 'image' ? item.image_sim : item.text_sim;
   const showSelector = selectable && typeof onToggleSelection === 'function';
@@ -763,14 +793,14 @@ function ResultCard({
           {thumbUrl ? (
             <img src={thumbUrl} alt={`${item.title} 미리보기`} loading="lazy" />
           ) : (
-            <div className="thumb-placeholder">이미지 없음</div>
+            <div className="thumb-placeholder">{emptyImageLabel || '이미지 없음'}</div>
           )}
         </div>
       </div>
       <div className="result-card__body">
         <header className="result-card__header">
           <strong className="result-title" title={item.title}>{item.title}</strong>
-          <span className={`status-badge ${statusClass}`}>{status || '상태 미상'}</span>
+          <span className={`status-badge ${statusClass}`}>{displayStatus}</span>
         </header>
         {appNumber ? (
           <span className="result-card__app-no">{appNumber}</span>
@@ -886,6 +916,8 @@ function ResultSection({
   const simLabel = variant === 'image'
     ? (text.simLabelImage || '이미지 유사도')
     : (text.simLabelText || '텍스트 유사도');
+  const statusLabels = text.statusLabels || {};
+  const emptyImageLabel = text.emptyImage || '이미지 없음';
 
   return (
     <section className="results-section">
@@ -919,6 +951,8 @@ function ResultSection({
                 item={item}
                 variant={variant}
                 simLabel={simLabel}
+                statusLabels={statusLabels}
+                emptyImageLabel={emptyImageLabel}
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
@@ -945,6 +979,8 @@ function ResultSection({
                   item={item}
                   variant={variant}
                   simLabel={simLabel}
+                  statusLabels={statusLabels}
+                  emptyImageLabel={emptyImageLabel}
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
@@ -990,6 +1026,7 @@ function SimulationPanel({
   const statusText = text.status || {};
   const progressText = text.progress || {};
   const timeText = text.time || {};
+  const scoreCopy = text.score || {};
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
@@ -1035,12 +1072,12 @@ function SimulationPanel({
     },
     collecting: {
       title: statusText.collecting?.title || '데이터를 불러오는 중',
-      message: statusText.collecting?.message || 'KIPRIS 의견제출통지서와 거절결정서를 수집·정리하는 단계입니다.',
+      message: statusText.collecting?.message || '참고 자료를 수집·정리하는 단계입니다.',
       tone: 'waiting',
       icon: FiFileText,
     },
     loading: {
-      title: statusText.loading?.title || 'LangGraph 에이전트 실행 중',
+      title: statusText.loading?.title || '시뮬레이션 진행 중',
       message: statusText.loading?.message || '수집된 자료를 바탕으로 에이전트 시뮬레이션이 진행 중입니다.',
       tone: 'running',
       icon: FiRefreshCcw,
@@ -1098,11 +1135,11 @@ function SimulationPanel({
   const guidanceLines = Array.isArray(text.guidance) && text.guidance.length
     ? text.guidance.map((line) => line.replace('{maxSelection}', maxSelection))
     : [
-        'AI Agent가 KIPRIS 의견제출통지서·거절결정서를 참고해 충돌 위험과 등록 가능성을 추정합니다.',
+        'AI Agent가 참고 자료를 바탕으로 충돌 위험과 등록 가능성을 추정합니다.',
         '',
         `- 이미지/텍스트 상위 5건이 기본 선택되며 최대 ${maxSelection}건까지 확장할 수 있습니다.`,
         '- “시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.',
-        '- 완료 시 후보별 Markdown 요약과 LLM 근거, 대화 로그가 제공됩니다.',
+        '- 완료 시 후보별 요약과 근거, 대화 로그가 제공됩니다.',
       ];
   const guidanceMarkdown = guidanceLines.join('\n');
   const guidanceBlock = (
@@ -1111,7 +1148,7 @@ function SimulationPanel({
       text={guidanceMarkdown}
     />
   );
-  const variantLabels = { image: '이미지', text: '텍스트' };
+  const variantLabels = scoreCopy.variantLabels || { image: '이미지', text: '텍스트' };
   const hasResultData = Boolean(result);
   const highRiskCandidates = useMemo(() => {
     if (!result?.candidates?.length) return [];
@@ -1151,10 +1188,13 @@ function SimulationPanel({
   const resultIsStale = hasResultData && status !== 'complete';
 
   return (
-    <aside className={panelClass} aria-label={text.ariaLabel || '상표 등록 가능성 시뮬레이션'}>
+    <aside
+      className={panelClass}
+      aria-label={text.ariaLabel || '상표 충돌 위험도 및 등록 가능성 시뮬레이션'}
+    >
       <div className="simulation-panel__header">
         <p className="simulation-panel__tag">{text.tag || 'AI Agent'}</p>
-        <h3>{text.title || '상표 등록 가능성 시뮬레이션'}</h3>
+        <h3>{text.title || '상표 충돌 위험도 및 등록 가능성 시뮬레이션'}</h3>
       </div>
       <div className="simulation-panel__scrollable">
         <div className="simulation-panel__body">
@@ -1162,7 +1202,7 @@ function SimulationPanel({
             <p className="simulation-panel__description">
               {hasResults
                 ? (text.description?.withResults
-                  || '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 40건까지 위험도를 비교합니다.')
+                  || '기본 설정(이미지 5건 + 텍스트 5건)을 기준으로 최대 20건의 위험도와 등록 가능도를 비교합니다.')
                 : (text.description?.noResults
                   || '검색을 먼저 실행하면 위험도가 높은 후보 10건을 자동으로 선택해줍니다.')}
             </p>
@@ -1239,26 +1279,32 @@ function SimulationPanel({
                 <div className="simulation-panel__score-area">
                   <div className="simulation-panel__score-bars">
                     {renderScoreBar(
-                      '충돌 위험도',
+                      scoreCopy.riskTitle || '충돌 위험도',
                       avgConflictScore,
                       Number.isFinite(maxConflictScore)
                         ? { kind: 'max', value: maxConflictScore }
                         : null,
+                      scoreCopy,
                     )}
                     {renderScoreBar(
-                      '등록 가능성',
+                      scoreCopy.registerTitle || '등록 가능성',
                       avgRegisterScore,
                       Number.isFinite(minRegisterScore)
                         ? { kind: 'min', value: minRegisterScore }
                         : null,
+                      scoreCopy,
                     )}
                   </div>
                 <div className="simulation-panel__risk-row">
                   <div className="simulation-panel__risk-group">
                     <div className={`simulation-panel__risk-banner ${focusHighRiskOnly && riskToggleEnabled ? 'is-focused' : ''}`}>
-                      <div className="simulation-panel__risk-count">
-                        <span className="simulation-panel__risk-label">높은 위험</span>
-                        <strong className="simulation-panel__risk-value">{result.high_risk}건</strong>
+                    <div className="simulation-panel__risk-count">
+                        <span className="simulation-panel__risk-label">
+                          {scoreCopy.highRiskLabel || '높은 위험'}
+                        </span>
+                        <strong className="simulation-panel__risk-value">
+                          {result.high_risk}{scoreCopy.countSuffix || '건'}
+                        </strong>
                       </div>
                     </div>
                     <label
@@ -1271,7 +1317,9 @@ function SimulationPanel({
                         disabled={!riskToggleEnabled}
                       />
                       <span className="risk-average-toggle__switch" aria-hidden="true" />
-                      <span className="risk-average-toggle__label">높은 위험만 보기</span>
+                      <span className="risk-average-toggle__label">
+                        {scoreCopy.highRiskOnly || '높은 위험만 보기'}
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -1279,7 +1327,8 @@ function SimulationPanel({
             )}
               {resultIsStale && (
                 <p className="simulation-panel__status-text">
-                  새로운 시뮬레이션이 진행 중입니다. 아래 내용은 직전 결과입니다.
+                  {scoreCopy.staleNotice
+                    || '새로운 시뮬레이션이 진행 중입니다. 아래 내용은 직전 결과입니다.'}
                 </p>
               )}
               <MarkdownBlock
@@ -1288,7 +1337,9 @@ function SimulationPanel({
               />
             </div>
             <div className="simulation-panel__divider" />
-            <h4 className="simulation-panel__section-title">후보별 상세 분석</h4>
+            <h4 className="simulation-panel__section-title">
+              {scoreCopy.detailTitle || '후보별 상세 분석'}
+            </h4>
             <ul className="simulation-panel__list">
               {result.candidates.map((item) => (
                 <li key={`sim-${item.application_number}-${item.variant}`}>
@@ -1300,7 +1351,9 @@ function SimulationPanel({
                             {resolveMediaUrl(item.thumb_url) ? (
                               <img src={resolveMediaUrl(item.thumb_url)} alt={`${item.title} 미리보기`} loading="lazy" />
                             ) : (
-                              <span className="simulation-panel__case-thumb-placeholder">이미지 없음</span>
+                              <span className="simulation-panel__case-thumb-placeholder">
+                                {scoreCopy.noImage || '이미지 없음'}
+                              </span>
                             )}
                           </div>
                           <div className="simulation-panel__case-details">
@@ -1315,12 +1368,16 @@ function SimulationPanel({
                         </div>
                         <div className="simulation-panel__score-pills">
                           <span className="simulation-panel__score-pill is-risk">
-                            <label>충돌 위험도</label>
-                            <strong>{formatScorePill(item.conflict_score)}점</strong>
+                            <label>{scoreCopy.riskLabel || '충돌 위험도'}</label>
+                            <strong>
+                              {formatScorePill(item.conflict_score)}{scoreCopy.pointSuffix || '점'}
+                            </strong>
                           </span>
                           <span className="simulation-panel__score-pill is-safe">
-                            <label>등록 가능성</label>
-                            <strong>{formatScorePill(item.register_score)}점</strong>
+                            <label>{scoreCopy.registerLabel || '등록 가능성'}</label>
+                            <strong>
+                              {formatScorePill(item.register_score)}{scoreCopy.pointSuffix || '점'}
+                            </strong>
                           </span>
                         </div>
                       </div>
@@ -1345,7 +1402,9 @@ function SimulationPanel({
                       )}
                       {item.llm_rationale && (
                         <div className="simulation-panel__rationale">
-                          <p className="simulation-panel__section-label">LLM 근거</p>
+                          <p className="simulation-panel__section-label">
+                            {scoreCopy.rationaleLabel || 'LLM 근거'}
+                          </p>
                           <MarkdownBlock
                             className="markdown-block--panel"
                             text={item.llm_rationale}
@@ -1354,7 +1413,9 @@ function SimulationPanel({
                       )}
                       {item.llm_factors?.length ? (
                         <div className="simulation-panel__rationale">
-                          <p className="simulation-panel__section-label">참고 요소</p>
+                          <p className="simulation-panel__section-label">
+                            {scoreCopy.factorsLabel || '참고 요소'}
+                          </p>
                           <ul className="simulation-panel__factor-list">
                             {item.llm_factors.slice(0, 4).map((factor, idx) => (
                               <li key={`factor-${item.application_number}-${idx}`}>{factor}</li>
@@ -1364,22 +1425,35 @@ function SimulationPanel({
                       ) : null}
                       {item.transcript?.length ? (
                         <details className="simulation-panel__transcript">
-                          <summary>대화 기록 (상위 4턴)</summary>
+                          <summary>{scoreCopy.transcriptTitle || '대화 기록 (상위 4턴)'}</summary>
                           <ul>
                             {item.transcript.slice(0, 4).map((line, idx) => {
-                              const match = line.match(/^\[(심사관|출원인|리포터)\]\s*\n?([\s\S]*)$/);
-                              const speaker = match ? match[1] : '대화';
+                              const match = line.match(/^\[(심사관|출원인|리포터|Examiner|Applicant|Reporter)\]\s*\n?([\s\S]*)$/);
+                              const speaker = match ? match[1] : '';
                               const content = match ? (match[2] || '').trimStart() : line;
-                              const roleClassMap = {
-                                심사관: 'transcript-entry--examiner',
-                                출원인: 'transcript-entry--applicant',
-                                리포터: 'transcript-entry--reporter',
+                              const roleKeyMap = {
+                                심사관: 'examiner',
+                                Examiner: 'examiner',
+                                출원인: 'applicant',
+                                Applicant: 'applicant',
+                                리포터: 'reporter',
+                                Reporter: 'reporter',
                               };
-                              const entryClass = roleClassMap[speaker] || 'transcript-entry--default';
+                              const roleClassMap = {
+                                examiner: 'transcript-entry--examiner',
+                                applicant: 'transcript-entry--applicant',
+                                reporter: 'transcript-entry--reporter',
+                              };
+                              const speakerLabels = scoreCopy.speakerLabels || {};
+                              const roleKey = roleKeyMap[speaker];
+                              const entryClass = roleKey ? roleClassMap[roleKey] : 'transcript-entry--default';
+                              const displaySpeaker = roleKey
+                                ? (speakerLabels[roleKey] || speaker)
+                                : (speaker || speakerLabels.default || '대화');
                               return (
                                 <li key={`transcript-${item.application_number}-${idx}`}>
                                   <div className={`transcript-entry ${entryClass}`}>
-                                    <div className="transcript-entry__speaker">{speaker}</div>
+                                    <div className="transcript-entry__speaker">{displaySpeaker}</div>
                                     <div className="transcript-entry__bubble">
                                       <MarkdownBlock text={content} />
                                     </div>
@@ -2259,9 +2333,40 @@ const STATUS_MAP = {
   '공지': 'status-notice',
   '거절': 'status-refused',
   'refused': 'status-refused',
+  '포기': 'status-refused',
+  'abandoned': 'status-refused',
+  'withdrawn': 'status-refused',
   '출원': 'status-pending',
   'pending': 'status-pending',
   '심사중': 'status-pending',
+};
+
+const STATUS_LABEL_KEYS = {
+  등록: 'registered',
+  registered: 'registered',
+  공고: 'notice',
+  publication: 'notice',
+  공지: 'notice',
+  거절: 'refused',
+  refused: 'refused',
+  포기: 'abandoned',
+  abandoned: 'abandoned',
+  withdrawn: 'abandoned',
+  출원: 'pending',
+  pending: 'pending',
+  심사중: 'pending',
+};
+
+const translateStatus = (value, labels = {}) => {
+  const raw = (value || '').trim();
+  if (!raw) {
+    return labels.default || '상태 미상';
+  }
+  const key = STATUS_LABEL_KEYS[raw] || STATUS_LABEL_KEYS[raw.toLowerCase()];
+  if (key && labels[key]) {
+    return labels[key];
+  }
+  return raw;
 };
 
 export default App;
