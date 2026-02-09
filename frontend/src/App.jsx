@@ -436,7 +436,7 @@ function GoodsGroupList({
 }
 
 
-function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy }) {
+function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, language = 'ko' }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -460,7 +460,9 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy }) {
     try {
       setLoading(true);
       setError('');
-      const data = await apiFetch(`/goods/search?q=${encodeURIComponent(term)}`);
+      const data = await apiFetch(
+        `/goods/search?q=${encodeURIComponent(term)}&lang=${encodeURIComponent(language)}`,
+      );
       const items = (data?.results || [])
         .filter((item) => Array.isArray(item.groups) && item.groups.length > 0)
         .slice(0, GOODS_LIMIT);
@@ -487,7 +489,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy }) {
         setExpanded(new Set());
       }
     } catch (err) {
-      setError(err?.message || text.error || '검색 중 오류가 발생했습니다');
+      setError(err?.message || text.error || 'An error occurred while searching.');
     } finally {
       setLoading(false);
     }
@@ -578,9 +580,9 @@ function PreviewImage({
   return <img src={url} alt={previewAlt} />;
 }
 
-async function requestPresignedUpload(file) {
+async function requestPresignedUpload(file, errors = {}) {
   if (!file) {
-    throw new Error('이미지 파일이 없습니다.');
+    throw new Error(errors.noImageFile || 'No image file selected.');
   }
   const payload = {
     filename: file.name || 'upload.bin',
@@ -592,7 +594,7 @@ async function requestPresignedUpload(file) {
     body: JSON.stringify(payload),
   });
   if (!data?.upload_url || !data?.read_url) {
-    throw new Error('S3 업로드 URL을 받지 못했습니다.');
+    throw new Error(errors.presignMissing || 'Failed to receive an S3 upload URL.');
   }
   const uploadRes = await fetch(data.upload_url, {
     method: 'PUT',
@@ -600,7 +602,7 @@ async function requestPresignedUpload(file) {
     body: file,
   });
   if (!uploadRes.ok) {
-    throw new Error('이미지 업로드에 실패했습니다.');
+    throw new Error(errors.uploadFailed || 'Image upload failed.');
   }
   return { type: 'presigned_url', url: data.read_url };
 }
@@ -1109,7 +1111,7 @@ function SimulationPanel({
   };
   const currentStatus = statusMetaMap[status] || statusMetaMap.idle;
   const statusMessage = status === 'error'
-    ? (error || text.errorFallback || '잠시 후 다시 시도해 주세요.')
+    ? (error || text.errorFallback || 'Please try again later.')
     : currentStatus.message;
   const statusContent = (
     <div className={`simulation-panel__status-card simulation-panel__status-card--${currentStatus.tone}`}>
@@ -1135,11 +1137,11 @@ function SimulationPanel({
   const guidanceLines = Array.isArray(text.guidance) && text.guidance.length
     ? text.guidance.map((line) => line.replace('{maxSelection}', maxSelection))
     : [
-        'AI Agent가 참고 자료를 바탕으로 충돌 위험과 등록 가능성을 추정합니다.',
+        'AI Agent reviews collected materials to estimate conflict risk and registrability.',
         '',
-        `- 이미지/텍스트 상위 5건이 기본 선택되며 최대 ${maxSelection}건까지 확장할 수 있습니다.`,
-        '- “시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.',
-        '- 완료 시 후보별 요약과 근거, 대화 로그가 제공됩니다.',
+        `- The top 5 image and text candidates are preselected; you can expand up to ${maxSelection}.`,
+        '- After clicking “Run Simulation,” you can track steps and elapsed time in real time.',
+        '- On completion, each candidate includes a summary, rationale, and dialogue log.',
       ];
   const guidanceMarkdown = guidanceLines.join('\n');
   const guidanceBlock = (
@@ -1193,7 +1195,7 @@ function SimulationPanel({
       aria-label={text.ariaLabel || '상표 충돌 위험도 및 등록 가능성 시뮬레이션'}
     >
       <div className="simulation-panel__header">
-        <p className="simulation-panel__tag">{text.tag || 'AI Agent'}</p>
+        <p className="simulation-panel__tag">{text.tag || 'AI Agent Simulation'}</p>
         <h3>{text.title || '상표 충돌 위험도 및 등록 가능성 시뮬레이션'}</h3>
       </div>
       <div className="simulation-panel__scrollable">
@@ -1471,7 +1473,7 @@ function SimulationPanel({
             </ul>
           </>
         ) : status === 'complete' ? (
-          <p className="simulation-panel__placeholder">결과를 불러오는 중입니다.</p>
+          <p className="simulation-panel__placeholder">{text.resultLoading || 'Loading results...'}</p>
         ) : null}
         </div>
       </div>
@@ -1608,6 +1610,9 @@ function App() {
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
   const copy = useMemo(() => getLandingCopy(language), [language]);
+  const searchErrors = copy.search?.errors || {};
+  const simulationAlerts = copy.simulation?.alerts || {};
+  const simulationErrors = copy.simulation?.errors || {};
   const textDisplayVariants = response?.query?.variants || [];
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
 
@@ -1761,7 +1766,7 @@ function App() {
       }
       setPlaceholderNotice('');
     } catch (err) {
-      setError(err?.message || '검색 중 문제가 발생했습니다');
+      setError(err?.message || searchErrors.general || 'Search failed.');
     } finally {
       setLoading(false);
       setLoadingState({ image: false, text: false });
@@ -1824,7 +1829,7 @@ function App() {
       handleImageFileUpdate(file);
     } catch (err) {
       console.error('Example load failed', err);
-      setError('예제 불러오기 중 오류가 발생했습니다.');
+      setError(searchErrors.exampleLoad || 'Failed to load the example.');
     }
   };
 
@@ -1894,7 +1899,7 @@ function App() {
     }
     if (status === 'failed') {
       setSimulationStatus('error');
-      setSimulationError(data?.error || '시뮬레이션에 실패했습니다.');
+      setSimulationError(data?.error || simulationErrors.failed || 'Simulation failed.');
       setSimulationJobId(null);
       return true;
     }
@@ -1902,12 +1907,12 @@ function App() {
       setSimulationStatus('cancelled');
       setSimulationResult((prev) => data.result || prev || null);
       setSimulationJobId(null);
-      setSimulationError('사용자가 시뮬레이션을 취소했습니다.');
+      setSimulationError(simulationErrors.cancelled || 'Simulation was cancelled by the user.');
       return true;
     }
     if (status === 'not_found') {
       setSimulationStatus('error');
-      setSimulationError('작업을 찾을 수 없습니다.');
+      setSimulationError(simulationErrors.notFound || 'Simulation job not found.');
       setSimulationJobId(null);
       return true;
     }
@@ -1928,7 +1933,7 @@ function App() {
       } catch (err) {
         console.error(err);
         setSimulationStatus('error');
-        setSimulationError('상태 조회 중 오류가 발생했습니다.');
+        setSimulationError(simulationErrors.statusFetch || 'An error occurred while fetching simulation status.');
         setSimulationJobId(null);
         closeSimulationStream();
       }
@@ -1951,7 +1956,7 @@ function App() {
       } catch (err) {
         console.error(err);
         setSimulationStatus('error');
-        setSimulationError('상태 스트림 처리 중 오류가 발생했습니다.');
+        setSimulationError(simulationErrors.stream || 'An error occurred while processing the status stream.');
         setSimulationJobId(null);
         closeSimulationStream();
       }
@@ -1978,7 +1983,8 @@ function App() {
         if (!nextVariantMap[key]) {
           const total = Object.keys(nextVariantMap).length + Object.keys(otherVariantMap).length;
           if (total >= SIMULATION_MAX_SELECTION) {
-            alert(`시뮬레이션에 포함할 상표는 최대 ${SIMULATION_MAX_SELECTION}개까지 가능합니다.`);
+            const template = simulationAlerts.selectionLimit || 'You can include up to {max} trademarks.';
+            alert(template.replace('{max}', SIMULATION_MAX_SELECTION));
             return prev;
           }
           nextVariantMap[key] = item;
@@ -1996,11 +2002,11 @@ function App() {
 
   const handleSimulationRun = async (debug = false) => {
     if (!response) {
-      alert('먼저 검색을 실행해 주세요.');
+      alert(simulationAlerts.searchFirst || 'Please run a search first.');
       return;
     }
     if (!totalSimulationSelected) {
-      alert('시뮬레이션에 포함할 상표를 선택해 주세요.');
+      alert(simulationAlerts.selectTrademarks || 'Please select trademarks to include.');
       return;
     }
     try {
@@ -2011,18 +2017,18 @@ function App() {
       setSimulationStartTime(Date.now());
       setSimulationElapsed(0);
       if (!lastSearchId) {
-        alert('검색 컨텍스트가 없습니다. 다시 검색해 주세요.');
+        alert(simulationAlerts.searchContextMissing || 'Search context is missing. Please search again.');
         setSimulationStatus('idle');
         return;
       }
       let imageRef = lastImageRef;
       if (!imageRef && imageFile) {
-        imageRef = await requestPresignedUpload(imageFile);
+        imageRef = await requestPresignedUpload(imageFile, searchErrors);
         setLastImageRef(imageRef);
       }
       const selectionRefs = buildSimulationSelectionRefs();
       if (!selectionRefs.length) {
-        alert('시뮬레이션에 포함할 상표를 선택해 주세요.');
+        alert(simulationAlerts.selectTrademarks || 'Please select trademarks to include.');
         setSimulationStatus('idle');
         return;
       }
@@ -2043,14 +2049,14 @@ function App() {
         body: JSON.stringify(payload),
       });
       if (!data?.job_id) {
-        throw new Error('작업 ID를 받지 못했습니다.');
+        throw new Error(simulationErrors.jobIdMissing || 'Failed to receive job ID.');
       }
       setSimulationJobId(data.job_id);
       startSimulationStream(data.job_id);
     } catch (err) {
       console.error(err);
       setSimulationStatus('error');
-      setSimulationError('시뮬레이션 실행 중 오류가 발생했습니다.');
+      setSimulationError(err?.message || simulationErrors.run || 'An error occurred while starting the simulation.');
     }
   };
 
@@ -2065,26 +2071,26 @@ function App() {
       });
     } catch (err) {
       console.error(err);
-      setSimulationError('시뮬레이션 취소 중 오류가 발생했습니다.');
+      setSimulationError(simulationErrors.cancel || 'An error occurred while cancelling the simulation.');
     }
   };
 
   useEffect(() => () => closeSimulationStream(), []);
 
   const executeSearch = async (debug = false) => {
-    if (!imageFile) {
-      setPlaceholderNotice('image');
-      setError('');
-      focusImageUploader();
-      return;
-    }
+      if (!imageFile) {
+        setPlaceholderNotice('image');
+        setError('');
+        focusImageUploader();
+        return;
+      }
     if (selectedGroupCodes.length === 0) {
       setPlaceholderNotice('goods');
       focusGoodsPanel();
       return;
     }
     try {
-      const imageRef = await requestPresignedUpload(imageFile);
+      const imageRef = await requestPresignedUpload(imageFile, searchErrors);
       await search({
         image_ref: imageRef,
         goods_classes: selectedClassCodes,
@@ -2097,7 +2103,7 @@ function App() {
       }, { image: true, text: true });
     } catch (err) {
       console.error(err);
-      alert('검색 요청 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+      alert(searchErrors.requestFailed || 'Search request failed. Check the console.');
     }
   };
 
@@ -2180,12 +2186,13 @@ function App() {
         onExample={handleExampleLoad}
         copy={copy.search}
       />
-      <GoodsSearchPanel
-        selectedGroups={selectedGroups}
-        onToggleGroup={toggleGroup}
-        preset={goodsPreset}
-        copy={copy.goods}
-      />
+            <GoodsSearchPanel
+              selectedGroups={selectedGroups}
+              onToggleGroup={toggleGroup}
+              preset={goodsPreset}
+              copy={copy.goods}
+              language={language}
+            />
       <div className="search-actions-row">
         <button type="button" className="secondary btn-wide" onClick={resetForm}>
           {copy.search?.reset || '초기화'}
