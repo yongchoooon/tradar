@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Set, Tuple
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-TSV_PATH = BASE_DIR / "data" / "goods_services" / "ko_goods_services.tsv"
+TSV_PATH = BASE_DIR / "data" / "goods_services" / "goods_services.tsv"
 
 GoodsMeta = Dict[str, Dict[str, Set[str]]]
 GroupIndex = Dict[str, Set[str]]

@@ -7,5 +7,8 @@ router = APIRouter()
 
 
 @router.get("/goods/search", response_model=GoodsSearchResponse)
-def goods_search(q: str = Query(..., min_length=1, description="검색어")) -> GoodsSearchResponse:
-    return search_goods(q)
+def goods_search(
+    q: str = Query(..., min_length=1, description="검색어"),
+    lang: str = Query("ko", description="언어(ko/en)"),
+) -> GoodsSearchResponse:
+    return search_goods(q, lang=lang)

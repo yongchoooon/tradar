@@ -19,8 +19,8 @@ from app.services.embedding_utils import (
 )
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-GOODS_TSV = BASE_DIR / "data" / "goods_services" / "ko_goods_services.tsv"
-CLASSES_TSV = BASE_DIR / "data" / "goods_services" / "nice_classes_ko_compact.tsv"
+GOODS_TSV = BASE_DIR / "data" / "goods_services" / "goods_services.tsv"
+CLASSES_TSV = BASE_DIR / "data" / "goods_services" / "nice_classes_compact.tsv"
 
 
 def _zero_accumulator() -> List[float]:
@@ -67,35 +67,46 @@ class ClassEntry:
     groups: Dict[str, GroupEntry]
 
 
-def _load_class_descriptions() -> Dict[str, Tuple[str, List[str], set[str], List[float]]]:
+def _normalize_lang(lang: str | None) -> str:
+    if not lang:
+        return "ko"
+    return "en" if lang.lower().startswith("en") else "ko"
+
+
+def _load_class_descriptions(lang: str) -> Dict[str, Tuple[str, List[str], set[str], List[float]]]:
     mapping: Dict[str, Tuple[str, List[str], set[str], List[float]]] = {}
+    lang = _normalize_lang(lang)
+    name_field = "content_en" if lang == "en" else "content_ko"
     with CLASSES_TSV.open("r", encoding="utf-8") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             nc = row["nc_class"].strip()
-            name = row["content"].strip()
+            name = (row.get(name_field) or "").strip() or (row.get("content_ko") or "").strip()
             tokens = tokenize(name)
             token_set = set(tokens)
             mapping[nc] = (name, tokens, token_set, hashed_embedding(tokens or ["blank"]))
     return mapping
 
 
-def _load_goods_entries() -> Dict[str, ClassEntry]:
-    classes = _load_class_descriptions()
+def _load_goods_entries(lang: str) -> Dict[str, ClassEntry]:
+    lang = _normalize_lang(lang)
+    classes = _load_class_descriptions(lang)
     class_map: Dict[str, ClassEntry] = {}
+    name_field = "name_en" if lang == "en" else "name_ko"
     with GOODS_TSV.open("r", encoding="utf-8") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             nc = row["nc_class"].strip()
-            name = row["name_ko"].strip()
+            name = (row.get(name_field) or "").strip()
             group_code = row["similar_group_code"].strip()
-            if not nc or not group_code:
+            if not nc or not group_code or not name:
                 continue
             if nc not in class_map:
-                class_name, tokens, token_set, vector = classes.get(
-                    nc,
-                    (f"{nc}류", [nc], {nc}, hashed_embedding([nc])),
-                )
+                if lang == "en":
+                    fallback = (f"Class {nc}", [nc], {nc}, hashed_embedding([nc]))
+                else:
+                    fallback = (f"{nc}류", [nc], {nc}, hashed_embedding([nc]))
+                class_name, tokens, token_set, vector = classes.get(nc, fallback)
                 class_map[nc] = ClassEntry(
                     nc_class=nc,
                     name=class_name,
@@ -112,9 +123,9 @@ def _load_goods_entries() -> Dict[str, ClassEntry]:
     return class_map
 
 
-@lru_cache(maxsize=1)
-def _catalog() -> Dict[str, ClassEntry]:
-    return _load_goods_entries()
+@lru_cache(maxsize=4)
+def _catalog(lang: str) -> Dict[str, ClassEntry]:
+    return _load_goods_entries(lang)
 
 
 def _similarity(query_vec: List[float], candidate_vec: List[float]) -> float:
@@ -135,12 +146,13 @@ def _match_name(tokens: Set[str], text: str, query_terms: List[str]) -> tuple[bo
     return True, scoring_tokens
 
 
-def search_goods(query: str, limit: int = 10) -> GoodsSearchResponse:
+def search_goods(query: str, limit: int = 10, lang: str | None = None) -> GoodsSearchResponse:
     query = (query or "").strip()
     if not query:
         return GoodsSearchResponse(query="", results=[])
 
-    catalog = _catalog()
+    lang = _normalize_lang(lang)
+    catalog = _catalog(lang)
     query_terms = tokenize(query)
     if not query_terms:
         query_terms = [query.lower()]
