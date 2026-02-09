@@ -33,7 +33,7 @@ const EXAMPLE_PRESETS = {
   example1: {
     title: 'T-RADAR',
     imagePath: '/home/work/workspace/tradar/frontend/public/logo-tradar.png',
-    goodsQuery: '검색',
+    goodsQuery: { ko: '검색', en: 'Search' },
     groups: [
       {
         classCode: '45',
@@ -87,7 +87,7 @@ const EXAMPLE_PRESETS = {
   example2: {
     title: 'Hard Rock',
     imagePath: '/home/work/workspace/tradar/frontend/public/logo-hard_rock.jpg',
-    goodsQuery: '맥주',
+    goodsQuery: { ko: '맥주', en: 'Beer' },
     groups: [
       {
         classCode: '32',
@@ -1824,7 +1824,10 @@ function App() {
         };
       });
       setTitle(config.title);
-      setGoodsPreset({ term: config.goodsQuery || '', nonce: Date.now() });
+      const goodsQuery = typeof config.goodsQuery === 'string'
+        ? config.goodsQuery
+        : (config.goodsQuery?.[language] || config.goodsQuery?.ko || '');
+      setGoodsPreset({ term: goodsQuery, nonce: Date.now() });
       setSelectedGroups(groupMap);
       handleImageFileUpdate(file);
     } catch (err) {

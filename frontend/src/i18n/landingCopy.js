@@ -30,12 +30,12 @@ export const landingCopy = {
     },
     goods: {
       sectionTitle: 'Goods/Services Search',
-      placeholder: '예: 커피, 애플리케이션, 교육',
+      placeholder: 'e.g., coffee, applications, education',
       search: 'Search',
       loading: 'Searching…',
       noResults: 'No matching classes found.',
       error: 'An error occurred while searching.',
-      note: 'Search is available in Korean only.',
+      note: '',
       classBadgeFormat: 'Class {class}',
     },
     results: {
@@ -222,7 +222,7 @@ export const landingCopy = {
       loading: '검색 중입니다…',
       noResults: '일치하는 분류를 찾지 못했습니다.',
       error: '검색 중 오류가 발생했습니다',
-      note: '검색은 한국어만 가능합니다.',
+      note: '',
       classBadgeFormat: '{class}류',
     },
     results: {
