@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import os
 import re
@@ -13,9 +14,31 @@ from typing import Iterable, List
 from openai import OpenAI, OpenAIError
 
 from app.services.model_pricing import get_model_pricing
+from app.services.request_meta import get_request_meta
 
 _HANGUL_RE = re.compile(r"[가-힣]")
 _LATIN_RE = re.compile(r"[A-Za-z]")
+
+_LEGACY_USAGE_HEADER = (
+    "timestamp,model,input_tokens,output_tokens,total_tokens,"
+    "input_cost_usd,output_cost_usd,total_cost_usd"
+)
+_USAGE_COLUMNS = [
+    "timestamp",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "input_cost_usd",
+    "output_cost_usd",
+    "total_cost_usd",
+    "client_id",
+    "client_ip",
+    "user_agent",
+    "request_id",
+    "search_id",
+    "job_id",
+]
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -133,8 +156,46 @@ class TrademarkLLMSynonymService:
         log_dir.mkdir(parents=True, exist_ok=True)
         path = log_dir / "openai_usage.csv"
         if not path.exists():
-            path.write_text("timestamp,model,input_tokens,output_tokens,total_tokens,input_cost_usd,output_cost_usd,total_cost_usd\n", encoding="utf-8")
+            path.write_text(",".join(_USAGE_COLUMNS) + "\n", encoding="utf-8")
+            return path
+        try:
+            with path.open("r", encoding="utf-8") as fh:
+                first_line = fh.readline().strip()
+            if first_line == ",".join(_USAGE_COLUMNS):
+                return path
+            if first_line.startswith(_LEGACY_USAGE_HEADER):
+                self._migrate_usage_log(path)
+        except OSError:
+            pass
         return path
+
+    def _migrate_usage_log(self, path: Path) -> None:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return
+        if not lines:
+            path.write_text(",".join(_USAGE_COLUMNS) + "\n", encoding="utf-8")
+            return
+        if lines[0].strip() == ",".join(_USAGE_COLUMNS):
+            return
+        extra = "," * (len(_USAGE_COLUMNS) - len(_LEGACY_USAGE_HEADER.split(",")))
+        with path.open("w", encoding="utf-8") as fh:
+            fh.write(",".join(_USAGE_COLUMNS) + "\n")
+            for line in lines[1:]:
+                cleaned = line.strip()
+                if not cleaned:
+                    continue
+                fh.write(f"{cleaned}{extra}\n")
+
+    @staticmethod
+    def _sanitize_meta(value: str | None, limit: int = 200) -> str:
+        if not value:
+            return ""
+        cleaned = value.replace("\n", " ").replace("\r", " ").replace(",", " ").strip()
+        if len(cleaned) > limit:
+            cleaned = cleaned[:limit]
+        return cleaned
 
     def _log_usage(self, response) -> None:  # type: ignore[no-untyped-def]
         usage = getattr(response, "usage", None)
@@ -160,18 +221,30 @@ class TrademarkLLMSynonymService:
             created = datetime.utcfromtimestamp(created)
         timestamp = created.isoformat() if hasattr(created, "isoformat") else ""
 
-        line = (
-            f"{timestamp},"
-            f"{self._model_id},"
-            f"{input_tokens if input_tokens is not None else ''},"
-            f"{output_tokens if output_tokens is not None else ''},"
-            f"{total_tokens if total_tokens is not None else ''},"
-            f"{input_cost:.10f},"
-            f"{output_cost:.10f},"
-            f"{total_cost:.10f}\n"
-        )
-        with self._usage_log_path.open("a", encoding="utf-8") as fh:
-            fh.write(line)
+        meta = get_request_meta()
+        client_id = self._sanitize_meta(getattr(meta, "client_id", None))
+        client_ip = self._sanitize_meta(getattr(meta, "client_ip", None))
+        user_agent = self._sanitize_meta(getattr(meta, "user_agent", None))
+        request_id = self._sanitize_meta(getattr(meta, "request_id", None))
+        row = [
+            timestamp,
+            self._model_id,
+            input_tokens if input_tokens is not None else "",
+            output_tokens if output_tokens is not None else "",
+            total_tokens if total_tokens is not None else "",
+            f"{input_cost:.10f}",
+            f"{output_cost:.10f}",
+            f"{total_cost:.10f}",
+            client_id,
+            client_ip,
+            user_agent,
+            request_id,
+            "",
+            "",
+        ]
+        with self._usage_log_path.open("a", encoding="utf-8", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(row)
 
     def _build_prompt(self, text: str, limit: int) -> list[dict]:
         system_prompt = (

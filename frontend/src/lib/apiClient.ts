@@ -5,6 +5,30 @@ if (!rawBase) {
 }
 
 const API_BASE_URL = rawBase.replace(/\/+$/, '') || '/';
+const CLIENT_ID_KEY = 'tradar_client_id';
+let cachedClientId: string | null = null;
+
+function getClientId(): string {
+  if (cachedClientId) return cachedClientId;
+  try {
+    cachedClientId = window.localStorage.getItem(CLIENT_ID_KEY);
+  } catch {
+    cachedClientId = null;
+  }
+  if (!cachedClientId) {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      cachedClientId = crypto.randomUUID();
+    } else {
+      cachedClientId = `anon-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    }
+    try {
+      window.localStorage.setItem(CLIENT_ID_KEY, cachedClientId);
+    } catch {
+      // ignore storage failures
+    }
+  }
+  return cachedClientId;
+}
 
 function buildUrl(path: string): string {
   if (!path || !path.startsWith('/')) {
@@ -23,7 +47,12 @@ function previewText(text: string, length = 200): string {
 
 export async function apiFetch(path: string, init?: RequestInit) {
   const url = buildUrl(path);
-  const response = await fetch(url, init);
+  const headers = new Headers(init?.headers || {});
+  const clientId = getClientId();
+  if (clientId) {
+    headers.set('X-Client-Id', clientId);
+  }
+  const response = await fetch(url, { ...init, headers });
   const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
   if (!response.ok) {

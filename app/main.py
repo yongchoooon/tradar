@@ -6,9 +6,10 @@ import logging
 import os
 from pathlib import Path
 from typing import List
+from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -17,6 +18,7 @@ from app.api.routes_media import router as media_router
 from app.api.routes_search import router as search_router
 from app.api.routes_worker import router as worker_router
 from app.api.routes_simulation import router as simulation_router
+from app.services.request_meta import RequestMeta, reset_request_meta, set_request_meta
 
 APP_ENV = os.getenv("APP_ENV")
 if not APP_ENV:
@@ -64,6 +66,45 @@ def _configure_logging() -> None:
 _configure_logging()
 
 app = FastAPI(title="Trademark Search Service")
+
+def _first_header(request: Request, name: str) -> str | None:
+    value = request.headers.get(name)
+    if not value:
+        return None
+    return value.strip() or None
+
+
+def _extract_client_ip(request: Request) -> str | None:
+    forwarded = _first_header(request, "x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip() or None
+    if request.client:
+        return request.client.host
+    return None
+
+
+@app.middleware("http")
+async def request_meta_middleware(request: Request, call_next):
+    request_id = (
+        _first_header(request, "x-request-id")
+        or _first_header(request, "x-amzn-trace-id")
+        or _first_header(request, "x-amz-cf-id")
+        or uuid4().hex
+    )
+    meta = RequestMeta(
+        client_id=_first_header(request, "x-client-id"),
+        client_ip=_extract_client_ip(request),
+        user_agent=_first_header(request, "user-agent"),
+        request_id=request_id,
+    )
+    token = set_request_meta(meta)
+    request.state.request_meta = meta
+    request.state.request_id = request_id
+    try:
+        response = await call_next(request)
+    finally:
+        reset_request_meta(token)
+    return response
 
 
 def _configure_cors(app_: FastAPI) -> None:

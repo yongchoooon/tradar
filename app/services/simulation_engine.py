@@ -61,6 +61,7 @@ class SimulationEngine:
         request: SimulationRequest,
         cancel_checker: Optional[Callable[[], bool]] = None,
         progress_callback: Optional[Callable[[str], None]] = None,
+        job_id: Optional[str] = None,
     ) -> SimulationResponse:
         if not request.selections:
             raise ValueError("선택된 상표가 없습니다.")
@@ -192,6 +193,7 @@ class SimulationEngine:
                 request,
                 total_selected=len(candidates),
                 query_title=user_mark,
+                job_id=job_id,
             )
         return SimulationResponse(
             total_selected=len(candidates),
@@ -428,6 +430,7 @@ class SimulationEngine:
         *,
         total_selected: int,
         query_title: str,
+        job_id: Optional[str],
     ) -> None:
         if not events:
             return
@@ -456,10 +459,15 @@ class SimulationEngine:
 
         payload = {
             "simulation_run_id": run_tag,
+            "job_id": job_id,
             "search_id": getattr(request, "search_id", None),
             "query_title": query_title,
             "total_selected": total_selected,
             "total_calls": len(sorted_events),
+            "client_id": getattr(request, "client_id", None),
+            "client_ip": getattr(request, "client_ip", None),
+            "user_agent": getattr(request, "user_agent", None),
+            "request_id": getattr(request, "request_id", None),
             "events": sorted_events,
         }
         date_tag = datetime.utcnow().strftime("%Y/%m/%d")
@@ -673,6 +681,7 @@ _engine = SimulationEngine()
 
 async def run_simulation_async(
     request: SimulationRequest,
+    job_id: Optional[str] = None,
     cancel_checker: Optional[Callable[[], bool]] = None,
     progress_callback: Optional[Callable[[str], None]] = None,
 ) -> SimulationResponse:
@@ -680,4 +689,5 @@ async def run_simulation_async(
         request,
         cancel_checker=cancel_checker,
         progress_callback=progress_callback,
+        job_id=job_id,
     )

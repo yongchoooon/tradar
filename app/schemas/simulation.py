@@ -49,6 +49,10 @@ class SimulationRequest:
     user_image_b64: Optional[str] = None
     user_image_mime: Optional[str] = None
     user_image_ref: Optional[ImageRefPayload] = None
+    client_id: Optional[str] = None
+    client_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    request_id: Optional[str] = None
 
 
 @pydantic_dataclass

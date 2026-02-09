@@ -16,6 +16,7 @@ from app.schemas.simulation import (
 )
 from app.services.simulation_jobs import job_manager
 from app.services.search_cache import search_cache
+from app.services.request_meta import get_request_meta
 
 router = APIRouter()
 logger = logging.getLogger("simulation")
@@ -26,6 +27,15 @@ def run_simulation_endpoint(
     request: SimulationRequest,
     background_tasks: BackgroundTasks,
 ) -> SimulationJobCreateResponse:
+    meta = get_request_meta()
+    if meta:
+        request = replace(
+            request,
+            client_id=meta.client_id,
+            client_ip=meta.client_ip,
+            user_agent=meta.user_agent,
+            request_id=meta.request_id,
+        )
     if not request.search_id:
         raise HTTPException(status_code=400, detail="검색 컨텍스트가 없습니다. 다시 검색해 주세요.")
     if not request.selection_refs:

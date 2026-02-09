@@ -76,6 +76,7 @@ class SimulationJobManager:
 
             result = await run_simulation_async(
                 record.request,
+                job_id=job_id,
                 cancel_checker=cancel_checker,
                 progress_callback=progress_callback,
             )
