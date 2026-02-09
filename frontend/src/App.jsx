@@ -308,6 +308,15 @@ const describeScoreBand = (value, labels = DEFAULT_SCORE_SEGMENT_LABELS, fallbac
   return labels[5];
 };
 
+const resolvePointSuffix = (labels = {}) => {
+  if (typeof labels.pointSuffix === 'string' && labels.pointSuffix !== '') {
+    return labels.pointSuffix;
+  }
+  const hasEnglish = [labels.avgLabel, labels.maxLabel, labels.minLabel]
+    .some((label) => typeof label === 'string' && label.trim() && /[A-Za-z]/.test(label));
+  return hasEnglish ? ' pts' : '점';
+};
+
 const renderScoreBar = (title, value, secondary, labels = {}) => {
   const segments = buildScoreSegments(labels.segmentLabels);
   const safe = clampScore(value);
@@ -336,7 +345,7 @@ const renderScoreBar = (title, value, secondary, labels = {}) => {
   const markerLabel = secondary?.kind === 'max'
     ? (labels.maxLabel || '최댓값')
     : (labels.minLabel || '최솟값');
-  const pointSuffix = labels.pointSuffix || '점';
+  const pointSuffix = resolvePointSuffix(labels);
   const avgLabel = labels.avgLabel || '평균';
   const avgLabelText = `${avgLabel} ${safe.toFixed(1)}${pointSuffix}`;
   const secondaryLabelText = shouldCombineLabels && secondaryValue !== null
@@ -379,13 +388,13 @@ const renderScoreBar = (title, value, secondary, labels = {}) => {
                     <span className="simulation-score-bar__marker-label-avg">{avgLabelText}</span>
                     <span className="simulation-score-bar__marker-label-divider"> | </span>
                     <span className="simulation-score-bar__marker-label-secondary">
-                      {markerLabel} {secondaryValue.toFixed(1)}점
+                      {markerLabel} {secondaryValue.toFixed(1)}{pointSuffix}
                     </span>
                   </>
                 ) : (
                   <>
                     <span className="simulation-score-bar__marker-label-secondary">
-                      {markerLabel} {secondaryValue.toFixed(1)}점
+                      {markerLabel} {secondaryValue.toFixed(1)}{pointSuffix}
                     </span>
                     <span className="simulation-score-bar__marker-label-divider"> | </span>
                     <span className="simulation-score-bar__marker-label-avg">{avgLabelText}</span>
@@ -505,7 +514,11 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(new Set());
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   const selectedGroupsRef = useRef(selectedGroups);
+  const lastSearchedQueryRef = useRef('');
+  const lastPresetNonceRef = useRef(null);
+  const prevLanguageRef = useRef(language);
   const text = copy || {};
 
   useEffect(() => {
@@ -530,6 +543,8 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
         .filter((item) => Array.isArray(item.groups) && item.groups.length > 0)
         .slice(0, GOODS_LIMIT);
       setResults(items);
+      lastSearchedQueryRef.current = term;
+      setNeedsRefresh(false);
       if (options.expandSelected) {
         const autoExpanded = new Set();
         const currentGroups = selectedGroupsRef.current || {};
@@ -556,7 +571,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
     } finally {
       setLoading(false);
     }
-  }, [text.error]);
+  }, [language, text.error]);
 
   const fetchGoods = async (e) => {
     e?.preventDefault();
@@ -579,10 +594,44 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
     if (!preset || typeof preset.term !== 'string') {
       return;
     }
+    if (preset.nonce == null || lastPresetNonceRef.current === preset.nonce) {
+      return;
+    }
+    lastPresetNonceRef.current = preset.nonce;
     const term = preset.term || '';
     setQuery(term);
     runGoodsSearch(term, { expandSelected: true });
   }, [preset, runGoodsSearch]);
+
+  useEffect(() => {
+    if (prevLanguageRef.current === language) {
+      return;
+    }
+    const hasResults = results.length > 0;
+    const hasSelections = Object.keys(selectedGroupsRef.current || {}).length > 0;
+    if (hasResults && hasSelections) {
+      setNeedsRefresh(true);
+    }
+    prevLanguageRef.current = language;
+  }, [language, results.length]);
+
+  useEffect(() => {
+    if (!needsRefresh) {
+      return;
+    }
+    const term = query.trim();
+    if (!term || term === lastSearchedQueryRef.current) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      runGoodsSearch(term, { expandSelected: true });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [needsRefresh, query, runGoodsSearch]);
+
+  const handleLanguageRefresh = () => {
+    runGoodsSearch(query, { expandSelected: true });
+  };
 
   return (
     <section className="goods-panel">
@@ -590,13 +639,26 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
         <h2>{text.sectionTitle || '상품/서비스류 검색'}</h2>
         {text.note ? <span className="goods-panel__note">{text.note}</span> : null}
       </div>
-      <form className="goods-search" onSubmit={fetchGoods}>
+      <form className={`goods-search ${needsRefresh ? 'is-attention' : ''}`} onSubmit={fetchGoods}>
         <input
           type="search"
           placeholder={text.placeholder || '예: 커피, 애플리케이션, 교육'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        {needsRefresh && (
+          <button
+            type="button"
+            className="goods-search__notice"
+            onClick={handleLanguageRefresh}
+          >
+            <span>{text.languageChangeNotice || '언어를 변경하셨습니다. 다시 검색하려면'}</span>
+            <span className="goods-search__notice-action">
+              {' '}
+              {text.languageChangeAction || '여기를 클릭하세요.'}
+            </span>
+          </button>
+        )}
         <button type="submit" className="action-button action-button--primary goods-search__submit">
           <FiSearch aria-hidden="true" />
           <span>{text.search || '검색'}</span>
@@ -1435,13 +1497,13 @@ function SimulationPanel({
                           <span className="simulation-panel__score-pill is-risk">
                             <label>{scoreCopy.riskLabel || '충돌 위험도'}</label>
                             <strong>
-                              {formatScorePill(item.conflict_score)}{scoreCopy.pointSuffix || '점'}
+                              {formatScorePill(item.conflict_score)}{resolvePointSuffix(scoreCopy)}
                             </strong>
                           </span>
                           <span className="simulation-panel__score-pill is-safe">
                             <label>{scoreCopy.registerLabel || '등록 가능성'}</label>
                             <strong>
-                              {formatScorePill(item.register_score)}{scoreCopy.pointSuffix || '점'}
+                              {formatScorePill(item.register_score)}{resolvePointSuffix(scoreCopy)}
                             </strong>
                           </span>
                         </div>
