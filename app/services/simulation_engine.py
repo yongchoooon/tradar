@@ -69,6 +69,7 @@ class SimulationEngine:
             raise SimulationCancelled()
 
         trimmed = request.selections[: self.MAX_SELECTIONS]
+        language = self._normalize_language(getattr(request, "language", None))
         debug_enabled = getattr(request, "debug", False)
         run_tag = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
         debug_tag = run_tag if debug_enabled else ""
@@ -122,6 +123,7 @@ class SimulationEngine:
                     user_image_data=user_image_data_url,
                     user_image_b64=user_image_b64_raw,
                     worker_id=worker_id,
+                    language=language,
                     cancel_checker=cancel_checker,
                 )
 
@@ -154,7 +156,14 @@ class SimulationEngine:
         high_risk = sum(1 for c in candidates if c.conflict_score >= 70)
         avg_register = mean([c.register_score for c in candidates]) if candidates else 0.0
         avg_conflict = mean([c.conflict_score for c in candidates]) if candidates else 0.0
-        summary = self._build_summary(len(candidates), high_risk, avg_register, avg_conflict, candidates)
+        summary = self._build_summary(
+            len(candidates),
+            high_risk,
+            avg_register,
+            avg_conflict,
+            candidates,
+            language=language,
+        )
         max_conflict = max((c.conflict_score for c in candidates), default=0.0)
         min_register = min((c.register_score for c in candidates), default=0.0)
         if cancel_checker and cancel_checker():
@@ -177,6 +186,7 @@ class SimulationEngine:
                     }
                     for c in candidates
                 ],
+                language=language,
             )
             if debug_enabled and debug_tag and overall_logs:
                 self._log_debug_llm(debug_tag, "overall", overall_logs)
@@ -238,57 +248,105 @@ class SimulationEngine:
         user_goods_names: List[str],
         selection: SimulationSelection,
         bundle: Dict[str, object],
+        *,
+        language: str = "ko",
     ) -> str:
         status_note = (selection.status or '').strip()
-        variant_label = "이미지" if selection.variant == "image" else "텍스트"
-        lines = [
-            "[사용자 입력 상표]",
-            f"- 명칭: {user_mark or '(상표명 미입력)'}",
-        ]
-        if user_goods:
-            lines.append(f"- 선택한 상품류: {', '.join(user_goods)}")
-        if user_groups:
-            lines.append(f"- 선택한 유사군: {', '.join(user_groups)}")
-        if user_goods_names:
-            lines.append("- 선택한 지정상품:")
-            for entry in user_goods_names[:30]:
-                cleaned = (entry or '').strip()
-                if not cleaned:
-                    continue
-                lines.append(f"  · {cleaned}")
-        lines += [
-            "",
-            "[비교 대상 유사 선행상표]",
-            f"- 제목: {selection.title} (출원번호 {selection.application_number})",
-            f"- 현재 상태: {status_note or '상태 정보 없음'}",
-        ]
-        lines.append(f"- 선정 기준: 사용자가 {variant_label} 검색 결과에서 선택한 후보")
-        if selection.class_codes:
-            lines.append(f"분류: {', '.join(selection.class_codes)}")
-        goods_text = (selection.goods_services or "").strip()
-        if goods_text:
-            lines.append("- 지정상품 요약:")
-            for chunk in goods_text.split("\n"):
-                cleaned = chunk.strip()
-                if cleaned:
-                    lines.append(f"  · {cleaned}")
-        if selection.variant == "image":
-            lines.append("- 사용자 상표 이미지와 유사 선행상표 이미지를 함께 첨부했습니다. 외관·색상·구성 요소의 유사성과 차이점을 함께 검토하세요.")
-        lines.append(
-            "- 아래 KIPRIS 문서는 유사 선행상표가 과거에 어떤 거절사유를 지적받았는지 보여주며, 동일/유사 사유가 사용자 상표에도 적용될 수 있는지 검토하는 참고 자료입니다."
-        )
-        lines.append(
-            "- **중요**: 의견제출통지서에 등장하는 선등록/선출원 상표는 참고용이며, [사용자 입력 상표]와 [비교 대상 유사 선행상표]를 직접 비교하는 단계에서는 절대 사용하지 마세요. 선등록 상표 언급은 '선등록 상표 거절이유'와 같은 별도 설명에서만 허용됩니다."
-        )
+        is_en = language.lower().startswith("en")
+        variant_label = "Image" if selection.variant == "image" else "Text"
+        if not is_en:
+            variant_label = "이미지" if selection.variant == "image" else "텍스트"
+        if is_en:
+            lines = [
+                "[User mark]",
+                f"- Name: {user_mark or '(no mark provided)'}",
+            ]
+            if user_goods:
+                lines.append(f"- Selected classes: {', '.join(user_goods)}")
+            if user_groups:
+                lines.append(f"- Selected similar group codes: {', '.join(user_groups)}")
+            if user_goods_names:
+                lines.append("- Selected goods/services:")
+                for entry in user_goods_names[:30]:
+                    cleaned = (entry or '').strip()
+                    if not cleaned:
+                        continue
+                    lines.append(f"  - {cleaned}")
+            lines += [
+                "",
+                "[Compared prior mark]",
+                f"- Title: {selection.title} (Application No. {selection.application_number})",
+                f"- Current status: {status_note or 'Status unavailable'}",
+            ]
+            lines.append(f"- Selection basis: user selected from {variant_label} search results")
+            if selection.class_codes:
+                lines.append(f"- Classes: {', '.join(selection.class_codes)}")
+            goods_text = (selection.goods_services or "").strip()
+            if goods_text:
+                lines.append("- Goods/services summary:")
+                for chunk in goods_text.split("\n"):
+                    cleaned = chunk.strip()
+                    if cleaned:
+                        lines.append(f"  - {cleaned}")
+            if selection.variant == "image":
+                lines.append(
+                    "- The user mark image and the prior mark image are attached. Review similarities and differences in appearance, color, and composition."
+                )
+            lines.append(
+                "- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark."
+            )
+            lines.append(
+                "- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as \"prior mark refusal reasons\"."
+            )
+        else:
+            lines = [
+                "[사용자 입력 상표]",
+                f"- 명칭: {user_mark or '(상표명 미입력)'}",
+            ]
+            if user_goods:
+                lines.append(f"- 선택한 상품류: {', '.join(user_goods)}")
+            if user_groups:
+                lines.append(f"- 선택한 유사군: {', '.join(user_groups)}")
+            if user_goods_names:
+                lines.append("- 선택한 지정상품:")
+                for entry in user_goods_names[:30]:
+                    cleaned = (entry or '').strip()
+                    if not cleaned:
+                        continue
+                    lines.append(f"  - {cleaned}")
+            lines += [
+                "",
+                "[비교 대상 유사 선행상표]",
+                f"- 제목: {selection.title} (출원번호 {selection.application_number})",
+                f"- 현재 상태: {status_note or '상태 정보 없음'}",
+            ]
+            lines.append(f"- 선정 기준: 사용자가 {variant_label} 검색 결과에서 선택한 후보")
+            if selection.class_codes:
+                lines.append(f"- 분류: {', '.join(selection.class_codes)}")
+            goods_text = (selection.goods_services or "").strip()
+            if goods_text:
+                lines.append("- 지정상품 요약:")
+                for chunk in goods_text.split("\n"):
+                    cleaned = chunk.strip()
+                    if cleaned:
+                        lines.append(f"  - {cleaned}")
+            if selection.variant == "image":
+                lines.append("- 사용자 상표 이미지와 유사 선행상표 이미지를 함께 첨부했습니다. 외관, 색상, 구성 요소의 유사성과 차이점을 함께 검토하세요.")
+            lines.append(
+                "- 아래 KIPRIS 문서는 유사 선행상표가 과거에 어떤 거절사유를 지적받았는지 보여주며, 동일/유사 사유가 사용자 상표에도 적용될 수 있는지 검토하는 참고 자료입니다."
+            )
+            lines.append(
+                "- **중요**: 의견제출통지서에 등장하는 선등록/선출원 상표는 참고용이며, [사용자 입력 상표]와 [비교 대상 유사 선행상표]를 직접 비교하는 단계에서는 절대 사용하지 마세요. 선등록 상표 언급은 '선등록 상표 거절이유'와 같은 별도 설명에서만 허용됩니다."
+            )
 
         office = bundle.get("office_action") or {}
         rejection = bundle.get("rejection") or {}
         office_context = format_document_context(office)
         rejection_context = format_document_context(rejection)
         if office_context:
-            lines.append("[의견제출통지서]\n" + office_context)
+            lines.append(("[Office action]\n" if is_en else "[의견제출통지서]\n") + office_context)
         if rejection_context:
-            lines.append("[거절결정서]\n" + rejection_context)
+            lines.append(("[Refusal decision]\n" if is_en else "[거절결정서]\n") + rejection_context)
         return "\n\n".join(lines)
 
     async def _evaluate(
@@ -305,16 +363,28 @@ class SimulationEngine:
         user_image_data: Optional[str],
         user_image_b64: Optional[str],
         worker_id: int,
+        language: str = "ko",
         cancel_checker: Optional[Callable[[], bool]] = None,
     ) -> tuple[SimulationCandidateResult, List[Dict[str, Any]]]:
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
-        variant_label = "이미지" if selection.variant == "image" else "텍스트"
-        notes: List[str] = [f"{variant_label} 검색 상위 후보"]
+        is_en = language.lower().startswith("en")
+        variant_label = "Image" if selection.variant == "image" else "Text"
+        if not is_en:
+            variant_label = "이미지" if selection.variant == "image" else "텍스트"
+        notes: List[str] = [
+            f"{variant_label} search top candidate" if is_en else f"{variant_label} 검색 상위 후보"
+        ]
         if selection.status:
-            notes.append(f"상태: {selection.status}")
+            notes.append(
+                f"Status: {selection.status}" if is_en else f"상태: {selection.status}"
+            )
         if selection.class_codes:
-            notes.append(f"분류: {', '.join(selection.class_codes[:3])}")
+            notes.append(
+                f"Classes: {', '.join(selection.class_codes[:3])}"
+                if is_en
+                else f"분류: {', '.join(selection.class_codes[:3])}"
+            )
 
         context_text = self._build_context(
             user_mark,
@@ -323,6 +393,7 @@ class SimulationEngine:
             user_goods_names,
             selection,
             docs or {},
+            language=language,
         )
         if debug:
             self._log_debug_context(debug_tag, selection.application_number, context_text, docs)
@@ -338,6 +409,7 @@ class SimulationEngine:
             images=image_inputs,
             metrics=metrics,
             worker_id=worker_id,
+            language=language,
         )
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
@@ -360,10 +432,16 @@ class SimulationEngine:
         if agent_risk:
             notes.append(agent_risk)
         notes.append(
-            f"LLM 평가: 충돌 위험도 {llm_conflict_score:.1f}점 · 등록 가능성 {llm_register_score:.1f}점"
+            (
+                f"LLM evaluation: conflict risk {llm_conflict_score:.1f} pts · registrability {llm_register_score:.1f} pts"
+                if is_en
+                else f"LLM 평가: 충돌 위험도 {llm_conflict_score:.1f}점 · 등록 가능성 {llm_register_score:.1f}점"
+            )
         )
         if llm_rationale:
-            notes.append(f"LLM 근거: {llm_rationale}")
+            notes.append(
+                f"LLM rationale: {llm_rationale}" if is_en else f"LLM 근거: {llm_rationale}"
+            )
         for factor in llm_factors[:3]:
             notes.append(f"- {factor}")
 
@@ -404,23 +482,44 @@ class SimulationEngine:
         avg_register: float,
         avg_conflict: float,
         candidates: List[SimulationCandidateResult],
+        *,
+        language: str = "ko",
     ) -> str:
+        is_en = language.lower().startswith("en")
         if not total:
-            return "선택된 상표가 없습니다."
+            return "No trademarks selected." if is_en else "선택된 상표가 없습니다."
         if high_risk == 0:
-            base = (
-                f"총 {total}건 중 충돌 위험도가 높은 상표는 없습니다. "
-                f"평균 충돌 위험도 {avg_conflict:.1f}점 · 평균 등록 가능성 {avg_register:.1f}점입니다."
-            )
+            if is_en:
+                base = (
+                    f"No high conflict-risk trademarks among {total} candidates. "
+                    f"Avg conflict risk {avg_conflict:.1f} pts · Avg registrability {avg_register:.1f} pts."
+                )
+            else:
+                base = (
+                    f"총 {total}건 중 충돌 위험도가 높은 상표는 없습니다. "
+                    f"평균 충돌 위험도 {avg_conflict:.1f}점 · 평균 등록 가능성 {avg_register:.1f}점입니다."
+                )
         else:
-            base = (
-                f"총 {total}건 중 {high_risk}건이 높은 충돌 위험도군입니다. "
-                f"평균 충돌 위험도 {avg_conflict:.1f}점 · 평균 등록 가능성 {avg_register:.1f}점입니다."
-            )
+            if is_en:
+                base = (
+                    f"{high_risk} of {total} candidates are high conflict-risk. "
+                    f"Avg conflict risk {avg_conflict:.1f} pts · Avg registrability {avg_register:.1f} pts."
+                )
+            else:
+                base = (
+                    f"총 {total}건 중 {high_risk}건이 높은 충돌 위험도군입니다. "
+                    f"평균 충돌 위험도 {avg_conflict:.1f}점 · 평균 등록 가능성 {avg_register:.1f}점입니다."
+                )
         summaries = [c.agent_summary for c in candidates if c.agent_summary]
         if summaries:
-            base += " 주요 쟁점: " + " / ".join(summaries[:2])
+            base += (" Key issues: " if is_en else " 주요 쟁점: ") + " / ".join(summaries[:2])
         return base
+
+    @staticmethod
+    def _normalize_language(value: Optional[str]) -> str:
+        if value and str(value).lower().startswith("en"):
+            return "en"
+        return "ko"
 
     def _upload_usage_bundle(
         self,

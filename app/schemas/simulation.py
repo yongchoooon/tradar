@@ -42,6 +42,7 @@ class SimulationRequest:
     selection_refs: List[SimulationSelectionRef] = field(default_factory=list)
     selections: List[SimulationSelection] = field(default_factory=list)
     debug: bool = False
+    language: Optional[str] = None
     query_title: Optional[str] = None
     user_goods_classes: List[str] = field(default_factory=list)
     user_group_codes: List[str] = field(default_factory=list)

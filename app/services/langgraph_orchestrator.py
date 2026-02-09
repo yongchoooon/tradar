@@ -13,16 +13,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
-from app.services.prompt_templates import (
-    LLM_RESTRICTION_SUFFIX,
-    FINAL_REPORTER_PROMPT,
-    EXAMINER_PROMPT,
-    APPLICANT_PROMPT,
-    EXAMINER_REPLY_PROMPT,
-    REPORTER_PROMPT,
-    SCORER_PROMPT,
-    SYSTEM_MESSAGE_TEMPLATE,
-)
+from app.services.prompt_templates import get_prompt_bundle
+from app.services.prompt_templates_base import PromptBundle
 from app.services.model_pricing import get_model_pricing
 
 load_dotenv(override=False)
@@ -40,6 +32,8 @@ class AgentState(TypedDict):
     metrics: Dict[str, Any]
     worker_id: Optional[int]
     timeline: List[Dict[str, Any]]
+    language: str
+    prompt_bundle: PromptBundle
 
 
 logger = logging.getLogger("simulation")
@@ -75,8 +69,10 @@ class LangGraphOrchestrator:
         images: Optional[Dict[str, List[str]]] = None,
         metrics: Optional[Dict[str, Any]] = None,
         worker_id: Optional[int] = None,
+        language: str = "ko",
     ) -> Dict[str, Any]:
         self._refresh_llm_if_needed()
+        bundle = get_prompt_bundle(language)
         state = {
             "context": context,
             "transcript": [],
@@ -89,6 +85,8 @@ class LangGraphOrchestrator:
             "metrics": metrics or {},
             "worker_id": worker_id,
             "timeline": [],
+            "language": bundle.lang,
+            "prompt_bundle": bundle,
         }
         result = await self.graph.ainvoke(state)
         return {
@@ -108,20 +106,18 @@ class LangGraphOrchestrator:
         avg_conflict: float,
         avg_register: float,
         items: List[Dict[str, Any]],
+        language: str = "ko",
     ) -> Tuple[str, List[Dict[str, str]]]:
         self._refresh_llm_if_needed()
-        context_lines = [
-            f"사용자 상표: {user_mark or '(상표명 미입력)'}",
-            "선행상표 요약 목록:",
-        ]
-        for idx, item in enumerate(items, start=1):
-            summary_line = (item.get('summary') or '').replace("\n", " ")
-            context_lines.append(
-                f"{idx}. 상표명={item.get('title')} (출원번호 {item.get('app_no')}) | 최종 충돌 위험도={item.get('conflict_score')}점 | 최종 등록 가능성={item.get('register_score')}점"
-                f" | 요약={summary_line}"
-            )
-        context = "\n".join(context_lines)
-        instruction = FINAL_REPORTER_PROMPT
+        bundle = get_prompt_bundle(language)
+        context = self._build_overall_context(
+            user_mark=user_mark,
+            avg_conflict=avg_conflict,
+            avg_register=avg_register,
+            items=items,
+            bundle=bundle,
+        )
+        instruction = bundle.final_reporter
         state: AgentState = {
             "context": context,
             "transcript": [],
@@ -134,14 +130,11 @@ class LangGraphOrchestrator:
             "metrics": {},
             "worker_id": 0,
             "timeline": [],
+            "language": bundle.lang,
+            "prompt_bundle": bundle,
         }
-        extra = (
-            f"평균 충돌 위험도: {avg_conflict:.1f}점\n"
-            f"평균 등록 가능성: {avg_register:.1f}점"
-        )
-        state["context"] = context + "\n" + extra
         response = await self._run_llm(
-            role="최종 리포터",
+            role=bundle.roles["final_reporter"],
             instruction=instruction,
             state=state,
         )
@@ -154,47 +147,60 @@ class LangGraphOrchestrator:
     # 노드 정의 ---------------------------------------------------------------
 
     async def _examiner_node(self, state: AgentState) -> AgentState:
+        bundle = state["prompt_bundle"]
         image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
-            role="특허청 심사관",
-            instruction=EXAMINER_PROMPT,
+            role=bundle.roles["examiner"],
+            instruction=bundle.examiner,
             state=state,
             image_inputs=image_payloads,
         )
-        return self._append_transcript(state, "심사관", response)
+        return self._append_transcript(state, bundle.roles["examiner"], response)
 
     async def _applicant_node(self, state: AgentState) -> AgentState:
+        bundle = state["prompt_bundle"]
         image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
-            role="출원인 대리인",
-            instruction=APPLICANT_PROMPT,
+            role=bundle.roles["applicant"],
+            instruction=bundle.applicant,
             state=state,
             image_inputs=image_payloads,
         )
-        return self._append_transcript(state, "출원인", response)
+        return self._append_transcript(state, bundle.roles["applicant"], response)
 
     async def _examiner_reply_node(self, state: AgentState) -> AgentState:
+        bundle = state["prompt_bundle"]
         response = await self._run_llm(
-            role="심사관",
-            instruction=EXAMINER_REPLY_PROMPT,
+            role=bundle.roles["examiner_reply"],
+            instruction=bundle.examiner_reply,
             state=state,
         )
-        return self._append_transcript(state, "심사관", response)
+        return self._append_transcript(state, bundle.roles["examiner_reply"], response)
 
     async def _reporter_node(self, state: AgentState) -> AgentState:
-        conversation_only = "\n".join(state.get("transcript", [])) or "(대화 없음)"
-        metrics_block = self._format_metrics_block(state)
+        bundle = state["prompt_bundle"]
+        conversation_only = "\n".join(state.get("transcript", [])) or bundle.conversation_empty
+        metrics_block = self._format_metrics_block(state, bundle)
         metrics_info = state.get("metrics") or {}
         include_image_metric, include_text_metric = self._metric_similarity_flags(metrics_info)
-        image_line = "- 이미지 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n" if include_image_metric else ""
-        text_line = "- 텍스트 유사도: <[정량 지표] 블록의 값을 그대로 옮겨 적으세요>\n" if include_text_metric else ""
+        copy_hint = bundle.copy_from_block.format(quant_label=bundle.quant_label)
+        image_line = (
+            f"- {bundle.metrics_labels['image_similarity_label']}: "
+            f"<{copy_hint}>\n"
+            if include_image_metric else ""
+        )
+        text_line = (
+            f"- {bundle.metrics_labels['text_similarity_label']}: "
+            f"<{copy_hint}>\n"
+            if include_text_metric else ""
+        )
         quant_section = ""
         reporter_context = conversation_only
         if metrics_block:
-            reporter_context += "\n\n[정량 지표]\n" + metrics_block
+            reporter_context += f"\n\n[{bundle.quant_label}]\n" + metrics_block
         summary = await self._run_llm(
-            role="리포터",
-            instruction=REPORTER_PROMPT.format(
+            role=bundle.roles["reporter"],
+            instruction=bundle.reporter.format(
                 image_line=image_line,
                 text_line=text_line,
                 quant_section=quant_section,
@@ -205,7 +211,7 @@ class LangGraphOrchestrator:
         )
         summary = summary.strip()
         display_summary = self._strip_quant_section(summary)
-        new_state = self._append_transcript(state, "리포터", summary)
+        new_state = self._append_transcript(state, bundle.roles["reporter"], summary)
         new_state["summary"] = summary
         new_state["reporter_only"] = {
             "markdown": summary,
@@ -214,8 +220,9 @@ class LangGraphOrchestrator:
         return new_state
 
     async def _scorer_node(self, state: AgentState) -> AgentState:
+        bundle = state["prompt_bundle"]
         reporter_markdown = state.get("reporter_only", {}).get("markdown", "")
-        metrics_block = self._format_metrics_block(state)
+        metrics_block = self._format_metrics_block(state, bundle)
         summary_only_state: AgentState = {
             "context": reporter_markdown,
             "transcript": [],
@@ -228,24 +235,78 @@ class LangGraphOrchestrator:
             "metrics": state.get("metrics", {}),
             "worker_id": state.get("worker_id"),
             "timeline": state.get("timeline", []),
+            "language": state.get("language", "ko"),
+            "prompt_bundle": bundle,
         }
         scorer_context = reporter_markdown
         if metrics_block:
-            scorer_context += "\n\n[정량 지표]\n" + metrics_block
+            scorer_context += f"\n\n[{bundle.quant_label}]\n" + metrics_block
         response = await self._run_llm(
-            role="채점자",
-            instruction=SCORER_PROMPT,
+            role=bundle.roles["scorer"],
+            instruction=bundle.scorer,
             state=summary_only_state,
             context_override=scorer_context,
         )
         scores = self._extract_scores(response)
         display_text = self._strip_json_from_text(response)
-        new_state = self._append_transcript(state, "채점자", display_text)
+        new_state = self._append_transcript(state, bundle.roles["scorer"], display_text)
         new_state["risk"] = display_text
         new_state["scores"] = scores
         return new_state
 
     # 보조 메서드 -------------------------------------------------------------
+
+    def _build_overall_context(
+        self,
+        *,
+        user_mark: str,
+        avg_conflict: float,
+        avg_register: float,
+        items: List[Dict[str, Any]],
+        bundle: PromptBundle,
+    ) -> str:
+        def _fmt_score(value: Any, suffix: str) -> str:
+            try:
+                return f"{float(value):.1f}{suffix}"
+            except (TypeError, ValueError):
+                return f"{value}{suffix}".strip()
+
+        if bundle.lang == "en":
+            context_lines = [
+                f"User mark: {user_mark or '(no mark provided)'}",
+                "Prior mark summaries:",
+            ]
+            for idx, item in enumerate(items, start=1):
+                summary_line = (item.get("summary") or "").replace("\n", " ")
+                context_lines.append(
+                    f"{idx}. Mark={item.get('title')} (Application No. {item.get('app_no')}) | "
+                    f"Final conflict risk={_fmt_score(item.get('conflict_score'), ' pts')} | "
+                    f"Final registrability={_fmt_score(item.get('register_score'), ' pts')} | "
+                    f"Summary={summary_line}"
+                )
+            extra = (
+                f"Average conflict risk: {_fmt_score(avg_conflict, ' pts')}\n"
+                f"Average registrability: {_fmt_score(avg_register, ' pts')}"
+            )
+        else:
+            context_lines = [
+                f"사용자 상표: {user_mark or '(상표명 미입력)'}",
+                "선행상표 요약 목록:",
+            ]
+            for idx, item in enumerate(items, start=1):
+                summary_line = (item.get("summary") or "").replace("\n", " ")
+                context_lines.append(
+                    f"{idx}. 상표명={item.get('title')} (출원번호 {item.get('app_no')}) | "
+                    f"최종 충돌 위험도={_fmt_score(item.get('conflict_score'), '점')} | "
+                    f"최종 등록 가능성={_fmt_score(item.get('register_score'), '점')} | "
+                    f"요약={summary_line}"
+                )
+            extra = (
+                f"평균 충돌 위험도: {_fmt_score(avg_conflict, '점')}\n"
+                f"평균 등록 가능성: {_fmt_score(avg_register, '점')}"
+            )
+
+        return "\n".join(context_lines) + "\n" + extra
 
     async def _run_llm(
         self,
@@ -257,19 +318,20 @@ class LangGraphOrchestrator:
         transcript_override: str | None = None,
         image_inputs: Optional[List[str]] = None,
     ) -> str:
+        bundle = state["prompt_bundle"]
         transcript_text = transcript_override if transcript_override is not None else "\n".join(state.get("transcript", []))
         context_text = context_override if context_override is not None else state.get("context", "")
-        strict_instruction = f"{instruction}\n\n{LLM_RESTRICTION_SUFFIX}"
-        context_block = f"사건 정보:\n{context_text}\n\n" if context_text else ""
+        strict_instruction = f"{instruction}\n\n{bundle.restriction_suffix}"
+        context_block = f"{bundle.case_label}:\n{context_text}\n\n" if context_text else ""
         needs_transcript = bool(transcript_text and transcript_text.strip()
                                 and transcript_text.strip() != (context_text or '').strip())
         transcript_block = (
-            f"현재까지 대화:\n{transcript_text}\n\n"
+            f"{bundle.conversation_label}:\n{transcript_text}\n\n"
             if needs_transcript
-            else ("현재까지 대화:\n아직 대화 없음.\n\n" if not context_block else "")
+            else (f"{bundle.conversation_label}:\n{bundle.conversation_empty}\n\n" if not context_block else "")
         )
         human_content: Any = (
-            f"{context_block}{transcript_block}지침: {strict_instruction}"
+            f"{context_block}{transcript_block}{bundle.instruction_label}: {strict_instruction}"
         )
         if image_inputs:
             payload = [{"type": "text", "text": human_content}]
@@ -278,7 +340,7 @@ class LangGraphOrchestrator:
             human_content = payload
 
         messages = [
-            SystemMessage(content=SYSTEM_MESSAGE_TEMPLATE.format(role=role)),
+            SystemMessage(content=bundle.system_message_template.format(role=role)),
             HumanMessage(content=human_content),
         ]
         start_time = datetime.utcnow()
@@ -329,36 +391,36 @@ class LangGraphOrchestrator:
         }
         return new_state
 
-    @staticmethod
-    def _format_metrics_block(state: AgentState) -> str:
+    def _format_metrics_block(self, state: AgentState, bundle: PromptBundle) -> str:
         metrics = state.get("metrics") or {}
         same_title = metrics.get("same_title")
         same_image = metrics.get("same_image")
         image_sim = metrics.get("image_similarity")
         text_sim = metrics.get("text_similarity")
+        labels = bundle.metrics_labels
 
         def _bool_label(value: Optional[bool]) -> str:
             if value is True:
-                return "동일"
+                return labels.get("same_value", "동일")
             if value is False:
-                return "불일치"
-            return "정보 없음"
+                return labels.get("different_value", "불일치")
+            return labels.get("unknown_value", "정보 없음")
 
         def _format_similarity(value: Any) -> str:
             try:
                 return f"{float(value):.3f}"
             except (TypeError, ValueError):
-                return "정보 없음"
+                return labels.get("unknown_value", "정보 없음")
 
         lines = [
-            f"동일 상표명 여부: {_bool_label(same_title)}",
-            f"동일 이미지 여부: {_bool_label(same_image)}",
+            f"{labels.get('same_title_label', '동일 상표명 여부')}: {_bool_label(same_title)}",
+            f"{labels.get('same_image_label', '동일 이미지 여부')}: {_bool_label(same_image)}",
         ]
         include_image_line, include_text_line = LangGraphOrchestrator._metric_similarity_flags(metrics)
         if include_image_line:
-            lines.append(f"이미지 유사도: {_format_similarity(image_sim)}")
+            lines.append(f"{labels.get('image_similarity_label', '이미지 유사도')}: {_format_similarity(image_sim)}")
         if include_text_line:
-            lines.append(f"텍스트 유사도: {_format_similarity(text_sim)}")
+            lines.append(f"{labels.get('text_similarity_label', '텍스트 유사도')}: {_format_similarity(text_sim)}")
         return "\n".join(lines)
 
     @staticmethod
@@ -530,7 +592,7 @@ class LangGraphOrchestrator:
     def _strip_quant_section(summary: str) -> str:
         import re
 
-        pattern = re.compile(r"## 정량 지표[\s\S]*?(?=\n## |\Z)")
+        pattern = re.compile(r"## (정량 지표|Quantitative metrics)[\s\S]*?(?=\n## |\Z)")
         stripped = pattern.sub("", summary).strip()
         return stripped or summary
 
