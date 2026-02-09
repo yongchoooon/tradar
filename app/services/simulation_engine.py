@@ -46,7 +46,7 @@ class SimulationTimeout(Exception):
 class SimulationEngine:
     """외부 데이터를 수집하고 LangGraph 에이전트를 호출한다."""
 
-    MAX_SELECTIONS = 40
+    MAX_SELECTIONS = 20
     MAX_WORKERS = 10
 
     def __init__(self) -> None:
