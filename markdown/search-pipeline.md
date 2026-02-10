@@ -56,7 +56,7 @@ Base64 전송은 `ALLOW_BASE64_FALLBACK=true`일 때만 허용되며,
 ## 텍스트 검색 흐름
 
 1. **유사어 확장**
-   - `TextVariantService`가 기본 변형 + GPT-4o-mini 유사어(활성화 시)를 생성하며, LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호를 붙이는 무의미한 변형을 금지하도록 구성되어 있습니다.
+   - `TextVariantService`가 기본 변형 + gpt-5-nano 유사어(활성화 시)를 생성하며, LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호를 붙이는 무의미한 변형을 금지하도록 구성되어 있습니다.
 2. **프롬프트 해석**
    - 텍스트 프롬프트가 입력되면 `PromptInterpreter`가 OpenAI LLM을 사용해 추가 검색어·접두 조건·제외 토큰을 JSON 형태로 추출합니다. 오류나 비활성화 시 프롬프트 문장은 단순 추가 검색어로만 사용하고, 이 사실을 디버그 메시지에 기록합니다.
 3. **쿼리 벡터 생성**
@@ -106,7 +106,7 @@ Base64 전송은 `ALLOW_BASE64_FALLBACK=true`일 때만 허용되며,
 | PostgreSQL + pgvector (워커) | `app/services/db.py`, `vector_client.py`, `catalog.py` | `DATABASE_URL` |
 | OpenSearch (워커) | `app/services/bm25_client.py` | `OPENSEARCH_URL`, `OPENSEARCH_INDEX`, `OPENSEARCH_SEARCH_FIELDS` |
 | S3 Presign | `app/services/s3_storage.py` | `TRADAR_DATA_BUCKET`, `TRADAR_IMAGE_PREFIX`, `TRADAR_PRESIGN_TTL_SECONDS`, `ALLOW_BASE64_FALLBACK` |
-| OpenAI GPT-4o-mini | `app/services/synonym_service.py` | `OPENAI_API_KEY`, `SearchRequest.use_llm_variants` |
+| OpenAI gpt-5-nano | `app/services/synonym_service.py` | `OPENAI_API_KEY`, `SearchRequest.use_llm_variants` |
 
 ## 업데이트 가이드
 

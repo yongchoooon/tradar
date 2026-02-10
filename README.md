@@ -18,8 +18,8 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 
 ## 기술 스택
 - **Backend**: FastAPI(Python 3.11), Uvicorn, httpx
-- **AI Orchestration**: LangGraph + LangChain, OpenAI SDK
-- **LLM**: gpt-4o-mini(유사어), gpt-5-nano(시뮬레이션)
+- **AI Orchestration**: LangGraph + LangChain, OpenAI SDK(유사어), Google GenAI SDK(시뮬레이션)
+- **LLM**: gpt-5-nano(유사어), gemini-3-flash-preview(시뮬레이션, thinking_level=high)
 - **Embedding**: MetaCLIP2, DINOv2 (Torch 기반 추론)
 - **Vector/DB**: PostgreSQL + pgvector (임베딩/메타데이터 저장)
 - **Search**: OpenSearch(BM25) + pgvector ANN

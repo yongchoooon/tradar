@@ -50,10 +50,12 @@ cd tradar
    | --- | --- |
    | `DATABASE_URL` | PostgreSQL 접속 URL. 로컬 기본값 `postgresql://postgres:postgres@localhost:5432/tradar` |
    | `POSTGRES_PASSWORD` | `docker-compose`의 `db` 서비스에서 사용하는 비밀번호 |
-   | `OPENAI_API_KEY` | 검색/시뮬레이션 모두에 쓰이는 OpenAI 키 |
+   | `OPENAI_API_KEY` | 유사어 생성용 OpenAI 키 |
+   | `GEMINI_API_KEY` | 시뮬레이션용 Gemini 키 |
    | `KIPRIS_ACCESS_KEY` | KIPRIS IntermediateDocument API 호출용 |
    | `OPENSEARCH_URL` + `OPENSEARCH_INDEX` | BM25 후보 조회용 OpenSearch 도메인 |
-   | `TRADEMARK_LLM_*`, `SIMULATION_LLM_MODEL` | 검색/시뮬레이션 LLM 모델명 (기본값: `gpt-4o-mini`, `gpt-5-nano`) |
+   | `TRADEMARK_LLM_*`, `SIMULATION_LLM_MODEL` | 검색/시뮬레이션 LLM 모델명 (기본값: `gpt-5-nano`, `gemini-3-flash-preview`) |
+   | `SIMULATION_LLM_THINKING_LEVEL` | Gemini 사고 수준 (기본값 `high`) |
    | `MEDIA_ALLOWED_ROOTS` | `/media?path=...` 다운로드 허용 경로 (로컬 개발용) |
    | `TRADAR_DATA_BUCKET`, `TRADAR_IMAGE_PREFIX`, `TRADAR_PRESIGN_TTL_SECONDS` | S3 presign 업로드 설정 |
    | `ALLOW_BASE64_FALLBACK`, `BASE64_MAX_IMAGE_BYTES` | base64 fallback 정책(기본 비활성, 200KB 제한) |
@@ -97,7 +99,8 @@ npm run dev  # http://localhost:5173, FastAPI로 프록시 자동 연결
 **B. Docker Compose (Postgres/OpenSearch/백엔드/프런트 일체 실행)**
 ```bash
 export POSTGRES_PASSWORD=postgres  # docker-compose.yml에서 참조
-export OPENAI_API_KEY=...          # 필요한 변수들을 동일하게 export
+export OPENAI_API_KEY=...          # 유사어 생성용
+export GEMINI_API_KEY=...          # 시뮬레이션용
 export KIPRIS_ACCESS_KEY=...
 docker compose up --build
 ```
@@ -307,11 +310,13 @@ docker compose -f docker-compose.desktop.yml up --build
 | `OPENSEARCH_URL` | Parameter Store 참조 | (검색은 워커에서 실행되지만, 백엔드 기동 체크 때문에 필수) |
 | `OPENSEARCH_USERNAME` | Parameter Store 참조 | (선택) Basic Auth 사용자 |
 | `OPENSEARCH_PASSWORD` | Parameter Store 참조 | (선택) Basic Auth 비밀번호 |
-| `OPENAI_API_KEY` | Parameter Store 참조 | LangChain/LLM |
+| `OPENAI_API_KEY` | Parameter Store 참조 | 유사어 LLM(OpenAI) |
+| `GEMINI_API_KEY` | Parameter Store 참조 | 시뮬레이션 LLM(Gemini) |
 | `KIPRIS_ACCESS_KEY` | Parameter Store 참조 | KIPRIS REST |
 | `CORS_ALLOWED_ORIGINS` | Parameter Store 참조 | 허용 Origin(`https://app.tradar.com`) |
-| `TRADEMARK_LLM_MODEL` | `gpt-4o-mini` | 검색 프롬프트용 |
-| `SIMULATION_LLM_MODEL` | `gpt-5-nano` | LangGraph 시뮬레이션용 |
+| `TRADEMARK_LLM_MODEL` | `gpt-5-nano` | 검색 프롬프트용 |
+| `SIMULATION_LLM_MODEL` | `gemini-3-flash-preview` | LangGraph 시뮬레이션용 |
+| `SIMULATION_LLM_THINKING_LEVEL` | `high` | Gemini 사고 수준 |
 | `MEDIA_ALLOWED_ROOTS` | `/data` | 컨테이너 내 허용 파일 루트 |
 | `UVICORN_WORKERS`(선택) | `2` | 동시성 확장 |
 | `DESKTOP_WORKER_TOKEN` | Parameter Store 참조 | 워커 인증 토큰(`/tradar/prod/desktop-worker-token`) |

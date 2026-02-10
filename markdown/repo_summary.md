@@ -32,7 +32,7 @@
 - `POST /simulation/cancel/{job_id}`: 작업 취소
 
 ### 3-2. 환경 변수/환경 제약
-- `APP_ENV=prod`이면 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`, `KIPRIS_ACCESS_KEY`, `DESKTOP_WORKER_TOKEN` 필수
+- `APP_ENV=prod`이면 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`(유사어), `GEMINI_API_KEY`(시뮬레이션), `KIPRIS_ACCESS_KEY`, `DESKTOP_WORKER_TOKEN` 필수
 - `CORS_ALLOWED_ORIGINS`는 운영 환경에서 필수
 - 개발 환경에서는 기본값을 세팅하도록 처리
 

@@ -126,7 +126,7 @@ python -m worker.main
 
 - **PostgreSQL + pgvector**: 모든 임베딩과 상표 메타데이터를 보관합니다.
 - **OpenSearch**: BM25 텍스트 후보 확장을 담당합니다.
-- **OpenAI GPT-4o-mini**: 상표명 유사어를 생성합니다. 기본값은 꺼져 있으며, 프런트엔드의 "LLM 유사어" 체크박스를 켜면 해당 검색에만 호출합니다.
+- **OpenAI gpt-5-nano**: 상표명 유사어를 생성합니다. 기본값은 꺼져 있으며, 프런트엔드의 "LLM 유사어" 체크박스를 켜면 해당 검색에만 호출합니다.
 - **FastAPI**: `/search/multimodal`에서 이미지·텍스트 결과를 각각 Top-K로 반환합니다.
 - **LangGraph + KIPRIS REST**: `/simulation/run`에서 선택된 선행상표의 의견제출통지서/거절결정서를 호출하고 에이전트 기반으로 등록 가능성을 평가합니다.
 
@@ -135,7 +135,7 @@ python -m worker.main
 1. 프런트엔드에서 기본 이미지/텍스트 상위 5건(최대 20건) 출원번호를 `/simulation/run`으로 전송합니다.
 2. 백엔드는 `KIPRIS_ACCESS_KEY`로 IntermediateDocument OP/RE API를 호출하여 거절사유/추가사유/이미지/최종변동일자를 수집합니다.
 3. 사용자 UI에서 선택한 상품류·유사군뿐 아니라 각 유사군에 속한 지정상품 이름 목록(`user_goods_names`)과 업로드 이미지(`user_image_ref` + `user_image_mime`, 필요 시 `user_image_b64` 폴백)를 전달해 LangGraph 프롬프트가 실제 사용자의 지정상품과 외관을 참고하도록 합니다.
-4. 수집된 텍스트 및 사용자 맥락을 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 OpenAI(`SIMULATION_LLM_MODEL`, 기본 gpt-5-nano)로 대화/요약/위험 분석을 생성합니다.
+4. 수집된 텍스트 및 사용자 맥락을 LangGraph(심사관→출원인→심사관 재답변→리포터→채점자) 에이전트에 주입하고 Gemini(`SIMULATION_LLM_MODEL`, 기본 `gemini-3-flash-preview`, `SIMULATION_LLM_THINKING_LEVEL=high`)로 대화/요약/위험 분석을 생성합니다.
 5. 각 후보별 결과에는 충돌 위험도(`conflict_score`), 등록 가능성(`register_score`), LLM 근거(`rationale`, `factors[]`), 대화 로그가 포함됩니다. 시뮬레이션 워커는 최대 10개까지 병렬 실행되어 지연을 줄입니다.
 6. 모든 후보 평가가 끝나면 평균 점수, 고위험 건수, `overall_report`(여러 후보를 묶어 Markdown으로 정리한 최종 리포트)를 계산해 프런트엔드 상단 요약 카드에 사용합니다.
 
@@ -146,11 +146,11 @@ python -m worker.main
 - 작업 정보는 메모리 내 `SimulationJobManager`가 관리하며, 서버 재시작 시 초기화되므로 장기 저장이 필요한 경우 외부 스토리지를 추가해야 합니다.
 
 필수 환경 변수:
-- 운영(`APP_ENV=prod`)에서는 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`, `KIPRIS_ACCESS_KEY`, `CORS_ALLOWED_ORIGINS`, `DESKTOP_WORKER_TOKEN` 값을 반드시 OS 환경 또는 AWS SSM Parameter Store에서 주입해야 합니다. 값이 하나라도 비어 있으면 FastAPI가 즉시 종료합니다.
+- 운영(`APP_ENV=prod`)에서는 `DATABASE_URL`, `OPENSEARCH_URL`, `OPENAI_API_KEY`(유사어), `GEMINI_API_KEY`(시뮬레이션), `KIPRIS_ACCESS_KEY`, `CORS_ALLOWED_ORIGINS`, `DESKTOP_WORKER_TOKEN` 값을 반드시 OS 환경 또는 AWS SSM Parameter Store에서 주입해야 합니다. 값이 하나라도 비어 있으면 FastAPI가 즉시 종료합니다.
 - 검색은 워커가 처리하지만 **백엔드는 기동 체크 때문에 `DATABASE_URL`/`OPENSEARCH_URL`이 필요**합니다.
 - 로컬 개발(`APP_ENV!=prod`)에서는 `.env`가 있으면 자동으로 로드하고, `DATABASE_URL`/`OPENSEARCH_URL`은 각각 `postgresql://postgres:postgres@localhost:5432/tradar`, `http://localhost:9200`로 기본값을 채웁니다.
 - `CORS_ALLOWED_ORIGINS`는 콤마로 구분된 허용 Origin 목록입니다. 기본값은 `http://localhost:5173`이며, 운영 환경에서는 `https://<cloudfront-domain>`처럼 구체적인 도메인을 지정해야 합니다.
-- 시뮬레이션 LLM 모델(`SIMULATION_LLM_MODEL`)은 환경 변수로 조정할 수 있고, 온도는 코드 상에서 1.0으로 고정되어 별도 설정이 필요 없습니다.
+- 시뮬레이션 LLM 모델(`SIMULATION_LLM_MODEL`)은 환경 변수로 조정할 수 있고, Gemini 모델일 때는 `SIMULATION_LLM_THINKING_LEVEL`(기본 `high`)을 함께 조정할 수 있습니다. 온도는 코드 상에서 1.0으로 고정되어 별도 설정이 필요 없습니다.
 
 참고: 시뮬레이션 호출은 외부 REST API를 동기적으로 호출하므로, 한 번에 많은 상표를 선택하면 응답 시간이 길어질 수 있습니다. 네트워크 탭과 FastAPI 로그(`simulation` 로거)를 통해 진행 상황을 확인할 수 있습니다.
 
@@ -247,7 +247,7 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 5. Top-K를 선정합니다. API 기본값은 20이지만 프런트엔드는 한 번의 호출로 최대 200건(`k=200`)을 요청해 이후 페이징/재선택에 활용합니다.
 
 ### 텍스트 흐름
-1. 상표명 → `use_llm_variants=true`일 때 TextVariantService가 기본 변형(대소문자/공백 등) + (옵션) GPT-4o-mini 유사어를 생성합니다. LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
+1. 상표명 → `use_llm_variants=true`일 때 TextVariantService가 기본 변형(대소문자/공백 등) + (옵션) gpt-5-nano 유사어를 생성합니다. LLM 프롬프트는 "T-RADAR-1"처럼 단순 일련번호·접미사를 붙이는 변형을 금지하도록 조정했습니다.
 2. 원본 질의와 유사어를 MetaCLIP2 텍스트 임베딩으로 변환한 뒤 가중 평균해 정규화합니다. 첫 입력 상표명은 4.5배, 나머지 유사어는 0.5배로 처리해 원본 질의가 항상 가장 큰 비중을 차지하도록 했습니다.
 3. 재결합된 벡터로 pgvector ANN Top-N 검색을 수행합니다.
 4. 용어를 공백으로 결합해 OpenSearch BM25 Top-N 검색을 수행합니다.
@@ -274,12 +274,12 @@ python scripts/evaluate_similarity_pairs_ylist.py \
 
 ## 운영 팁
 
-- **LLM 사용**: `.env` 또는 AWS SSM에 `OPENAI_API_KEY`만 설정하면 됩니다. 검색 화면의 "LLM 유사어" 체크박스가 켜진 요청에서만 OpenAI API를 호출하고, 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 충돌 위험도/등록 가능성을 산출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
+- **LLM 사용**: 유사어 생성에는 `OPENAI_API_KEY`가 필요하고, 시뮬레이션에는 `GEMINI_API_KEY`가 필요합니다. 검색 화면의 "LLM 유사어" 체크박스가 켜진 요청에서만 OpenAI API를 호출하고, 검색 LLM 비용 로그는 `logs/openai_usage.csv`, AI Agent 시뮬레이션 LLM 로그는 `logs/openai_ai_agent_usage.csv`에 각각 누적됩니다. 채점자 에이전트는 Reporter Markdown 요약을 기반으로 충돌 위험도/등록 가능성을 산출하며, 모든 후보 데이터를 모아 "최종 리포터" LLM이 일관된 Markdown 요약(전체 결론/평균 점수/후속 권고/선행상표별 한 줄 요약)을 제공합니다. 디버그 모드(`시뮬레이션 실행(디버그)` 버튼)는 `logs/simulation_debug/<timestamp>` 경로에 사용자/선행상표 컨텍스트와 LLM 프롬프트/응답 로그를 생성합니다. 진행 중이라면 `실행 취소` 버튼으로 백엔드 작업을 중단할 수 있으며, 상태는 SSE 스트림에 즉시 반영됩니다.
 - **임베딩 모델 경로**: 기본값은 `/home/work/workspace/models/{metaclip,dinov2}`. 변경 시 `METACLIP_MODEL_NAME`, `DINOV2_MODEL_NAME` 환경변수를 사용하세요.
 - **장비**: GPU가 없다면 `EMBED_DEVICE=cpu` 및 `BOOTSTRAP_*` 변수로 조정 가능합니다.
 - **백엔드 선택**: FastAPI와 모든 시딩/부팅 스크립트는 Torch 백엔드를 기본 사용합니다. 더미(해시) 백엔드는 제거되었으며, 모델이 없을 경우 스크립트가 즉시 실패합니다.
 - **임베딩 캐시**: `PIPELINE_EMBED_CACHE_SIZE`(기본 128) 환경 변수로 이미지·텍스트 임베딩 LRU 캐시 크기를 조절해 검색 성능을 최적화할 수 있습니다.
-- **.env 로딩**: FastAPI 기동 시 `python-dotenv`가 프로젝트 루트의 `.env`를 자동 로드합니다. `KIPRIS_ACCESS_KEY`, `OPENAI_API_KEY` 등 시크릿은 이 파일에 정의하면 됩니다.
+- **.env 로딩**: FastAPI 기동 시 `python-dotenv`가 프로젝트 루트의 `.env`를 자동 로드합니다. `KIPRIS_ACCESS_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` 등 시크릿은 이 파일에 정의하면 됩니다.
 
 ## 개발 지침
 

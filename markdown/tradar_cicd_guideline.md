@@ -93,10 +93,11 @@ make use-local
 
 다음 값을 실제 키로 채워 넣습니다.
 
-- `OPENAI_API_KEY`: OpenAI API 키
+- `OPENAI_API_KEY`: 유사어 생성용 OpenAI API 키
+- `GEMINI_API_KEY`: 시뮬레이션용 Gemini API 키
 - `KIPRIS_ACCESS_KEY`: KIPRIS API 키
 
-이 키들은 **로컬에서 실제 OpenAI / KIPRIS 호출을 테스트**할 때 필요합니다.
+이 키들은 **로컬에서 실제 OpenAI/Gemini/KIPRIS 호출을 테스트**할 때 필요합니다.
 
 ---
 

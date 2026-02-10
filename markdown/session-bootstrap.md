@@ -94,4 +94,4 @@ KT Cloud 세션을 새로 생성할 때마다 아래 순서로 개발 환경을 
 - Docker 기반 배포를 사용할 경우에는 `docker-compose.yml`의 `postgres`, `opensearch`, `api` 서비스를 `docker compose up -d`로 실행하면 동일한 구조를 재현할 수 있습니다.
 - 스크립트는 매번 새 세션에서 실행되더라도 이미 설치된 패키지를 덮어쓰지 않고 필요한 경우만 다시 설정합니다.
 - 부팅 스크립트는 Torch 백엔드를 기본 사용합니다. 모델 경로나 디바이스는 `BOOTSTRAP_METACLIP_MODEL`, `BOOTSTRAP_DINOV2_MODEL`, `BOOTSTRAP_EMBED_DEVICE`로 조정할 수 있습니다.
-- GPT 기반 유사어 생성을 사용하려면 `.env` 파일에 `OPENAI_API_KEY`를 설정하고 `TRADEMARK_LLM_MODEL`(기본값 `gpt-4o-mini`)을 필요에 따라 조정하세요.
+- GPT 기반 유사어 생성을 사용하려면 `.env` 파일에 `OPENAI_API_KEY`를 설정하고 `TRADEMARK_LLM_MODEL`(기본값 `gpt-5-nano`)을 필요에 따라 조정하세요.
