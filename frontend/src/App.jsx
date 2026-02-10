@@ -2339,7 +2339,6 @@ function App() {
             <FiSearch aria-hidden="true" />
             <span>{copy.search?.search || '검색'}</span>
           </button>
-          {/*
           <button
             type="button"
             className="action-button action-button--debug"
@@ -2348,7 +2347,6 @@ function App() {
             <FiTerminal aria-hidden="true" />
             <span>디버그 검색</span>
           </button>
-          */}
         </div>
         <label className="llm-toggle" aria-label={copy.search?.llmToggle || 'LLM 유사어 사용 여부'}>
           <input
