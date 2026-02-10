@@ -83,9 +83,11 @@ class TrademarkLLMSynonymService:
         self._debug = _is_truthy(os.getenv("TRADEMARK_LLM_DEBUG"))
 
     def available(self) -> bool:
+        self._refresh_settings()
         return self._enabled
 
     def generate(self, text: str, limit: int = 10) -> List[str]:
+        self._refresh_settings()
         if not self._enabled:
             return []
         text = (text or "").strip()
@@ -150,6 +152,27 @@ class TrademarkLLMSynonymService:
         if self._client is None:
             self._client = OpenAI(api_key=self._api_key)
         return self._client
+
+    def _refresh_settings(self) -> None:
+        model_id = os.getenv("TRADEMARK_LLM_MODEL", self._model_id)
+        reasoning_level = os.getenv("TRADEMARK_LLM_REASONING", self._reasoning_level)
+        temp_raw = os.getenv("TRADEMARK_LLM_TEMPERATURE")
+        try:
+            temperature = float(temp_raw) if temp_raw is not None else self._temperature
+        except ValueError:
+            temperature = self._temperature
+        api_key = os.getenv("OPENAI_API_KEY")
+        enabled = bool(api_key)
+        if api_key != self._api_key:
+            self._api_key = api_key
+            self._enabled = enabled
+            self._client = None
+        if model_id != self._model_id:
+            self._model_id = model_id
+        if reasoning_level != self._reasoning_level:
+            self._reasoning_level = reasoning_level
+        if temperature != self._temperature:
+            self._temperature = temperature
 
     def _ensure_usage_log(self) -> Path:
         log_dir = Path("logs")
