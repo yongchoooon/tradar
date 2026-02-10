@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from app.services.prompt_templates_base import PromptBundle
 
-FINAL_REPORTER_PROMPT = """Write in Markdown only and follow the exact format below. Do not output average scores or registrability values. Prioritize high-risk cases (e.g., >=70 points) and list up to 6, sorted by conflict risk. If there are not enough high-risk items, include the highest conflict-risk candidates. Each item's 'Key issues' must be at least two sentences and must include the critical evidence emphasized by the reporter. Never use internal abbreviations or code names (e.g., Track A/B). Use plain language that users can immediately understand. In '<Trademark name> (Application No. <application number>)', always insert the real trademark name and application number. Every placeholder in <> must be filled with actual content. For the 'Recommendation' line and the final '## Recommendations' section, do not use template phrases like 'Follow-up action 1'; write concrete, actionable steps. The 'Conflict risk' and 'Registrability' lines must output the exact scores as 'number + pts'. Do not use abstract labels like 'high/medium'.
+FINAL_REPORTER_PROMPT = """Write in Markdown only and follow the exact format below. Do not output average scores or registrability values. Prioritize high-risk cases (e.g., >=70 points) and list up to 6, sorted by conflict risk. If there are not enough high-risk items, include the highest conflict-risk candidates. Each item's 'Key issues' must be at least two sentences and must include the critical evidence emphasized by the reporter. Never use internal abbreviations or code names (e.g., Track A/B). Use plain language that users can immediately understand. In '<Trademark name> (Application No. <application number>)', always insert the real trademark name and application number. Every placeholder in <> must be filled with actual content. For the 'Recommendation' line and the final '## Recommendations' section, do not use template phrases like 'Follow-up action 1'; write concrete, actionable steps. The 'Conflict risk' and 'Registrability' lines must output the exact scores as 'number + pts'. Do not use abstract labels like 'high/medium'. You must copy the scores from the input context exactly as provided and must not recompute or alter them.
 
 Follow the exact format below in Markdown only. Do not add any intro or closing sentences.
 
@@ -33,6 +33,7 @@ EXAMINER_PROMPT = """Using prior examination cases and goods/services for simila
 1. Reasoning
   - Derive high-conflict points from past similar cases, but do not mention mitigation or adjustment strategies.
   - Do not apply past cases as facts or assert them as identical.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
   - All direct comparisons must be only between [User mark] and [Compared prior mark]. Other marks cited in the office action should only be referenced as supporting grounds in a 'prior mark refusal reasons' section.
   - Compare the marks (appearance, lettering, pronunciation, concept) and the scope of goods/services logically.
 
@@ -48,6 +49,7 @@ EXAMINER_PROMPT = """Using prior examination cases and goods/services for simila
 APPLICANT_PROMPT = """Based on the examiner's points, provide a logical rebuttal or appropriate adjustment directions. The examiner's refusal reasons are only possibilities; the applicant must present clear rebuttal logic, distinguishing factors, and adjustment directions. Follow these rules.
 1. Reasoning
   - Identify misunderstandings or overstatements in the examiner's analysis and rebut them.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
   - All comparisons must be between [User mark] and [Compared prior mark]; prior marks in the office action are referenced only as supporting cases.
   - Provide evidence that the user's mark is sufficiently distinguishable in pronunciation, concept, appearance, and market context.
   - If adjustment is advantageous or feasible, propose directions such as clarifying goods/services or adjusting expression elements.
@@ -65,6 +67,7 @@ EXAMINER_REPLY_PROMPT = """Accept reasonable parts of the applicant's rebuttal, 
 1. Reasoning
   - Explicitly accept reasonable arguments and summarize why.
   - Rebut parts with weak legal basis or insufficient logic, and explain why they should stand.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
   - Keep comparison consistent between [User mark] and [Compared prior mark]; prior marks in the office action may be used only as supporting evidence when needed.
   - Do not mention adjustments or mitigation strategies.
   - If the issue is clear, you may deliver a firm conclusion.
@@ -78,7 +81,7 @@ EXAMINER_REPLY_PROMPT = """Accept reasonable parts of the applicant's rebuttal, 
 
 REPORTER_PROMPT = """Based on the dialogue between the examiner and the applicant's representative, write in Markdown only using the exact format below.
 
-# One-line summary
+## One-line summary
 - <Summarize whether the user mark conflicts with the prior mark in one sentence>
 
 ## Key issues
