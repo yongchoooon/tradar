@@ -870,6 +870,7 @@ function ResultCard({
   simLabel,
   statusLabels,
   emptyImageLabel,
+  noTitleLabel,
   selectable = false,
   checked = false,
   onToggleSelection,
@@ -897,6 +898,10 @@ function ResultCard({
   const cardClass = ['result-card', displayChecked ? 'is-highlighted' : ''].filter(Boolean).join(' ');
   const thumbUrl = resolveMediaUrl(item.thumb_url);
   const appNumber = item.application_number || item.applicationNumber || item.app_no || '';
+  const missingTitle = noTitleLabel || '(상표명 없음)';
+  const displayTitle = item.title && item.title.trim() && item.title.trim() !== '(상표명 없음)'
+    ? item.title
+    : missingTitle;
   const handleImageClick = () => {
     if (item.doi) {
       window.open(item.doi, '_blank', 'noopener,noreferrer');
@@ -915,11 +920,11 @@ function ResultCard({
             handleImageClick();
           }
         }}
-        aria-label={item.doi ? `${item.title} DOI로 이동` : undefined}
+        aria-label={item.doi ? `${displayTitle} DOI로 이동` : undefined}
       >
         <div className="result-card__thumb-inner">
           {thumbUrl ? (
-            <img src={thumbUrl} alt={`${item.title} 미리보기`} loading="lazy" />
+            <img src={thumbUrl} alt={`${displayTitle} 미리보기`} loading="lazy" />
           ) : (
             <div className="thumb-placeholder">{emptyImageLabel || '이미지 없음'}</div>
           )}
@@ -927,7 +932,7 @@ function ResultCard({
       </div>
       <div className="result-card__body">
         <header className="result-card__header">
-          <strong className="result-title" title={item.title}>{item.title}</strong>
+          <strong className="result-title" title={displayTitle}>{displayTitle}</strong>
           <span className={`status-badge ${statusClass}`}>{displayStatus}</span>
         </header>
         {appNumber ? (
@@ -1046,6 +1051,7 @@ function ResultSection({
     : (text.simLabelText || '텍스트 유사도');
   const statusLabels = text.statusLabels || {};
   const emptyImageLabel = text.emptyImage || '이미지 없음';
+  const noTitleLabel = text.noTitle || '(상표명 없음)';
 
   return (
     <section className="results-section">
@@ -1081,6 +1087,7 @@ function ResultSection({
                 simLabel={simLabel}
                 statusLabels={statusLabels}
                 emptyImageLabel={emptyImageLabel}
+                noTitleLabel={noTitleLabel}
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
@@ -1104,11 +1111,12 @@ function ResultSection({
               {misc.map((item) => (
                 <ResultCard
                   key={`${variant}-misc-${item.trademark_id}`}
-                  item={item}
-                  variant={variant}
-                  simLabel={simLabel}
-                  statusLabels={statusLabels}
-                  emptyImageLabel={emptyImageLabel}
+                item={item}
+                variant={variant}
+                simLabel={simLabel}
+                statusLabels={statusLabels}
+                emptyImageLabel={emptyImageLabel}
+                noTitleLabel={noTitleLabel}
                 selectable={selectable}
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}

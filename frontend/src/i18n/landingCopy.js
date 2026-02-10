@@ -58,6 +58,7 @@ export const landingCopy = {
       miscTitle: 'Other results',
       empty: 'No results.',
       emptyImage: 'No image',
+      noTitle: '(No name)',
       statusLabels: {
         registered: 'Registered',
         pending: 'Pending',
@@ -247,6 +248,7 @@ export const landingCopy = {
       miscTitle: '기타 결과',
       empty: '결과가 없습니다.',
       emptyImage: '이미지 없음',
+      noTitle: '(상표명 없음)',
       statusLabels: {
         registered: '등록',
         pending: '출원',
