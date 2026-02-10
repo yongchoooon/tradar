@@ -2,16 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Dict, List, TypedDict, Any, Tuple, Optional
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
+
+try:
+    from google import genai  # type: ignore
+    from google.genai import types as genai_types  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    genai = None
+    genai_types = None
 
 from app.services.prompt_templates import get_prompt_bundle
 from app.services.prompt_templates_base import PromptBundle
@@ -39,13 +48,22 @@ class AgentState(TypedDict):
 logger = logging.getLogger("simulation")
 
 SIMULATION_LLM_TEMPERATURE = 1.0
+GEMINI_DEFAULT_THINKING_LEVEL = "high"
+GEMINI_THINKING_LEVELS = {
+    "flash": {"minimal", "low", "medium", "high"},
+    "pro": {"low", "high"},
+}
 
 
 class LangGraphOrchestrator:
     def __init__(self) -> None:
         self._model_name = os.getenv("SIMULATION_LLM_MODEL", "gpt-5-nano")
         self._temperature = SIMULATION_LLM_TEMPERATURE
+        self._thinking_level = os.getenv(
+            "SIMULATION_LLM_THINKING_LEVEL", GEMINI_DEFAULT_THINKING_LEVEL
+        )
         self.llm: ChatOpenAI | None = None
+        self._gemini_client = None
         self._usage_log_path = self._ensure_usage_log()
         self._running_total = self._load_existing_usage_total()
         workflow = StateGraph(AgentState)
@@ -436,6 +454,9 @@ class LangGraphOrchestrator:
         return include_image_line, include_text_line
 
     async def _invoke_llm(self, messages: List, role: str):  # type: ignore[no-untyped-def]
+        if self._is_gemini_model():
+            return await self._invoke_gemini(messages)
+
         llm = self._get_llm()
         try:
             response = await llm.ainvoke(messages)
@@ -512,8 +533,14 @@ class LangGraphOrchestrator:
         input_tokens = usage.get("input_tokens") if isinstance(usage, dict) else usage
         if isinstance(input_tokens, dict):
             input_tokens = input_tokens.get("input_tokens")
+        if isinstance(usage, dict) and input_tokens is None:
+            input_tokens = usage.get("prompt_token_count")
         output_tokens = usage.get("output_tokens") if isinstance(usage, dict) else None
+        if isinstance(usage, dict) and output_tokens is None:
+            output_tokens = usage.get("candidates_token_count")
         total_tokens = usage.get("total_tokens") if isinstance(usage, dict) else None
+        if isinstance(usage, dict) and total_tokens is None:
+            total_tokens = usage.get("total_token_count")
         return input_tokens, output_tokens, total_tokens
 
     def _load_existing_usage_total(self) -> float:
@@ -537,10 +564,19 @@ class LangGraphOrchestrator:
     def _refresh_llm_if_needed(self) -> None:
         desired_model = os.getenv("SIMULATION_LLM_MODEL", self._model_name)
         desired_temp = SIMULATION_LLM_TEMPERATURE
-        if desired_model != self._model_name or desired_temp != self._temperature:
+        desired_thinking = os.getenv(
+            "SIMULATION_LLM_THINKING_LEVEL", GEMINI_DEFAULT_THINKING_LEVEL
+        )
+        if (
+            desired_model != self._model_name
+            or desired_temp != self._temperature
+            or desired_thinking != self._thinking_level
+        ):
             self._model_name = desired_model
             self._temperature = desired_temp
+            self._thinking_level = desired_thinking
             self.llm = None
+            self._gemini_client = None
 
     def _override_temperature(self, value: float) -> None:
         self._temperature = value
@@ -550,6 +586,130 @@ class LangGraphOrchestrator:
         if self.llm is None:
             self.llm = ChatOpenAI(model=self._model_name, temperature=self._temperature)
         return self.llm
+
+    def _is_gemini_model(self, model_name: Optional[str] = None) -> bool:
+        name = (model_name or self._model_name or "").strip()
+        if name.startswith("models/"):
+            name = name.split("/", 1)[1]
+        return name.lower().startswith("gemini-")
+
+    @staticmethod
+    def _normalize_gemini_model(model_name: str) -> str:
+        model_name = (model_name or "").strip()
+        if model_name.startswith("models/"):
+            model_name = model_name.split("/", 1)[1]
+        return model_name
+
+    def _normalize_thinking_level(self, model_name: str, level: str | None) -> str:
+        desired = (level or GEMINI_DEFAULT_THINKING_LEVEL).strip().lower()
+        model = model_name.lower()
+        allowed = None
+        if "flash" in model:
+            allowed = GEMINI_THINKING_LEVELS["flash"]
+        elif "pro" in model:
+            allowed = GEMINI_THINKING_LEVELS["pro"]
+        if allowed and desired not in allowed:
+            logger.warning(
+                "Unsupported thinking_level '%s' for %s; using '%s'",
+                desired,
+                model_name,
+                GEMINI_DEFAULT_THINKING_LEVEL,
+            )
+            return GEMINI_DEFAULT_THINKING_LEVEL
+        return desired
+
+    def _get_gemini_client(self):
+        if genai is None or genai_types is None:
+            raise RuntimeError(
+                "google-genai is required for Gemini models. Install with: pip install google-genai"
+            )
+        if self._gemini_client is None:
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise RuntimeError("GEMINI_API_KEY is required for Gemini models")
+            self._gemini_client = genai.Client(api_key=api_key)
+        return self._gemini_client
+
+    async def _invoke_gemini(self, messages: List) -> SimpleNamespace:  # type: ignore[no-untyped-def]
+        client = self._get_gemini_client()
+        model = self._normalize_gemini_model(self._model_name)
+        thinking_level = self._normalize_thinking_level(model, self._thinking_level)
+        system_text, user_parts = self._build_gemini_parts(messages)
+        config_kwargs = {
+            "temperature": self._temperature,
+            "thinking_config": genai_types.ThinkingConfig(thinking_level=thinking_level),
+        }
+        if system_text:
+            config_kwargs["system_instruction"] = system_text
+        config = genai_types.GenerateContentConfig(**config_kwargs)
+
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model=model,
+            contents=[{"role": "user", "parts": user_parts}],
+            config=config,
+        )
+        try:
+            text = response.text or ""
+        except Exception:
+            text = ""
+        usage_meta = getattr(response, "usage_metadata", None)
+        if usage_meta and not isinstance(usage_meta, dict):
+            usage_meta = {
+                "prompt_token_count": getattr(usage_meta, "prompt_token_count", None),
+                "candidates_token_count": getattr(usage_meta, "candidates_token_count", None),
+                "total_token_count": getattr(usage_meta, "total_token_count", None),
+            }
+        return SimpleNamespace(content=text, usage_metadata=usage_meta)
+
+    def _build_gemini_parts(self, messages: List) -> Tuple[str, List[Dict[str, object]]]:  # type: ignore[no-untyped-def]
+        system_text = ""
+        parts: List[Dict[str, object]] = []
+
+        def _append_text(text: str) -> None:
+            if text is None:
+                return
+            parts.append({"text": text})
+
+        def _append_image(data_url: str) -> None:
+            mime, b64 = self._parse_data_url(data_url)
+            parts.append({"inline_data": {"mime_type": mime, "data": b64}})
+
+        for msg in messages:
+            if isinstance(msg, SystemMessage):
+                system_text = str(msg.content or "")
+                continue
+            content = getattr(msg, "content", "")
+            if isinstance(content, str):
+                _append_text(content)
+                continue
+            if isinstance(content, list):
+                for item in content:
+                    if not isinstance(item, dict):
+                        continue
+                    kind = item.get("type")
+                    if kind == "text":
+                        _append_text(str(item.get("text", "")))
+                    elif kind == "image_url":
+                        url = item.get("image_url", {}).get("url") if isinstance(item.get("image_url"), dict) else None
+                        if isinstance(url, str) and url.startswith("data:"):
+                            _append_image(url)
+                        elif url:
+                            logger.warning("Gemini image URL is not a data URL; skipping url=%s", url)
+                continue
+            _append_text(str(content))
+
+        if not parts:
+            parts.append({"text": ""})
+        return system_text, parts
+
+    @staticmethod
+    def _parse_data_url(data_url: str) -> Tuple[str, str]:
+        if not data_url.startswith("data:"):
+            return "image/png", ""
+        header, b64 = data_url.split(",", 1)
+        mime = header.split(";")[0].replace("data:", "").strip() or "image/png"
+        return mime, b64
 
     @staticmethod
     def _temperature_error(exc: Exception) -> bool:

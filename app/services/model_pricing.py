@@ -21,6 +21,8 @@ MODEL_PRICING: Dict[str, Dict[str, float]] = {
     "gpt-4o": {"input": 2.50, "cached_input": 1.25, "output": 10.0},
     "gpt-4o-2024-05-13": {"input": 5.0, "cached_input": 0.0, "output": 15.0},
     "gpt-4o-mini": {"input": 0.15, "cached_input": 0.075, "output": 0.60},
+    "gemini-3-pro-preview": {"input": 2.0, "cached_input": 0.0, "output": 12.0},
+    "gemini-3-flash-preview": {"input": 0.5, "cached_input": 0.0, "output": 3.0},
 }
 
 DEFAULT_PRICING = MODEL_PRICING["gpt-5-nano"]

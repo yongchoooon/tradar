@@ -55,6 +55,14 @@
         },
         {
            "name": "CORS_ALLOWED_ORIGINS", "valueFrom": "/tradar/prod/cors-allowed-origins"
+        },
+        {
+          "name": "SIMULATION_LLM_THINKING_LEVEL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/simulation-llm-thinking-level"
+        },
+        {
+          "name": "GEMINI_API_KEY",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/gemini-api-key"
         }
       ],
       "logConfiguration": {
