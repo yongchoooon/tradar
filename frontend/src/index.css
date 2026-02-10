@@ -1196,7 +1196,8 @@ main.container {
   font-size: 0.9rem;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
   width: fit-content;
   box-shadow: none;
 }

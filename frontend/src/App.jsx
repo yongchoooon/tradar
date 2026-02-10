@@ -515,6 +515,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(new Set());
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [showLanguageNotice, setShowLanguageNotice] = useState(false);
   const selectedGroupsRef = useRef(selectedGroups);
   const lastSearchedQueryRef = useRef('');
   const lastPresetNonceRef = useRef(null);
@@ -545,6 +546,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
       setResults(items);
       lastSearchedQueryRef.current = term;
       setNeedsRefresh(false);
+      setShowLanguageNotice(false);
       if (options.expandSelected) {
         const autoExpanded = new Set();
         const currentGroups = selectedGroupsRef.current || {};
@@ -611,6 +613,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
     const hasSelections = Object.keys(selectedGroupsRef.current || {}).length > 0;
     if (hasResults && hasSelections) {
       setNeedsRefresh(true);
+      setShowLanguageNotice(true);
     }
     prevLanguageRef.current = language;
   }, [language, results.length]);
@@ -629,9 +632,8 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
     return () => window.clearTimeout(timer);
   }, [needsRefresh, query, runGoodsSearch]);
 
-  const handleLanguageRefresh = () => {
-    runGoodsSearch(query, { expandSelected: true });
-  };
+  const languageNoticeVisible =
+    showLanguageNotice && needsRefresh && query.trim() === lastSearchedQueryRef.current;
 
   return (
     <section className="goods-panel">
@@ -644,18 +646,19 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
           type="search"
           placeholder={text.placeholder || '예: 커피, 애플리케이션, 교육'}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (showLanguageNotice) {
+              setShowLanguageNotice(false);
+            }
+          }}
         />
-        {needsRefresh && (
-          <button
-            type="button"
-            className="goods-search__notice"
-            onClick={handleLanguageRefresh}
-          >
+        {languageNoticeVisible && (
+          <div className="goods-search__notice" aria-live="polite">
             <span>
               {text.languageChangeNotice || '언어를 변경하셨습니다. 다시 검색하세요.'}
             </span>
-          </button>
+          </div>
         )}
         <button type="submit" className="action-button action-button--primary goods-search__submit">
           <FiSearch aria-hidden="true" />
