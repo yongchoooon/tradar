@@ -1887,7 +1887,7 @@ function App() {
           return next;
         });
       }
-      if (targets.image && targets.text) {
+      if (targets.image && targets.text && !simulationResult) {
         resetSimulationProgress();
       }
       setPlaceholderNotice('');
@@ -2306,7 +2306,7 @@ function App() {
               </a>
             </div>
           </div>
-          <p className="subtitle">{copy.hero?.subtitle || '텍스트·이미지 기반 유사 상표 검색 서비스'}</p>
+          <p className="subtitle">{copy.hero?.subtitle || '멀티모달 검색과 심사 시뮬레이션으로 상표 충돌 위험을 판단하는 서비스'}</p>
         </div>
       </section>
       <TrademarkSearchForm

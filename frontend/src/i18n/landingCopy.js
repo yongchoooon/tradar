@@ -3,7 +3,7 @@ export const landingCopy = {
     toggleLabel: '한국어',
     toggleAria: 'Switch to Korean',
     hero: {
-      subtitle: 'Text & image trademark similarity search',
+      subtitle: 'Multimodal trademark similarity search and examination simulation service for assessing conflict risk and registrability',
       githubLabel: 'GitHub repository',
     },
     search: {
@@ -192,7 +192,7 @@ export const landingCopy = {
     toggleLabel: 'English',
     toggleAria: '영문으로 전환',
     hero: {
-      subtitle: '텍스트·이미지 기반 유사 상표 검색 서비스',
+      subtitle: '멀티모달 유사 상표 검색과 심사 시뮬레이션을 통한 충돌 위험 및 등록 가능성 판단 서비스',
       githubLabel: 'GitHub 저장소',
     },
     search: {

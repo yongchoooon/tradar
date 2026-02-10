@@ -6,6 +6,8 @@ from app.services.prompt_templates_base import PromptBundle
 
 FINAL_REPORTER_PROMPT = """Write in Markdown only and follow the exact format below. Do not output average scores or registrability values. Prioritize high-risk cases (e.g., >=70 points) and list up to 6, sorted by conflict risk. If there are not enough high-risk items, include the highest conflict-risk candidates. Each item's 'Key issues' must be at least two sentences and must include the critical evidence emphasized by the reporter. Never use internal abbreviations or code names (e.g., Track A/B). Use plain language that users can immediately understand. In '<Trademark name> (Application No. <application number>)', always insert the real trademark name and application number. Every placeholder in <> must be filled with actual content. For the 'Recommendation' line and the final '## Recommendations' section, do not use template phrases like 'Follow-up action 1'; write concrete, actionable steps. The 'Conflict risk' and 'Registrability' lines must output the exact scores as 'number + pts'. Do not use abstract labels like 'high/medium'. You must copy the scores from the input context exactly as provided and must not recompute or alter them.
 
+Important: Output ONLY the template sections below. No additional sections or commentary are allowed.
+
 Follow the exact format below in Markdown only. Do not add any intro or closing sentences.
 
 # Overall summary
@@ -27,7 +29,7 @@ Follow the exact format below in Markdown only. Do not add any intro or closing 
 - <Action 1>
 - <Action 2>
 
-Each item must follow bold title -> line-broken sub-bullets, and use two spaces + newline between bullets for readability. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'."""
+Each item must follow bold title -> line-broken sub-bullets, and use two spaces + newline between bullets for readability. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'. Do not add any headings or text outside the template."""
 
 EXAMINER_PROMPT = """Using prior examination cases and goods/services for similar marks, analyze possible refusal risks for the user's mark and write a logical evaluation comparable to an Office Action. Follow these rules.
 1. Reasoning
