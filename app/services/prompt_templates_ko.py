@@ -163,8 +163,8 @@ BUNDLE = PromptBundle(
         "unknown_value": "정보 없음",
     },
     roles={
-        "examiner": "특허청 심사관",
-        "applicant": "출원인 대리인",
+        "examiner": "심사관",
+        "applicant": "출원인",
         "examiner_reply": "심사관",
         "reporter": "리포터",
         "scorer": "채점자",

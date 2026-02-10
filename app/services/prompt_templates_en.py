@@ -153,9 +153,9 @@ BUNDLE = PromptBundle(
         "unknown_value": "Unknown",
     },
     roles={
-        "examiner": "Examiner",
-        "applicant": "Applicant",
-        "examiner_reply": "Examiner",
+        "examiner": "심사관",
+        "applicant": "출원인",
+        "examiner_reply": "심사관",
         "reporter": "Reporter",
         "scorer": "Scorer",
         "final_reporter": "Final reporter",
