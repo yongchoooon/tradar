@@ -272,10 +272,11 @@ class SimulationEngine:
                     if not cleaned:
                         continue
                     lines.append(f"  - {cleaned}")
+            prior_title = (selection.title or "").strip() or "(no name)"
             lines += [
                 "",
                 "[Compared prior mark]",
-                f"- Title: {selection.title} (Application No. {selection.application_number})",
+                f"- Title: {prior_title} (Application No. {selection.application_number})",
                 f"- Current status: {status_note or 'Status unavailable'}",
             ]
             lines.append(f"- Selection basis: user selected from {variant_label} search results")
@@ -314,10 +315,11 @@ class SimulationEngine:
                     if not cleaned:
                         continue
                     lines.append(f"  - {cleaned}")
+            prior_title = (selection.title or "").strip() or "(상표명 없음)"
             lines += [
                 "",
                 "[비교 대상 유사 선행상표]",
-                f"- 제목: {selection.title} (출원번호 {selection.application_number})",
+                f"- 제목: {prior_title} (출원번호 {selection.application_number})",
                 f"- 현재 상태: {status_note or '상태 정보 없음'}",
             ]
             lines.append(f"- 선정 기준: 사용자가 {variant_label} 검색 결과에서 선택한 후보")
