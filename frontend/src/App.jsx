@@ -1730,6 +1730,7 @@ function App() {
   const [simulationHistory, setSimulationHistory] = useState([]);
   const [activeSimulationId, setActiveSimulationId] = useState(null);
   const [pendingSimulationTitle, setPendingSimulationTitle] = useState('');
+  const simulationTitleRef = useRef(new Map());
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
@@ -2036,7 +2037,11 @@ function App() {
       setSimulationResult(data.result);
       const entryId = data?.job_id || `run-${Date.now()}`;
       const fallbackTitle = (title ?? '').trim() || (response?.query?.text ?? '').trim();
-      const entryTitle = pendingSimulationTitle || fallbackTitle || '(no title)';
+      const entryTitle =
+        simulationTitleRef.current.get(entryId)
+        || pendingSimulationTitle
+        || fallbackTitle
+        || '(no title)';
       setSimulationHistory((prev) => {
         const nextIndex = (prev[prev.length - 1]?.index || 0) + 1;
         const next = [...prev, {
@@ -2047,6 +2052,7 @@ function App() {
         }];
         return next.length > 5 ? next.slice(next.length - 5) : next;
       });
+      simulationTitleRef.current.delete(entryId);
       setActiveSimulationId(entryId);
       setSimulationJobId(null);
       setSimulationError('');
@@ -2211,6 +2217,7 @@ function App() {
         throw new Error(simulationErrors.jobIdMissing || 'Failed to receive job ID.');
       }
       setSimulationJobId(data.job_id);
+      simulationTitleRef.current.set(data.job_id, runTitle);
       startSimulationStream(data.job_id);
     } catch (err) {
       console.error(err);
