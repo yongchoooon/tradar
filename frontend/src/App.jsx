@@ -191,6 +191,13 @@ const getResultKey = (item) => (
   ?? item?.id
 );
 
+const resolveApplicationNumber = (item) => (
+  item?.app_no
+  ?? item?.application_number
+  ?? item?.applicationNumber
+  ?? ''
+);
+
 const buildSelectionMap = (items = [], limit = SIMULATION_DEFAULT_PER_VARIANT) => {
   const map = {};
   items.slice(0, limit).forEach((item) => {
@@ -1827,6 +1834,22 @@ function App() {
     return Array.from(codes);
   }, [selectedGroups]);
 
+  const simulationErrorMap = useMemo(() => ({
+    '검색 컨텍스트가 없습니다. 다시 검색해 주세요.':
+      simulationErrors.searchContextMissing || simulationAlerts.searchContextMissing,
+    '검색 컨텍스트가 만료되었습니다. 다시 검색해 주세요.':
+      simulationErrors.searchContextExpired || simulationAlerts.searchContextMissing,
+    '선택된 상표가 없습니다.':
+      simulationErrors.selectionMissing || simulationAlerts.selectTrademarks,
+    '선택된 상표를 찾을 수 없습니다.':
+      simulationErrors.selectionNotFound || simulationAlerts.selectTrademarks,
+  }), [simulationErrors, simulationAlerts]);
+
+  const translateSimulationError = (message) => {
+    if (!message) return message;
+    return simulationErrorMap[message] || message;
+  };
+
   const resetSimulationProgress = () => {
     setSimulationStatus('idle');
     setSimulationResult(null);
@@ -1981,12 +2004,43 @@ function App() {
 
   const buildSimulationSelectionRefs = () => {
     const mapRefs = (items = {}, variant) => Object.values(items || {}).map((item) => ({
-      application_number: item.app_no,
+      application_number: resolveApplicationNumber(item),
       variant,
-    }));
+    })).filter((ref) => Boolean(ref.application_number));
     const images = mapRefs(simulationSelection.image, 'image');
     const texts = mapRefs(simulationSelection.text, 'text');
     return [...images, ...texts];
+  };
+
+  const buildSimulationSelections = () => {
+    const toSelection = (item, variant) => {
+      const applicationNumber = resolveApplicationNumber(item);
+      if (!applicationNumber) {
+        return null;
+      }
+      const classCodes = Array.isArray(item.class_codes)
+        ? item.class_codes
+        : (Array.isArray(item.classCodes) ? item.classCodes : []);
+      return {
+        application_number: applicationNumber,
+        title: item.title || '',
+        variant,
+        image_sim: item.image_sim,
+        text_sim: item.text_sim,
+        status: item.status,
+        class_codes: classCodes,
+        image_path: item.image_path || item.imagePath || null,
+        thumb_url: item.thumb_url || item.thumbUrl || null,
+        goods_services: item.goods_services || item.goodsServices || null,
+      };
+    };
+    const mapSelections = (items = {}, variant) => Object.values(items || {})
+      .map((item) => toSelection(item, variant))
+      .filter(Boolean);
+    return [
+      ...mapSelections(simulationSelection.image, 'image'),
+      ...mapSelections(simulationSelection.text, 'text'),
+    ];
   };
 
   const buildSelectedGoodsNames = () => {
@@ -2060,7 +2114,11 @@ function App() {
     }
     if (status === 'failed') {
       setSimulationStatus('error');
-      setSimulationError(data?.error || simulationErrors.failed || 'Simulation failed.');
+      setSimulationError(
+        translateSimulationError(data?.error)
+        || simulationErrors.failed
+        || 'Simulation failed.'
+      );
       setSimulationJobId(null);
       return true;
     }
@@ -2191,6 +2249,7 @@ function App() {
         setLastImageRef(imageRef);
       }
       const selectionRefs = buildSimulationSelectionRefs();
+      const selectionItems = buildSimulationSelections();
       if (!selectionRefs.length) {
         alert(simulationAlerts.selectTrademarks || 'Please select trademarks to include.');
         setSimulationStatus('idle');
@@ -2199,6 +2258,7 @@ function App() {
       const payload = {
         search_id: searchId,
         selection_refs: selectionRefs,
+        selections: selectionItems,
         debug,
         language,
         query_title: (title ?? '').trim() || null,
@@ -2222,7 +2282,11 @@ function App() {
     } catch (err) {
       console.error(err);
       setSimulationStatus('error');
-      setSimulationError(err?.message || simulationErrors.run || 'An error occurred while starting the simulation.');
+      setSimulationError(
+        translateSimulationError(err?.message)
+        || simulationErrors.run
+        || 'An error occurred while starting the simulation.'
+      );
     }
   };
 
