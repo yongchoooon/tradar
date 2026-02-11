@@ -272,7 +272,7 @@ class SimulationEngine:
                     if not cleaned:
                         continue
                     lines.append(f"  - {cleaned}")
-            prior_title = (selection.title or "").strip() or "(no name)"
+            prior_title = (selection.title or "").strip() or "(No name)"
             lines += [
                 "",
                 "[Compared prior mark]",
