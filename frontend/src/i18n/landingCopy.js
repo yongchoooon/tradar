@@ -82,6 +82,7 @@ export const landingCopy = {
       ariaLabel: 'Trademark registration simulation',
       tag: 'AI Agent',
       title: 'Trademark Conflict Risk & Registrability Simulation',
+      historyResultLabel: 'Result',
       alerts: {
         searchFirst: 'Please run a search first.',
         selectTrademarks: 'Please select trademarks to include.',
@@ -272,6 +273,7 @@ export const landingCopy = {
       ariaLabel: '상표 등록 가능성 시뮬레이션',
       tag: 'AI Agent',
       title: '상표 충돌 위험도 및 등록 가능성 시뮬레이션',
+      historyResultLabel: '결과',
       alerts: {
         searchFirst: '먼저 검색을 실행해 주세요.',
         selectTrademarks: '시뮬레이션에 포함할 상표를 선택해 주세요.',

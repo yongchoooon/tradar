@@ -2221,6 +2221,46 @@ main.container {
   margin-bottom: 0.85rem;
 }
 
+.simulation-panel__history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.simulation-panel__history-row {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.simulation-panel__history-button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.5rem 0.4rem;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 45, 86, 0.2);
+  background: linear-gradient(135deg, #ffffff, #eef1ff);
+  color: #233054;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-align: center;
+  box-shadow: 0 8px 16px rgba(33, 53, 118, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.simulation-panel__history-button.is-active {
+  background: #203a7b;
+  border-color: #203a7b;
+  color: #fff;
+}
+
+.simulation-panel__history-title {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2c3655;
+}
+
 @media (min-width: 640px) {
   .simulation-panel__actions {
     flex-direction: row;

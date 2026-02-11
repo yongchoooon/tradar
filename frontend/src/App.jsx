@@ -55,6 +55,17 @@ const EXAMPLE_PRESETS = {
           groupCode: 'S120402',
           names: ['trademark information retrieval research'],
         }
+        ,
+        {
+          classCode: '35',
+          className: 'Business services',
+          groupCode: 'S123301',
+          names: [
+            'retrieval services for internet data',
+            'information retrieval services on the internet for others',
+            'computer database retrieval services',
+          ],
+        }
       ],
     },
   },
@@ -1097,6 +1108,10 @@ function SimulationPanel({
   elapsedSeconds = 0,
   modelName = '',
   docked = false,
+  history = [],
+  activeHistoryId = null,
+  historyTitle = '',
+  onSelectHistory,
   copy,
 }) {
   const [focusHighRiskOnly, setFocusHighRiskOnly] = useState(false);
@@ -1105,6 +1120,10 @@ function SimulationPanel({
   const progressText = text.progress || {};
   const timeText = text.time || {};
   const scoreCopy = text.score || {};
+  const historyEntries = Array.isArray(history) ? history : [];
+  const historyLabel = text.historyResultLabel || '결과';
+  const historyActiveId = activeHistoryId || historyEntries[historyEntries.length - 1]?.id;
+  const historyTitleText = historyTitle || '';
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
@@ -1348,6 +1367,32 @@ function SimulationPanel({
               >
                 {text.buttons?.cancel || '실행 취소'}
               </button>
+            )}
+            {historyEntries.length > 0 && (
+              <div className="simulation-panel__history">
+                <div className="simulation-panel__history-row">
+                  {historyEntries.map((entry, idx) => {
+                    const labelIndex = Number.isFinite(entry?.index) ? entry.index : idx + 1;
+                    const isActive = entry?.id && entry.id === historyActiveId;
+                    return (
+                      <button
+                        key={entry?.id || `history-${labelIndex}`}
+                        type="button"
+                        className={[
+                          'simulation-panel__history-button',
+                          isActive ? 'is-active' : '',
+                        ].filter(Boolean).join(' ')}
+                        onClick={() => onSelectHistory?.(entry?.id)}
+                      >
+                        {historyLabel} {labelIndex}
+                      </button>
+                    );
+                  })}
+                </div>
+                {historyTitleText ? (
+                  <div className="simulation-panel__history-title">{historyTitleText}</div>
+                ) : null}
+              </div>
             )}
           </section>
         {hasResultData ? (
@@ -1682,6 +1727,9 @@ function App() {
   const [simulationStartTime, setSimulationStartTime] = useState(null);
   const [simulationElapsed, setSimulationElapsed] = useState(0);
   const [simulationModel, setSimulationModel] = useState('');
+  const [simulationHistory, setSimulationHistory] = useState([]);
+  const [activeSimulationId, setActiveSimulationId] = useState(null);
+  const [pendingSimulationTitle, setPendingSimulationTitle] = useState('');
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
@@ -1691,6 +1739,15 @@ function App() {
   const simulationErrors = copy.simulation?.errors || {};
   const textDisplayVariants = response?.query?.variants || [];
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
+  const activeSimulationEntry = useMemo(() => {
+    if (!simulationHistory.length) return null;
+    const byId = activeSimulationId
+      ? simulationHistory.find((entry) => entry.id === activeSimulationId)
+      : null;
+    return byId || simulationHistory[simulationHistory.length - 1];
+  }, [simulationHistory, activeSimulationId]);
+  const displaySimulationResult = activeSimulationEntry?.result || simulationResult;
+  const displaySimulationTitle = activeSimulationEntry?.title || '';
 
   useEffect(() => {
     let ignore = false;
@@ -1841,8 +1898,10 @@ function App() {
         resetSimulationProgress();
       }
       setPlaceholderNotice('');
+      return data;
     } catch (err) {
       setError(err?.message || searchErrors.general || 'Search failed.');
+      return null;
     } finally {
       setLoading(false);
       setLoadingState({ image: false, text: false });
@@ -1975,6 +2034,20 @@ function App() {
     if (status === 'complete' && data?.result) {
       setSimulationStatus('complete');
       setSimulationResult(data.result);
+      const entryId = data?.job_id || `run-${Date.now()}`;
+      const fallbackTitle = (title ?? '').trim() || (response?.query?.text ?? '').trim();
+      const entryTitle = pendingSimulationTitle || fallbackTitle || '(no title)';
+      setSimulationHistory((prev) => {
+        const nextIndex = (prev[prev.length - 1]?.index || 0) + 1;
+        const next = [...prev, {
+          id: entryId,
+          title: entryTitle,
+          result: data.result,
+          index: nextIndex,
+        }];
+        return next.length > 5 ? next.slice(next.length - 5) : next;
+      });
+      setActiveSimulationId(entryId);
       setSimulationJobId(null);
       setSimulationError('');
       return true;
@@ -2098,7 +2171,10 @@ function App() {
       setSimulationJobId(null);
       setSimulationStartTime(Date.now());
       setSimulationElapsed(0);
-      if (!lastSearchId) {
+      const runTitle = (title ?? '').trim() || (response?.query?.text ?? '').trim();
+      setPendingSimulationTitle(runTitle);
+      const searchId = lastSearchId;
+      if (!searchId) {
         alert(simulationAlerts.searchContextMissing || 'Search context is missing. Please search again.');
         setSimulationStatus('idle');
         return;
@@ -2115,13 +2191,13 @@ function App() {
         return;
       }
       const payload = {
-        search_id: lastSearchId,
+        search_id: searchId,
         selection_refs: selectionRefs,
         debug,
         language,
-        query_title: (response?.query?.text ?? title ?? '').trim() || null,
-        user_goods_classes: response?.query?.goods_classes || [],
-        user_group_codes: response?.query?.group_codes || [],
+        query_title: (title ?? '').trim() || null,
+        user_goods_classes: selectedClassCodes || [],
+        user_group_codes: selectedGroupCodes || [],
         user_goods_names: buildSelectedGoodsNames(),
         user_image_ref: imageRef || null,
         user_image_mime: imageFile?.type || null,
@@ -2165,16 +2241,16 @@ function App() {
         setPlaceholderNotice('image');
         setError('');
         focusImageUploader();
-        return;
+        return null;
       }
     if (selectedGroupCodes.length === 0) {
       setPlaceholderNotice('goods');
       focusGoodsPanel();
-      return;
+      return null;
     }
     try {
       const imageRef = await requestPresignedUpload(imageFile, searchErrors);
-      await search({
+      const data = await search({
         image_ref: imageRef,
         goods_classes: selectedClassCodes,
         group_codes: selectedGroupCodes,
@@ -2184,9 +2260,11 @@ function App() {
         variants: null,
         use_llm_variants: useLlmVariants,
       }, { image: true, text: true });
+      return data;
     } catch (err) {
       console.error(err);
       alert(searchErrors.requestFailed || 'Search request failed. Check the console.');
+      return null;
     }
   };
 
@@ -2403,11 +2481,15 @@ function App() {
           canCancel={Boolean(
             simulationJobId && ['collecting', 'loading', 'cancelling'].includes(simulationStatus)
           )}
-          result={simulationResult}
+          result={displaySimulationResult}
           error={simulationError}
           elapsedSeconds={simulationElapsed}
           modelName={simulationModel}
           docked
+          history={simulationHistory}
+          activeHistoryId={activeSimulationEntry?.id}
+          historyTitle={displaySimulationTitle}
+          onSelectHistory={setActiveSimulationId}
           copy={copy.simulation}
         />
       </div>
