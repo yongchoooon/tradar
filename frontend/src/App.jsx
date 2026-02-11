@@ -46,43 +46,7 @@ const EXAMPLE_PRESETS = {
             '온라인 검색가능 데이터베이스를 통한 특허 애플리케이션 분야 정보제공업',
             '칭호검색업',
           ],
-        },
-        {
-          classCode: '35',
-          className: '광고·사업관리',
-          groupCode: 'S123301',
-          names: [
-            '인터넷 자료 검색제공업',
-            '인터넷상의 정보검색대행업',
-            '컴퓨터 데이터베이스 검색업',
-            '컴퓨터 자료 검색업',
-          ],
-        },
-        {
-          classCode: '38',
-          className: '통신 서비스',
-          groupCode: 'S0601',
-          names: [
-            '검색엔진 이용자 접속제공업',
-            '스마트폰애플리케이션을 통한 검색엔진 사용자 접속제공업',
-            '정보검색용 전자식 온라인 네트워크 접속제공업',
-            '정보검색용 전자온라인네트워크 접속제공업',
-          ],
-        },
-        {
-          classCode: '09',
-          className: '과학·전자기기',
-          groupCode: 'G390802',
-          names: [
-            '검색가능 데이터베이스 생성용 컴퓨터 소프트웨어',
-            '데이터 검색용 컴퓨터 소프트웨어',
-            '데이터 검색이 가능한 컴퓨터 소프트웨어',
-            '정보 및 데이터의 검색 가능한 데이터베이스 제작용 컴퓨터 소프트웨어',
-            '컴퓨터 및 컴퓨터네트워크 콘텐츠용 원격검색 컴퓨터프로그램',
-            '컴퓨터네트워크를 통한 정보 검색/송신용 소프트웨어',
-            '컴퓨터용 검색엔진 소프트웨어',
-          ],
-        },
+        }
       ],
       en: [
         {
@@ -90,29 +54,7 @@ const EXAMPLE_PRESETS = {
           className: 'Legal/IP services',
           groupCode: 'S120402',
           names: ['trademark information retrieval research'],
-        },
-        {
-          classCode: '42',
-          className: 'Science & technology services',
-          groupCode: 'S123301',
-          names: ['design and development of data retrieval software'],
-        },
-        {
-          classCode: '42',
-          className: 'Science & technology services',
-          groupCode: 'G390802',
-          names: ['design and development of data retrieval software'],
-        },
-        {
-          classCode: '35',
-          className: 'Advertising & business management',
-          groupCode: 'S123301',
-          names: [
-            'retrieval services for internet data',
-            'information retrieval services on the internet for others',
-            'computer database retrieval services',
-          ],
-        },
+        }
       ],
     },
   },
