@@ -276,7 +276,7 @@ const renderScoreBar = (title, value, secondary, labels = {}) => {
   const segmentIndex = segments.findIndex((segment) => safe <= segment.max);
   const hasSecondary = secondary && Number.isFinite(secondary.value);
   const secondaryValue = hasSecondary ? clampScore(secondary.value) : null;
-  const mergeThreshold = 20;
+  const mergeThreshold = 15;
   const diff = hasSecondary && secondaryValue !== null
     ? Math.abs(secondaryValue - safe)
     : Infinity;
@@ -1448,7 +1448,7 @@ function SimulationPanel({
                 </div>
               </div>
             )}
-              {resultIsStale && (
+              {false && resultIsStale && (
                 <p className="simulation-panel__status-text">
                   {scoreCopy.staleNotice
                     || '새로운 시뮬레이션이 진행 중입니다. 아래 내용은 직전 결과입니다.'}
