@@ -98,10 +98,6 @@ export const landingCopy = {
         run: 'An error occurred while starting the simulation.',
         cancel: 'An error occurred while cancelling the simulation.',
         jobIdMissing: 'Failed to receive job ID.',
-        searchContextMissing: 'Search context is missing. Please search again.',
-        searchContextExpired: 'Search context expired. Please search again.',
-        selectionMissing: 'No trademarks selected.',
-        selectionNotFound: 'Selected trademarks could not be found.',
       },
       resultLoading: 'Loading results...',
       description: {
@@ -293,10 +289,6 @@ export const landingCopy = {
         run: '시뮬레이션 실행 중 오류가 발생했습니다.',
         cancel: '시뮬레이션 취소 중 오류가 발생했습니다.',
         jobIdMissing: '작업 ID를 받지 못했습니다.',
-        searchContextMissing: '검색 컨텍스트가 없습니다. 다시 검색해 주세요.',
-        searchContextExpired: '검색 컨텍스트가 만료되었습니다. 다시 검색해 주세요.',
-        selectionMissing: '선택된 상표가 없습니다.',
-        selectionNotFound: '선택된 상표를 찾을 수 없습니다.',
       },
       resultLoading: '결과를 불러오는 중입니다.',
       description: {

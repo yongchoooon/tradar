@@ -20,8 +20,8 @@ class SearchCacheEntry:
 
 class SearchCache:
     def __init__(self) -> None:
-        self._ttl_seconds = int(os.getenv("SIMULATION_SEARCH_CACHE_TTL_SECONDS", "1800"))
-        self._max_entries = int(os.getenv("SIMULATION_SEARCH_CACHE_MAX_ENTRIES", "1500"))
+        self._ttl_seconds = int(os.getenv("SIMULATION_SEARCH_CACHE_TTL_SECONDS", "900"))
+        self._max_entries = int(os.getenv("SIMULATION_SEARCH_CACHE_MAX_ENTRIES", "500"))
         self._entries: Dict[str, SearchCacheEntry] = {}
 
     def store(self, response: SearchResponse) -> str:

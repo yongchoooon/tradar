@@ -36,48 +36,24 @@ def run_simulation_endpoint(
             user_agent=meta.user_agent,
             request_id=meta.request_id,
         )
-    if not request.search_id and not request.selections:
+    if not request.search_id:
         raise HTTPException(status_code=400, detail="검색 컨텍스트가 없습니다. 다시 검색해 주세요.")
-    if not request.selection_refs and not request.selections:
+    if not request.selection_refs:
         raise HTTPException(status_code=400, detail="선택된 상표가 없습니다.")
 
-    cache_entry = search_cache.get(request.search_id) if request.search_id else None
-    inline_map = {
-        (sel.application_number, sel.variant): sel
-        for sel in (request.selections or [])
-        if sel.application_number
-    }
+    cache_entry = search_cache.get(request.search_id)
+    if not cache_entry:
+        raise HTTPException(status_code=400, detail="검색 컨텍스트가 만료되었습니다. 다시 검색해 주세요.")
     selections = []
     missing = 0
-    if cache_entry:
-        for ref in request.selection_refs or []:
-            key = (ref.application_number, ref.variant)
-            selection = cache_entry.selections.get(key) or inline_map.get(key)
-            if selection is None:
-                missing += 1
-                continue
-            selections.append(selection)
-    else:
-        if request.selection_refs:
-            for ref in request.selection_refs:
-                key = (ref.application_number, ref.variant)
-                selection = inline_map.get(key)
-                if selection is None:
-                    missing += 1
-                    continue
-                selections.append(selection)
-        else:
-            selections = list(inline_map.values())
-        if selections:
-            logger.info(
-                "[/simulation/run] search context missing; using inline selections search_id=%s selections=%d",
-                request.search_id,
-                len(selections),
-            )
-
+    for ref in request.selection_refs:
+        key = (ref.application_number, ref.variant)
+        selection = cache_entry.selections.get(key)
+        if selection is None:
+            missing += 1
+            continue
+        selections.append(selection)
     if not selections:
-        if not cache_entry:
-            raise HTTPException(status_code=400, detail="검색 컨텍스트가 만료되었습니다. 다시 검색해 주세요.")
         raise HTTPException(status_code=400, detail="선택된 상표를 찾을 수 없습니다.")
     if missing:
         logger.warning(
