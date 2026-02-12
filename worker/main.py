@@ -341,7 +341,6 @@ class DesktopWorker:
         return SearchRequest(
             image_b64=image_b64,
             text=request_meta.get("text"),
-            language=request_meta.get("language"),
             goods_classes=list(request_meta.get("goods_classes") or []),
             group_codes=list(request_meta.get("group_codes") or []),
             k=top_k,

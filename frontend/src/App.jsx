@@ -2327,7 +2327,6 @@ function App() {
         group_codes: selectedGroupCodes,
         k: RESULT_LIMIT,
         text: title.trim() || null,
-        language,
         debug,
         variants: null,
         use_llm_variants: useLlmVariants,

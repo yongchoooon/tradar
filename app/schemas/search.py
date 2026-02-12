@@ -23,7 +23,6 @@ class SearchRequest:
     image_b64: Optional[str] = None
     image_ref: Optional[ImageRefPayload] = None
     text: Optional[str] = None
-    language: Optional[str] = None
     goods_classes: List[str] = field(default_factory=list)
     group_codes: List[str] = field(default_factory=list)
     k: int = 20
