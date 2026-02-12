@@ -21,7 +21,7 @@ class TextVariantService:
     def __init__(self) -> None:
         self._llm = get_llm_service()
 
-    def generate(self, text: str) -> List[str]:
+    def generate(self, text: str, language: str | None = None) -> List[str]:
         text = (text or "").strip()
         if not text:
             return []
@@ -59,7 +59,7 @@ class TextVariantService:
             _add(seed)
 
         if self._llm.available():
-            for cand in self._llm.generate(text, limit=10):
+            for cand in self._llm.generate(text, limit=10, language=language):
                 _add(cand)
 
         return variants
