@@ -251,8 +251,8 @@ class SimulationEngine:
         *,
         language: str = "ko",
     ) -> str:
-        status_note = (selection.status or '').strip()
         is_en = language.lower().startswith("en")
+        status_note = self._normalize_status(selection.status, is_en=is_en)
         variant_label = "Image" if selection.variant == "image" else "Text"
         if not is_en:
             variant_label = "이미지" if selection.variant == "image" else "텍스트"
@@ -377,9 +377,10 @@ class SimulationEngine:
         notes: List[str] = [
             f"{variant_label} search top candidate" if is_en else f"{variant_label} 검색 상위 후보"
         ]
-        if selection.status:
+        status_note = self._normalize_status(selection.status, is_en=is_en)
+        if status_note:
             notes.append(
-                f"Status: {selection.status}" if is_en else f"상태: {selection.status}"
+                f"Status: {status_note}" if is_en else f"상태: {status_note}"
             )
         if selection.class_codes:
             notes.append(
@@ -522,6 +523,34 @@ class SimulationEngine:
         if value and str(value).lower().startswith("en"):
             return "en"
         return "ko"
+
+    @staticmethod
+    def _normalize_status(value: Optional[str], *, is_en: bool) -> str:
+        if not value:
+            return ""
+        text = str(value).strip()
+        if not text:
+            return ""
+        if not is_en:
+            return text
+        if not re.search(r"[가-힣]", text):
+            return text
+        mapping = {
+            "등록": "Registered",
+            "공고": "Published",
+            "거절": "Refused",
+            "포기": "Abandoned",
+            "출원": "Pending",
+            "무효": "Invalidated",
+            "취소": "Cancelled",
+            "소멸": "Expired",
+            "상태 미상": "Status unavailable",
+        }
+        if text in mapping:
+            return mapping[text]
+        for ko, en in mapping.items():
+            text = text.replace(ko, en)
+        return text
 
     def _upload_usage_bundle(
         self,

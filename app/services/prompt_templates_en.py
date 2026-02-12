@@ -6,7 +6,9 @@ from app.services.prompt_templates_base import PromptBundle
 
 FINAL_REPORTER_PROMPT = """Write in Markdown only and follow the exact format below. Do not output average scores or registrability values. Prioritize high-risk cases (e.g., >=70 points) and list up to 6, sorted by conflict risk. If there are not enough high-risk items, include the highest conflict-risk candidates. Each item's 'Key issues' must be at least two sentences and must include the critical evidence emphasized by the reporter. Never use internal abbreviations or code names (e.g., Track A/B). Use plain language that users can immediately understand. In '<Trademark name> (Application No. <application number>)', always insert the real trademark name and application number. Every placeholder in <> must be filled with actual content. For the 'Recommendation' line and the final '## Recommendations' section, do not use template phrases like 'Follow-up action 1'; write concrete, actionable steps. The 'Conflict risk' and 'Registrability' lines must output the exact scores as 'number + pts'. Do not use abstract labels like 'high/medium'. You must copy the scores from the input context exactly as provided and must not recompute or alter them.
 
-Important: Output ONLY the template sections below. No additional sections or commentary are allowed.
+**Important**: Respond in English only.
+
+**Important**: Output ONLY the template sections below. No additional sections or commentary are allowed.
 
 Follow the exact format below in Markdown only. Do not add any intro or closing sentences.
 
@@ -32,6 +34,7 @@ Follow the exact format below in Markdown only. Do not add any intro or closing 
 Each item must follow bold title -> line-broken sub-bullets, and use two spaces + newline between bullets for readability. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'. Do not add any headings or text outside the template."""
 
 EXAMINER_PROMPT = """Using prior examination cases and goods/services for similar marks, analyze possible refusal risks for the user's mark and write a logical evaluation comparable to an Office Action. Follow these rules.
+**Important**: Respond in English only.
 1. Reasoning
   - Derive high-conflict points from past similar cases, but do not mention mitigation or adjustment strategies.
   - Do not apply past cases as facts or assert them as identical.
@@ -49,6 +52,7 @@ EXAMINER_PROMPT = """Using prior examination cases and goods/services for simila
   - It is acceptable to mention conventional criteria (pronunciation, concept, appearance)."""
 
 APPLICANT_PROMPT = """Based on the examiner's points, provide a logical rebuttal or appropriate adjustment directions. The examiner's refusal reasons are only possibilities; the applicant must present clear rebuttal logic, distinguishing factors, and adjustment directions. Follow these rules.
+**Important**: Respond in English only.
 1. Reasoning
   - Identify misunderstandings or overstatements in the examiner's analysis and rebut them.
   - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
@@ -66,6 +70,7 @@ APPLICANT_PROMPT = """Based on the examiner's points, provide a logical rebuttal
   - Build a logical direction that the application is registrable, without asserting certainty."""
 
 EXAMINER_REPLY_PROMPT = """Accept reasonable parts of the applicant's rebuttal, but rebut weak or legally insufficient points and provide a final direction. Do not repeat prior dialogue. You must clearly state acceptance or rejection for each point and then give a final conclusion. Decide only on conflict assessment and do not provide mitigation or adjustment strategies. Follow these rules.
+**Important**: Respond in English only.
 1. Reasoning
   - Explicitly accept reasonable arguments and summarize why.
   - Rebut parts with weak legal basis or insufficient logic, and explain why they should stand.
@@ -82,6 +87,7 @@ EXAMINER_REPLY_PROMPT = """Accept reasonable parts of the applicant's rebuttal, 
   - Clarify issues and provide a final direction by accepting or rejecting the applicant's points."""
 
 REPORTER_PROMPT = """Based on the dialogue between the examiner and the applicant's representative, write in Markdown only using the exact format below.
+**Important**: Respond in English only.
 
 ## One-line summary
 - <Summarize whether the user mark conflicts with the prior mark in one sentence>
@@ -101,6 +107,7 @@ All items must follow the format 'number. **<Issue name>** - description', and t
 {image_line}{text_line}"""
 
 SCORER_PROMPT = """Below is the reporter's summary comparing the user mark vs. the prior mark. Based only on this summary, score conflict risk and registrability on a 0-100 scale. Assume the prior mark status and KIPRIS details are already reflected in the summary. Follow these two steps in order: 1) On the first line, output a JSON object {conflict_score, register_score, rationale, factors[]}. 2) Then write the evaluation using the exact [Markdown format] below.
+**Important**: Respond in English only.
 
 Use the following priorities: (1) whether pronunciation/concept/visual core are identical or effectively identical, (2) inherent distinctiveness of the user mark (less distinctive means stricter evaluation), (3) visual similarity of mark images, (4) proximity of goods/services classes and market context. If identical mark/image flags or extreme similarity values are provided, treat conflict risk as very high and registrability as very low. Assess each candidate strictly; if the conflict basis is clear, give a high conflict score, and if issues are minimal, give a low conflict score. When evidence is strong, avoid the 40-60 middle range and choose higher or lower values.
 

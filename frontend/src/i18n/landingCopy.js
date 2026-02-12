@@ -65,6 +65,9 @@ export const landingCopy = {
         refused: 'Refused',
         notice: 'Published',
         abandoned: 'Abandoned',
+        invalidated: 'Invalidated',
+        cancelled: 'Cancelled',
+        expired: 'Expired',
         default: 'Status unknown',
       },
       placeholder: {
@@ -256,6 +259,9 @@ export const landingCopy = {
         refused: '거절',
         notice: '공고',
         abandoned: '포기',
+        invalidated: '무효',
+        cancelled: '취소',
+        expired: '소멸',
         default: '상태 미상',
       },
       placeholder: {
