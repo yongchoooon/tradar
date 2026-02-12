@@ -86,7 +86,9 @@ class TrademarkLLMSynonymService:
         self._refresh_settings()
         return self._enabled
 
-    def generate(self, text: str, limit: int = 10) -> List[str]:
+    def generate(
+        self, text: str, limit: int = 10, language: str | None = None
+    ) -> List[str]:
         self._refresh_settings()
         if not self._enabled:
             return []
@@ -94,6 +96,7 @@ class TrademarkLLMSynonymService:
         if not text:
             return []
 
+        language_mode = self._normalize_language(language, text)
         client = self._ensure_client()
         attempts = 0
         max_attempts = 6
@@ -102,7 +105,7 @@ class TrademarkLLMSynonymService:
             variants: List[str] = []
             seen: set[str] = set()
             try:
-                prompt = self._build_prompt(text, limit - len(variants))
+                prompt = self._build_prompt(text, limit - len(variants), language_mode)
                 system_prompt = prompt[0]["content"][0]["text"]
                 user_prompt = prompt[1]["content"][0]["text"]
                 self._debug_print("prompt", [system_prompt, user_prompt])
@@ -136,6 +139,16 @@ class TrademarkLLMSynonymService:
                 seen.add(key)
                 if len(variants) >= limit:
                     break
+
+            if language_mode == "en":
+                latin = [
+                    variant for variant in variants
+                    if _LATIN_RE.search(variant) and not _HANGUL_RE.search(variant)
+                ]
+                if latin:
+                    return latin[:limit]
+                attempts += 1
+                continue
 
             latin, hangul = self._split_languages(variants)
             if not latin or not hangul:
@@ -269,35 +282,58 @@ class TrademarkLLMSynonymService:
             writer = csv.writer(fh)
             writer.writerow(row)
 
-    def _build_prompt(self, text: str, limit: int) -> list[dict]:
-        system_prompt = (
-            "당신은 한국 상표 심사 기준을 잘 아는 전문 심사관이다. "
-            "거래 사회의 일반 수요자가 상표의 외관·호칭·관념 중 어느 하나라도 혼동할 "
-            "가능성이 있으면 유사하다고 판단한다. 여러 음절로 이뤄진 표장에서는 첫 음절"
-            "(어두)이 특히 중요하고, 로마자 표기는 한국인이 자연스럽게 영어식으로 읽는"
-            "방식과 한글 병기 형태를 모두 고려한다. 한자나 의미형 표장에서는 관념적 연상도"
-            "중요하다. 이러한 원칙을 지켜 사용자 입력과 혼동될 수 있는 후보를 제안하라."
-        )
+    def _build_prompt(
+        self, text: str, limit: int, language_mode: str
+    ) -> list[dict]:
+        if language_mode == "en":
+            system_prompt = (
+                "You are a trademark examiner. Propose realistic English-only variants that could be "
+                "confused with the user mark in pronunciation, appearance, or concept."
+            )
+            user_prompt = (
+                "Trademark name: "
+                + text
+                + "\nOutput format: return only a single JSON array with exactly "
+                + str(limit)
+                + " unique strings and no explanations. Rules:"
+                " 1) Use English only. Do not use Korean or any non-Latin script."
+                " 2) Prioritize variants that are easily confused in pronunciation or that share the initial syllable."
+                " 3) Keep length similar to the original; allow semantic proximity only when intuitive to general users."
+                " 4) Do not append generic suffixes like 'PRO', 'MAX', '360' or random numbers/letters."
+                " 5) Use realistic phonetic and spelling variations: vowel/consonant swaps, hyphen/space shifts, minor deletions, casing emphasis, repeated letters."
+                " 6) Do not include brackets, explanations, or meaningless number sequences."
+                " 7) Each item must be <= 25 characters and trimmed."
+                " 8) Do not output the exact original string."
+            )
+        else:
+            system_prompt = (
+                "당신은 한국 상표 심사 기준을 잘 아는 전문 심사관이다. "
+                "거래 사회의 일반 수요자가 상표의 외관·호칭·관념 중 어느 하나라도 혼동할 "
+                "가능성이 있으면 유사하다고 판단한다. 여러 음절로 이뤄진 표장에서는 첫 음절"
+                "(어두)이 특히 중요하고, 로마자 표기는 한국인이 자연스럽게 영어식으로 읽는"
+                "방식과 한글 병기 형태를 모두 고려한다. 한자나 의미형 표장에서는 관념적 연상도"
+                "중요하다. 이러한 원칙을 지켜 사용자 입력과 혼동될 수 있는 후보를 제안하라."
+            )
 
-        user_prompt = (
-            "상표명: "
-            + text
-            + "\n출력 형식: 설명 없이 JSON 배열 하나만 반환하고 반드시 "
-            + str(limit)
-            + "개의 고유 문자열을 넣는다. 지침:"
-            " 1) 영어 또는 한글만 사용한다."
-            " 2) 발음이 헷갈리게 들리거나 첫 음절이 동일/유사한 변형을 우선 생성한다"
-            "(모음/자음 치환, 장·단음 변형, 하이픈·공백 조정, 반복, 영어-한글 음역 교차 포함)."
-            " 3) 의미나 관념이 비슷한 조합은 상표 길이를 크게 바꾸지 않는 범위에서만 허용하며"
-            " 일반 수요자가 직관적으로 떠올릴 수 있는 단어만 사용한다."
-            " 4) 'PRO', 'MAX', '360'처럼 기능성·등급을 강조하는 흔한 접미사나 임의의 대문자·숫자를 덧붙이는 방식은 모두 금지한다 (규칙만 따르고 예시를 그대로 복사하지 말 것)."
-            " 5) 대신 철자 치환, 하이픈/공백 이동, 일부 음소 삭제, 대소문자/강조, 반복 문자 등 실제 사용자가 착각할 만한 음운적 변형을 다양하게 시도한다."
-            " 6) 영어식 표기와 한글 음역 표기가 번갈아가며 배열되도록 순서를 구성한다."
-            " 7) 무의미한 숫자 나열, 괄호·설명 문구는 금지."
-            " 8) 각 항목은 25자 이하이며 앞뒤 공백을 제거한다."
-            " 9) 원문과 완전히 동일한 표기는 출력하지 않는다."
-            " 10) '-1', '-2', '-PRO' 같은 단순 일련번호·등급 표기나 접미사를 붙이지 말고 실제 상표에서 사용할 만한 자연스러운 변형만 제시한다."
-        )
+            user_prompt = (
+                "상표명: "
+                + text
+                + "\n출력 형식: 설명 없이 JSON 배열 하나만 반환하고 반드시 "
+                + str(limit)
+                + "개의 고유 문자열을 넣는다. 지침:"
+                " 1) 영어 또는 한글만 사용한다."
+                " 2) 발음이 헷갈리게 들리거나 첫 음절이 동일/유사한 변형을 우선 생성한다"
+                "(모음/자음 치환, 장·단음 변형, 하이픈·공백 조정, 반복, 영어-한글 음역 교차 포함)."
+                " 3) 의미나 관념이 비슷한 조합은 상표 길이를 크게 바꾸지 않는 범위에서만 허용하며"
+                " 일반 수요자가 직관적으로 떠올릴 수 있는 단어만 사용한다."
+                " 4) 'PRO', 'MAX', '360'처럼 기능성·등급을 강조하는 흔한 접미사나 임의의 대문자·숫자를 덧붙이는 방식은 모두 금지한다 (규칙만 따르고 예시를 그대로 복사하지 말 것)."
+                " 5) 대신 철자 치환, 하이픈/공백 이동, 일부 음소 삭제, 대소문자/강조, 반복 문자 등 실제 사용자가 착각할 만한 음운적 변형을 다양하게 시도한다."
+                " 6) 영어식 표기와 한글 음역 표기가 번갈아가며 배열되도록 순서를 구성한다."
+                " 7) 무의미한 숫자 나열, 괄호·설명 문구는 금지."
+                " 8) 각 항목은 25자 이하이며 앞뒤 공백을 제거한다."
+                " 9) 원문과 완전히 동일한 표기는 출력하지 않는다."
+                " 10) '-1', '-2', '-PRO' 같은 단순 일련번호·등급 표기나 접미사를 붙이지 말고 실제 상표에서 사용할 만한 자연스러운 변형만 제시한다."
+            )
         return [
             {
                 "role": "system",
@@ -312,6 +348,18 @@ class TrademarkLLMSynonymService:
                 ],
             },
         ]
+
+    @staticmethod
+    def _normalize_language(language: str | None, text: str) -> str:
+        if language:
+            lowered = language.lower()
+            if lowered.startswith("en"):
+                return "en"
+            if lowered.startswith("ko"):
+                return "ko"
+        if _HANGUL_RE.search(text):
+            return "ko"
+        return "en"
 
     @staticmethod
     def _first_text(response) -> str:

@@ -120,7 +120,9 @@ class SearchPipeline:
             )
         else:
             variants = self._collect_variants(
-                manual_text, use_llm=req.use_llm_variants
+                manual_text,
+                use_llm=req.use_llm_variants,
+                language=req.language,
             )
 
         text_query = self._build_text_query_vector(manual_text, variants)
@@ -192,11 +194,13 @@ class SearchPipeline:
             debug=debug_info,
         )
 
-    def _collect_variants(self, text: str, use_llm: bool = True) -> List[str]:
+    def _collect_variants(
+        self, text: str, use_llm: bool = True, language: str | None = None
+    ) -> List[str]:
         text = (text or "").strip()
         if not text or not use_llm:
             return []
-        variants = self._variants.generate(text)
+        variants = self._variants.generate(text, language=language)
         seen = {text.lower()}
         unique: List[str] = []
         for cand in variants:

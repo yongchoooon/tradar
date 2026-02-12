@@ -67,6 +67,7 @@ def _decode_image_b64(payload: str | None) -> bytes:
 def _build_job_payload(req: SearchRequest, image_ref: ImageRef, job_id: str, top_k: int) -> Dict[str, Any]:
     request_meta = {
         "text": req.text,
+        "language": req.language,
         "goods_classes": list(req.goods_classes or []),
         "group_codes": list(req.group_codes or []),
         "variants": req.variants,
