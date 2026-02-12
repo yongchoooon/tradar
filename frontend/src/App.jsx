@@ -2386,6 +2386,7 @@ function App() {
           </button>
           */}
         </div>
+        {/*
         <label className="llm-toggle" aria-label={copy.search?.llmToggle || 'LLM 유사어 사용 여부'}>
           <input
             id="llm-variants-checkbox"
@@ -2395,6 +2396,7 @@ function App() {
           />
           <span>{copy.search?.llmToggle || 'LLM 유사어'}</span>
         </label>
+        */}
       </div>
       <section className="search-results">
         <h2>{copy.results?.sectionTitle || '검색 결과'}</h2>
