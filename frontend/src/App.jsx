@@ -2305,7 +2305,7 @@ function App() {
     : (placeholderCopy.imageAction || '이미지 선택하러 가기');
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${language === 'en' ? 'is-lang-en' : 'is-lang-ko'}`}>
       <div className="search-column">
       <section className="hero">
         <img className="logo" src={logo} alt="T-RADAR" />
