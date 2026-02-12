@@ -2001,16 +2001,11 @@ main.container {
   font-size: 0.95rem;
   color: #0f172a;
   font-weight: 700;
-  flex: 0 0 clamp(84px, 12vw, 120px);
-  min-width: 84px;
+  min-width: 56px;
 }
 
 .simulation-score-bar__title {
   white-space: nowrap;
-}
-
-.is-lang-en .simulation-score-bar__header {
-  font-size: 0.86rem;
 }
 
 .simulation-score-bar__body {
@@ -2038,6 +2033,7 @@ main.container {
   align-items: center;
   justify-content: center;
   flex: 1 1 0;
+  min-width: 0;
   text-align: center;
   font-size: 0.68rem;
   font-weight: 600;
@@ -2058,6 +2054,14 @@ main.container {
   height: 1.25rem;
   white-space: nowrap;
   text-align: center;
+}
+
+.is-lang-en .simulation-score-bar__header {
+  font-size: 0.82rem;
+}
+
+.is-lang-en .simulation-score-bar__segment span {
+  font-size: clamp(0.58rem, 0.7vw, 0.7rem);
 }
 
 @media (max-width: 900px) {
