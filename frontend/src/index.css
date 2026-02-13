@@ -3252,7 +3252,7 @@ main.container {
 }
 
 .transcript-entry__bubble.is-collapsed {
-  height: 14.25rem;
+  height: 13.25rem;
   overflow: hidden;
   padding-bottom: 1.7rem;
 }
