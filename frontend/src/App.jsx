@@ -1125,6 +1125,7 @@ function SimulationPanel({
   const historyActiveId = activeHistoryId || historyEntries[historyEntries.length - 1]?.id;
   const historyTitleText = historyTitle || '';
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
+  const [expandedTranscripts, setExpandedTranscripts] = useState({});
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
   const panelClass = [
     'simulation-panel',
@@ -1573,13 +1574,30 @@ function SimulationPanel({
                               const displaySpeaker = roleKey
                                 ? (speakerLabels[roleKey] || speaker)
                                 : (speaker || speakerLabels.default || '대화');
+                              const transcriptKey = `${item.application_number || 'unknown'}-${idx}`;
+                              const isExpanded = Boolean(expandedTranscripts[transcriptKey]);
+                              const toggleTranscript = () => {
+                                setExpandedTranscripts((prev) => ({
+                                  ...prev,
+                                  [transcriptKey]: !prev[transcriptKey],
+                                }));
+                              };
+                              const moreLabel = scoreCopy.transcriptMore || 'and more...';
                               return (
                                 <li key={`transcript-${item.application_number}-${idx}`}>
                                   <div className={`transcript-entry ${entryClass}`}>
                                     <div className="transcript-entry__speaker">{displaySpeaker}</div>
-                                    <div className="transcript-entry__bubble">
+                                    <button
+                                      type="button"
+                                      className={`transcript-entry__bubble ${isExpanded ? 'is-expanded' : 'is-collapsed'}`}
+                                      onClick={toggleTranscript}
+                                      aria-expanded={isExpanded}
+                                    >
                                       <MarkdownBlock text={content} />
-                                    </div>
+                                      {!isExpanded && (
+                                        <div className="transcript-entry__more">{moreLabel}</div>
+                                      )}
+                                    </button>
                                   </div>
                                 </li>
                               );

@@ -3233,6 +3233,12 @@ main.container {
 .transcript-entry__bubble {
   --bubble-fill-color: #f9fafb;
   --bubble-border-color: #e5e7eb;
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
   background: var(--bubble-fill-color);
   border: 1px solid var(--bubble-border-color);
   border-radius: 12px;
@@ -3243,6 +3249,45 @@ main.container {
 .transcript-entry__bubble::before,
 .transcript-entry__bubble::after {
   display: none;
+}
+
+.transcript-entry__bubble.is-collapsed {
+  height: 9.5rem;
+  overflow: hidden;
+  padding-bottom: 1.7rem;
+}
+
+.transcript-entry__bubble.is-collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.75rem;
+  background: linear-gradient(to bottom, rgba(249, 250, 251, 0), var(--bubble-fill-color));
+  pointer-events: none;
+}
+
+.transcript-entry__bubble.is-expanded {
+  height: auto;
+}
+
+.transcript-entry__bubble:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
+}
+
+.transcript-entry__more {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  pointer-events: none;
 }
 
 .transcript-entry__bubble .markdown-block {
