@@ -48,7 +48,16 @@ def _s3_client():
         raise RuntimeError("boto3 is not available for S3 logging")
     region = _env("AWS_REGION")
     endpoint_url = _env("TRADAR_S3_ENDPOINT_URL")
-    return boto3.client("s3", region_name=region, endpoint_url=endpoint_url)
+    access_key = _env("DESKTOP_WORKER_AWS_ACCESS_KEY_ID")
+    secret_key = _env("DESKTOP_WORKER_AWS_SECRET_ACCESS_KEY")
+    kwargs = {
+        "region_name": region,
+        "endpoint_url": endpoint_url,
+    }
+    if access_key and secret_key:
+        kwargs["aws_access_key_id"] = access_key
+        kwargs["aws_secret_access_key"] = secret_key
+    return boto3.client("s3", **kwargs)
 
 
 def _build_key(key_suffix: str) -> str:

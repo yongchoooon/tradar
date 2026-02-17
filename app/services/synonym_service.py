@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import os
 import re
+import uuid
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -14,10 +16,12 @@ from typing import Iterable, List
 from openai import OpenAI, OpenAIError
 
 from app.services.model_pricing import get_model_pricing
+from app.services.log_storage import upload_text
 from app.services.request_meta import get_request_meta
 
 _HANGUL_RE = re.compile(r"[가-힣]")
 _LATIN_RE = re.compile(r"[A-Za-z]")
+logger = logging.getLogger("synonym_service")
 
 _LEGACY_USAGE_HEADER = (
     "timestamp,model,input_tokens,output_tokens,total_tokens,"
@@ -45,6 +49,10 @@ def _is_truthy(value: str | None) -> bool:
     if value is None:
         return False
     return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _should_upload_usage() -> bool:
+    return _is_truthy(os.getenv("TRADAR_UPLOAD_OPENAI_USAGE_S3"))
 
 
 def _sanitize(entry: str) -> str:
@@ -262,6 +270,9 @@ class TrademarkLLMSynonymService:
         client_ip = self._sanitize_meta(getattr(meta, "client_ip", None))
         user_agent = self._sanitize_meta(getattr(meta, "user_agent", None))
         request_id = self._sanitize_meta(getattr(meta, "request_id", None))
+        origin = self._sanitize_meta(getattr(meta, "origin", None))
+        referer = self._sanitize_meta(getattr(meta, "referer", None))
+        accept_language = self._sanitize_meta(getattr(meta, "accept_language", None))
         row = [
             timestamp,
             self._model_id,
@@ -281,6 +292,32 @@ class TrademarkLLMSynonymService:
         with self._usage_log_path.open("a", encoding="utf-8", newline="") as fh:
             writer = csv.writer(fh)
             writer.writerow(row)
+        if _should_upload_usage():
+            payload = {
+                "timestamp": timestamp,
+                "model": self._model_id,
+                "reasoning_level": self._reasoning_level,
+                "temperature": self._temperature,
+                "input_tokens": input_tokens if input_tokens is not None else 0,
+                "output_tokens": output_tokens if output_tokens is not None else 0,
+                "total_tokens": total_tokens if total_tokens is not None else 0,
+                "input_cost_usd": round(input_cost, 10),
+                "output_cost_usd": round(output_cost, 10),
+                "total_cost_usd": round(total_cost, 10),
+                "client_id": client_id,
+                "client_ip": client_ip,
+                "user_agent": user_agent,
+                "request_id": request_id,
+                "origin": origin,
+                "referer": referer,
+                "accept_language": accept_language,
+            }
+            date_tag = datetime.utcnow().strftime("%Y/%m/%d")
+            upload_text(
+                f"openai_usage/{date_tag}/{uuid.uuid4().hex}.json",
+                json.dumps(payload, ensure_ascii=False),
+                content_type="application/json",
+            )
 
     def _build_prompt(
         self, text: str, limit: int, language_mode: str

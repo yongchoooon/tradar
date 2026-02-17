@@ -96,6 +96,9 @@ async def request_meta_middleware(request: Request, call_next):
         client_ip=_extract_client_ip(request),
         user_agent=_first_header(request, "user-agent"),
         request_id=request_id,
+        origin=_first_header(request, "origin"),
+        referer=_first_header(request, "referer"),
+        accept_language=_first_header(request, "accept-language"),
     )
     token = set_request_meta(meta)
     request.state.request_meta = meta

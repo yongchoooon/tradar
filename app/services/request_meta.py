@@ -13,6 +13,9 @@ class RequestMeta:
     client_ip: Optional[str] = None
     user_agent: Optional[str] = None
     request_id: Optional[str] = None
+    origin: Optional[str] = None
+    referer: Optional[str] = None
+    accept_language: Optional[str] = None
 
 
 _request_meta_var: contextvars.ContextVar[Optional[RequestMeta]] = contextvars.ContextVar(
