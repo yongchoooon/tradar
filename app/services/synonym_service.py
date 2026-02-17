@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import uuid
+import threading
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -44,6 +45,8 @@ _USAGE_COLUMNS = [
     "job_id",
 ]
 
+_USAGE_LOG_FILENAME = "variants_openai_usage.csv"
+
 
 def _is_truthy(value: str | None) -> bool:
     if value is None:
@@ -53,6 +56,15 @@ def _is_truthy(value: str | None) -> bool:
 
 def _should_upload_usage() -> bool:
     return _is_truthy(os.getenv("TRADAR_UPLOAD_OPENAI_USAGE_S3"))
+
+
+def _upload_text_async(key_suffix: str, text: str, content_type: str) -> None:
+    thread = threading.Thread(
+        target=upload_text,
+        args=(key_suffix, text, content_type),
+        daemon=True,
+    )
+    thread.start()
 
 
 def _sanitize(entry: str) -> str:
@@ -126,7 +138,6 @@ class TrademarkLLMSynonymService:
                     ],
                     max_tokens=512,
                 )
-                self._log_usage(response)
             except OpenAIError as exc:
                 attempts += 1
                 if attempts >= max_attempts:
@@ -147,6 +158,14 @@ class TrademarkLLMSynonymService:
                 seen.add(key)
                 if len(variants) >= limit:
                     break
+            self._log_usage(
+                response,
+                query_text=text,
+                variants=variants,
+                language_mode=language_mode,
+                raw_output=content,
+                attempt=attempts + 1,
+            )
 
             if language_mode == "en":
                 latin = [
@@ -198,8 +217,15 @@ class TrademarkLLMSynonymService:
     def _ensure_usage_log(self) -> Path:
         log_dir = Path("logs")
         log_dir.mkdir(parents=True, exist_ok=True)
-        path = log_dir / "openai_usage.csv"
+        path = log_dir / _USAGE_LOG_FILENAME
         if not path.exists():
+            legacy = log_dir / "openai_usage.csv"
+            if legacy.exists():
+                try:
+                    path.write_text(legacy.read_text(encoding="utf-8"), encoding="utf-8")
+                    return path
+                except OSError:
+                    pass
             path.write_text(",".join(_USAGE_COLUMNS) + "\n", encoding="utf-8")
             return path
         try:
@@ -241,7 +267,16 @@ class TrademarkLLMSynonymService:
             cleaned = cleaned[:limit]
         return cleaned
 
-    def _log_usage(self, response) -> None:  # type: ignore[no-untyped-def]
+    def _log_usage(  # type: ignore[no-untyped-def]
+        self,
+        response,
+        *,
+        query_text: str,
+        variants: List[str],
+        language_mode: str,
+        raw_output: str,
+        attempt: int,
+    ) -> None:
         usage = getattr(response, "usage", None)
         if usage is None:
             return
@@ -293,6 +328,9 @@ class TrademarkLLMSynonymService:
             writer = csv.writer(fh)
             writer.writerow(row)
         if _should_upload_usage():
+            truncated_output = raw_output
+            if len(truncated_output) > 2000:
+                truncated_output = truncated_output[:2000]
             payload = {
                 "timestamp": timestamp,
                 "model": self._model_id,
@@ -304,6 +342,12 @@ class TrademarkLLMSynonymService:
                 "input_cost_usd": round(input_cost, 10),
                 "output_cost_usd": round(output_cost, 10),
                 "total_cost_usd": round(total_cost, 10),
+                "query_text": query_text,
+                "language_mode": language_mode,
+                "attempt": attempt,
+                "variants": variants,
+                "variants_count": len(variants),
+                "raw_output": truncated_output,
                 "client_id": client_id,
                 "client_ip": client_ip,
                 "user_agent": user_agent,
@@ -313,8 +357,8 @@ class TrademarkLLMSynonymService:
                 "accept_language": accept_language,
             }
             date_tag = datetime.utcnow().strftime("%Y/%m/%d")
-            upload_text(
-                f"openai_usage/{date_tag}/{uuid.uuid4().hex}.json",
+            _upload_text_async(
+                f"variants_openai_usage/{date_tag}/{uuid.uuid4().hex}.json",
                 json.dumps(payload, ensure_ascii=False),
                 content_type="application/json",
             )
