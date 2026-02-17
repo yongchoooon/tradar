@@ -117,14 +117,14 @@ class TrademarkLLMSynonymService:
                 system_prompt = prompt[0]["content"][0]["text"]
                 user_prompt = prompt[1]["content"][0]["text"]
                 self._debug_print("prompt", [system_prompt, user_prompt])
-                completion_kwargs = self._completion_kwargs()
                 response = client.chat.completions.create(
                     model=self._model_id,
+                    temperature=self._temperature,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
-                    **completion_kwargs,
+                    max_tokens=512,
                 )
                 self._log_usage(response)
             except OpenAIError as exc:
@@ -386,16 +386,7 @@ class TrademarkLLMSynonymService:
             },
         ]
 
-    def _completion_kwargs(self) -> dict:
-        model = (self._model_id or "").lower()
-        max_tokens = 512
-        if model.startswith(("gpt-5", "o1", "o3")):
-            # These models only support the default temperature.
-            kwargs = {"max_completion_tokens": max_tokens}
-            if self._temperature == 1.0:
-                kwargs["temperature"] = 1.0
-            return kwargs
-        return {"max_tokens": max_tokens, "temperature": self._temperature}
+
 
     @staticmethod
     def _normalize_language(language: str | None, text: str) -> str:
