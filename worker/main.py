@@ -22,6 +22,7 @@ from websockets.exceptions import ConnectionClosed
 
 from app.pipelines.search_pipeline import SearchPipeline
 from app.schemas.search import SearchRequest, SearchResponse, SearchResult
+from app.services.request_meta import RequestMeta, reset_request_meta, set_request_meta
 
 
 logger = logging.getLogger("desktop_worker")
@@ -305,9 +306,21 @@ class DesktopWorker:
             return
 
         start = time.monotonic()
+        token = None
         try:
             image_bytes = await self._fetch_image(data.get("image_ref") or {})
             req = self._build_request(data, image_bytes)
+            request_meta = data.get("request_meta") or {}
+            meta = RequestMeta(
+                client_id=request_meta.get("client_id"),
+                client_ip=request_meta.get("client_ip"),
+                user_agent=request_meta.get("user_agent"),
+                request_id=request_meta.get("request_id"),
+                origin=request_meta.get("origin"),
+                referer=request_meta.get("referer"),
+                accept_language=request_meta.get("accept_language"),
+            )
+            token = set_request_meta(meta)
             response = self._pipeline.search(req)
             elapsed_ms = int((time.monotonic() - start) * 1000)
             result_payload = self._build_result(job_id, elapsed_ms, response)
@@ -317,6 +330,9 @@ class DesktopWorker:
             await self._send_error(
                 ws, job_id, "processing_error", str(exc) or "processing_error", True
             )
+        finally:
+            if token is not None:
+                reset_request_meta(token)
 
     async def _fetch_image(self, image_ref: Dict[str, Any]) -> bytes:
         ref_type = (image_ref.get("type") or "").lower()

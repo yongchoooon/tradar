@@ -18,6 +18,7 @@ from app.schemas.search import (
     SearchResult,
 )
 from app.services.s3_storage import ImageRef, ImageTransferError, build_image_ref
+from app.services.request_meta import get_request_meta
 from app.services.worker_registry import (
     WorkerDisconnectedError,
     WorkerTimeoutError,
@@ -65,6 +66,7 @@ def _decode_image_b64(payload: str | None) -> bytes:
 
 
 def _build_job_payload(req: SearchRequest, image_ref: ImageRef, job_id: str, top_k: int) -> Dict[str, Any]:
+    meta = get_request_meta()
     request_meta = {
         "text": req.text,
         "language": req.language,
@@ -74,6 +76,18 @@ def _build_job_payload(req: SearchRequest, image_ref: ImageRef, job_id: str, top
         "use_llm_variants": req.use_llm_variants,
         "debug": bool(req.debug),
     }
+    if meta:
+        request_meta.update(
+            {
+                "client_id": meta.client_id,
+                "client_ip": meta.client_ip,
+                "user_agent": meta.user_agent,
+                "request_id": meta.request_id,
+                "origin": meta.origin,
+                "referer": meta.referer,
+                "accept_language": meta.accept_language,
+            }
+        )
     payload = {
         "type": "job",
         "job_id": job_id,
