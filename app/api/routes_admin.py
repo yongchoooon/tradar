@@ -186,7 +186,7 @@ def admin_login_page(request: Request) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>T-RADAR Admin Login</title>
     <style>
-      *, *::before, *::after { box-sizing: border-box; }
+      *, *::before, *::after {{ box-sizing: border-box; }}
       body {{ font-family: system-ui, sans-serif; background:#f6f8fc; margin:0; padding:2rem; }}
       .card {{ max-width:420px; margin:8vh auto; background:#fff; padding:2rem; border-radius:16px;
         box-shadow:0 10px 30px rgba(15,23,42,0.08); }}
