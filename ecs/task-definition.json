@@ -63,6 +63,14 @@
         {
           "name": "GEMINI_API_KEY",
           "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/gemini-api-key"
+        },
+        {
+          "name": "ADMIN_PASSWORD",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/admin-password"
+        },
+        {
+          "name": "ADMIN_COOKIE_SECRET",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:082351608649:parameter/tradar/prod/admin-cookie-secret"
         }
       ],
       "logConfiguration": {

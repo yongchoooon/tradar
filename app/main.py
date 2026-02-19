@@ -18,6 +18,7 @@ from app.api.routes_media import router as media_router
 from app.api.routes_search import router as search_router
 from app.api.routes_worker import router as worker_router
 from app.api.routes_simulation import router as simulation_router
+from app.api.routes_admin import router as admin_router
 from app.services.request_meta import RequestMeta, reset_request_meta, set_request_meta
 
 APP_ENV = os.getenv("APP_ENV")
@@ -142,6 +143,7 @@ app.include_router(worker_router)
 app.include_router(goods_router)
 app.include_router(media_router)
 app.include_router(simulation_router)
+app.include_router(admin_router)
 
 custom_frontend_dir = os.getenv("FRONTEND_DIST")
 if custom_frontend_dir:
