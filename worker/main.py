@@ -340,8 +340,8 @@ class DesktopWorker:
             url = image_ref.get("url")
             if not url:
                 raise ValueError("image_ref.url is required")
-            label = _shorten_url(url)
-            logger.info("Fetching image url=%s", _maybe_hyperlink(label, url))
+            # label = _shorten_url(url)
+            # logger.info("Fetching image url=%s", _maybe_hyperlink(label, url))
             response = await self._http.get(url)
             response.raise_for_status()
             return response.content
