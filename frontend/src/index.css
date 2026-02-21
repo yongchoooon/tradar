@@ -1387,20 +1387,50 @@ main.container {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
 }
 
-.tutorial-hint {
+.tutorial-hint-bubble {
+  position: absolute;
+  right: calc(100% + 0.6rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
-  padding: 0.18rem 0.5rem;
+  padding: 0.38rem 0.8rem;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #b45309;
-  background: #fff7ed;
-  border: 1px solid #fdba74;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  background: linear-gradient(120deg, #e0f2fe 0%, #e9d5ff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  box-shadow: 0 10px 22px rgba(30, 58, 138, 0.18);
   white-space: nowrap;
   pointer-events: none;
+}
+
+.tutorial-hint-bubble::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 70% 50%, rgba(147, 197, 253, 0.25), rgba(196, 181, 253, 0));
+  z-index: -1;
+}
+
+.tutorial-hint-bubble::after {
+  content: '';
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #e0ecff;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  box-shadow: 0 6px 14px rgba(30, 58, 138, 0.15);
+  transform: translateY(-50%);
 }
 
 .tour-btn--secondary {

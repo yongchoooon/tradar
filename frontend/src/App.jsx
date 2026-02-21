@@ -143,6 +143,12 @@ const TOUR_CONTENT = {
   ko: {
     steps: [
       {
+        key: 'intro',
+        title: '튜토리얼',
+        body: '검색부터 시뮬레이션까지 흐름을 1분만에 안내합니다. 예시 결과가 미리 표시됩니다.',
+        selector: null,
+      },
+      {
         key: 'hero',
         title: '서비스 개요',
         body: '이 영역에서 서비스 소개와 주요 버튼을 확인할 수 있습니다.',
@@ -207,6 +213,12 @@ const TOUR_CONTENT = {
   },
   en: {
     steps: [
+      {
+        key: 'intro',
+        title: 'Quick tour',
+        body: 'We will walk you through search and simulation. Example results are shown.',
+        selector: null,
+      },
       {
         key: 'hero',
         title: 'Overview',
@@ -2115,7 +2127,6 @@ function App() {
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialDontShow, setTutorialDontShow] = useState(false);
-  const [showTutorialHint, setShowTutorialHint] = useState(false);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -2192,6 +2203,8 @@ function App() {
       simulationResult,
       simulationStatus,
       simulationError,
+      simulationStartTime,
+      simulationElapsed,
       simulationHistory,
       activeSimulationId,
       simulationSelection,
@@ -2208,6 +2221,8 @@ function App() {
     setSimulationResult(exampleSimulationFixture);
     setSimulationStatus('complete');
     setSimulationError('');
+    setSimulationStartTime(null);
+    setSimulationElapsed(118);
     setSimulationHistory([]);
     setActiveSimulationId(null);
     setSimulationSelection({
@@ -2266,6 +2281,8 @@ function App() {
     setSimulationResult(snapshot.simulationResult);
     setSimulationStatus(snapshot.simulationStatus);
     setSimulationError(snapshot.simulationError);
+    setSimulationStartTime(snapshot.simulationStartTime);
+    setSimulationElapsed(snapshot.simulationElapsed);
     setSimulationHistory(snapshot.simulationHistory);
     setActiveSimulationId(snapshot.activeSimulationId);
     setSimulationSelection(snapshot.simulationSelection);
@@ -2286,16 +2303,21 @@ function App() {
     } catch {
       dismissed = false;
     }
-    setShowTutorialHint(!dismissed);
+    if (!dismissed) {
+      setTutorialActive(true);
+      setTutorialStep(0);
+    }
   }, []);
 
   useEffect(() => {
     if (tutorialActive) {
-      startTutorial();
+      if (tutorialStep > 0) {
+        startTutorial();
+      }
     } else {
       restoreTutorialSnapshot();
     }
-  }, [tutorialActive, startTutorial, restoreTutorialSnapshot]);
+  }, [tutorialActive, tutorialStep, startTutorial, restoreTutorialSnapshot]);
 
   const closeTutorial = useCallback((dismiss = false) => {
     const shouldDismiss = dismiss || tutorialDontShow;
@@ -2305,7 +2327,6 @@ function App() {
       } catch {
         // ignore storage issues
       }
-      setShowTutorialHint(false);
     }
     setTutorialActive(false);
     setTutorialStep(0);
@@ -2313,7 +2334,6 @@ function App() {
   }, [tutorialDontShow]);
 
   const handleTutorialOpen = () => {
-    setShowTutorialHint(false);
     setTutorialDontShow(false);
     setTutorialStep(0);
     setTutorialActive(true);
@@ -2845,6 +2865,11 @@ function App() {
             <h1 className="title">T-RADAR</h1>
             <div className="hero-actions">
               <div className="hero-tutorial-wrap">
+                {!tutorialActive && (
+                  <span className="tutorial-hint-bubble" aria-hidden="true">
+                    {language === 'en' ? 'Start tutorial here' : '여기서 튜토리얼 시작'}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="github-link hero-tutorial"
@@ -2855,11 +2880,6 @@ function App() {
                   <span className="github-link__icon">?</span>
                   <span className="github-link__label">{language === 'en' ? 'Tutorial' : '튜토리얼'}</span>
                 </button>
-                {showTutorialHint && (
-                  <span className="tutorial-hint" aria-hidden="true">
-                    {language === 'en' ? 'Start here' : '처음이면 눌러보세요'}
-                  </span>
-                )}
               </div>
               <a
                 className="github-link hero-github"
