@@ -461,7 +461,14 @@ function GoodsGroupList({
 }
 
 
-function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, language = 'ko' }) {
+function GoodsSearchPanel({
+  selectedGroups,
+  onToggleGroup,
+  preset,
+  copy,
+  language = 'ko',
+  onResultsReady,
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -489,6 +496,7 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
     }
     try {
       setLoading(true);
+      onResultsReady?.(false);
       setError('');
       const data = await apiFetch(
         `/goods/search?q=${encodeURIComponent(term)}&lang=${encodeURIComponent(language)}`,
@@ -521,12 +529,16 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
       } else {
         setExpanded(new Set());
       }
+      if (items.length > 0) {
+        requestAnimationFrame(() => onResultsReady?.(true));
+      }
     } catch (err) {
       setError(err?.message || text.error || 'An error occurred while searching.');
+      onResultsReady?.(false);
     } finally {
       setLoading(false);
     }
-  }, [language, text.error]);
+  }, [language, onResultsReady, text.error]);
 
   const fetchGoods = async (e) => {
     e?.preventDefault();
@@ -588,27 +600,6 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
   const languageNoticeVisible =
     showLanguageNotice && needsRefresh && query.trim() === lastSearchedQueryRef.current;
 
-  const selectedItems = useMemo(() => {
-    const entries = Object.entries(selectedGroups || {}).map(([key, value]) => ({
-      key,
-      classCode: value?.classCode || '',
-      className: value?.className || '',
-      groupCode: value?.groupCode || '',
-      names: value?.names || [],
-    }));
-    entries.sort((a, b) => {
-      if (a.classCode === b.classCode) {
-        return String(a.groupCode).localeCompare(String(b.groupCode));
-      }
-      return String(a.classCode).localeCompare(String(b.classCode));
-    });
-    return entries;
-  }, [selectedGroups]);
-
-  const selectedLabel =
-    text.selectedLabel || (language === 'en' ? 'Selected goods/services' : '선택한 상품/서비스류');
-  const classLabel = language === 'en' ? 'Class' : '류';
-
   return (
     <section className="goods-panel">
       <div className="goods-panel__heading">
@@ -639,36 +630,6 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
           <span>{text.search || '검색'}</span>
         </button>
       </form>
-      {selectedItems.length > 0 && (
-        <div className="goods-selected" aria-live="polite">
-          <span className="goods-selected__label">{selectedLabel}</span>
-          <div className="goods-selected__list">
-            {selectedItems.map((item) => (
-              <div key={item.key} className="goods-selected__item">
-                <span className="goods-selected__meta">
-                  {classLabel === '류' ? `${item.classCode}류` : `${classLabel} ${item.classCode}`} · {item.groupCode}
-                </span>
-                <span className="goods-selected__names">{item.names.join(', ')}</span>
-                <button
-                  type="button"
-                  className="goods-selected__remove"
-                  onClick={() => onToggleGroup({
-                    key: item.key,
-                    checked: false,
-                    classCode: item.classCode,
-                    className: item.className,
-                    groupCode: item.groupCode,
-                    names: item.names,
-                  })}
-                  aria-label={`${classLabel} ${item.classCode} ${item.groupCode} 제거`}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       {error && <p role="alert" className="goods-error">{error}</p>}
       {loading && <p>{text.loading || '검색 중입니다…'}</p>}
       {!loading && !error && !results.length && query.trim() && (
@@ -686,6 +647,97 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
             classBadgeFormat={text.classBadgeFormat}
           />
         ))}
+      </div>
+    </section>
+  );
+}
+
+function SelectedGoodsPanel({ selectedGroups, onToggleGroup, copy, language = 'ko' }) {
+  const [expandedKeys, setExpandedKeys] = useState(() => new Set());
+  const text = copy || {};
+  const selectedItems = useMemo(() => {
+    const entries = Object.entries(selectedGroups || {}).map(([key, value]) => ({
+      key,
+      classCode: value?.classCode || '',
+      className: value?.className || '',
+      groupCode: value?.groupCode || '',
+      names: value?.names || [],
+    }));
+    entries.sort((a, b) => {
+      if (a.classCode === b.classCode) {
+        return String(a.groupCode).localeCompare(String(b.groupCode));
+      }
+      return String(a.classCode).localeCompare(String(b.classCode));
+    });
+    return entries;
+  }, [selectedGroups]);
+  const selectedLabel =
+    text.selectedLabel || (language === 'en' ? 'Selected goods/services' : '선택한 상품/서비스류');
+  const classLabel = language === 'en' ? 'Class' : '류';
+
+  if (!selectedItems.length) {
+    return null;
+  }
+
+  const toggleExpanded = (key) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <section className="goods-selected-panel" aria-live="polite">
+      <div className="goods-selected-panel__header">
+        <span className="goods-selected__label">{selectedLabel}</span>
+      </div>
+      <div className="goods-selected__list">
+        {selectedItems.map((item) => {
+          const expanded = expandedKeys.has(item.key);
+          return (
+            <div
+              key={item.key}
+              className={`goods-selected__item ${expanded ? 'is-expanded' : ''}`}
+              onClick={() => toggleExpanded(item.key)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  toggleExpanded(item.key);
+                }
+              }}
+            >
+              <span className="goods-selected__meta">
+                {classLabel === '류' ? `${item.classCode}류` : `${classLabel} ${item.classCode}`} · {item.groupCode}
+              </span>
+              <span className="goods-selected__names">{item.names.join(', ')}</span>
+              <button
+                type="button"
+                className="goods-selected__remove"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleGroup({
+                    key: item.key,
+                    checked: false,
+                    classCode: item.classCode,
+                    className: item.className,
+                    groupCode: item.groupCode,
+                    names: item.names,
+                  });
+                }}
+                aria-label={`${classLabel} ${item.classCode} ${item.groupCode} 제거`}
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -1776,6 +1828,7 @@ function DebugPanel({ debug }) {
 function App() {
   const [language, setLanguage] = useState('en');
   const [selectedGroups, setSelectedGroups] = useState({});
+  const [goodsResultsReady, setGoodsResultsReady] = useState(false);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -2010,6 +2063,7 @@ function App() {
     }
     try {
       setError('');
+      setGoodsResultsReady(false);
       const file = await fetchStaticAssetFile(config.imagePath);
       const groupMap = {};
       const groups = Array.isArray(config.groups)
@@ -2424,13 +2478,22 @@ function App() {
         onExample={handleExampleLoad}
         copy={copy.search}
       />
-            <GoodsSearchPanel
-              selectedGroups={selectedGroups}
-              onToggleGroup={toggleGroup}
-              preset={goodsPreset}
-              copy={copy.goods}
-              language={language}
-            />
+      <GoodsSearchPanel
+        selectedGroups={selectedGroups}
+        onToggleGroup={toggleGroup}
+        preset={goodsPreset}
+        copy={copy.goods}
+        language={language}
+        onResultsReady={setGoodsResultsReady}
+      />
+      {goodsResultsReady && (
+        <SelectedGoodsPanel
+          selectedGroups={selectedGroups}
+          onToggleGroup={toggleGroup}
+          copy={copy.goods}
+          language={language}
+        />
+      )}
       <div className="search-actions-row">
         <button type="button" className="secondary btn-wide" onClick={resetForm}>
           {copy.search?.reset || '초기화'}
