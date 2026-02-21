@@ -588,6 +588,27 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
   const languageNoticeVisible =
     showLanguageNotice && needsRefresh && query.trim() === lastSearchedQueryRef.current;
 
+  const selectedItems = useMemo(() => {
+    const entries = Object.entries(selectedGroups || {}).map(([key, value]) => ({
+      key,
+      classCode: value?.classCode || '',
+      className: value?.className || '',
+      groupCode: value?.groupCode || '',
+      names: value?.names || [],
+    }));
+    entries.sort((a, b) => {
+      if (a.classCode === b.classCode) {
+        return String(a.groupCode).localeCompare(String(b.groupCode));
+      }
+      return String(a.classCode).localeCompare(String(b.classCode));
+    });
+    return entries;
+  }, [selectedGroups]);
+
+  const selectedLabel =
+    text.selectedLabel || (language === 'en' ? 'Selected goods/services' : '선택한 상품/서비스류');
+  const classLabel = language === 'en' ? 'Class' : '류';
+
   return (
     <section className="goods-panel">
       <div className="goods-panel__heading">
@@ -618,6 +639,36 @@ function GoodsSearchPanel({ selectedGroups, onToggleGroup, preset, copy, languag
           <span>{text.search || '검색'}</span>
         </button>
       </form>
+      {selectedItems.length > 0 && (
+        <div className="goods-selected" aria-live="polite">
+          <span className="goods-selected__label">{selectedLabel}</span>
+          <div className="goods-selected__list">
+            {selectedItems.map((item) => (
+              <div key={item.key} className="goods-selected__item">
+                <span className="goods-selected__meta">
+                  {classLabel === '류' ? `${item.classCode}류` : `${classLabel} ${item.classCode}`} · {item.groupCode}
+                </span>
+                <span className="goods-selected__names">{item.names.join(', ')}</span>
+                <button
+                  type="button"
+                  className="goods-selected__remove"
+                  onClick={() => onToggleGroup({
+                    key: item.key,
+                    checked: false,
+                    classCode: item.classCode,
+                    className: item.className,
+                    groupCode: item.groupCode,
+                    names: item.names,
+                  })}
+                  aria-label={`${classLabel} ${item.classCode} ${item.groupCode} 제거`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {error && <p role="alert" className="goods-error">{error}</p>}
       {loading && <p>{text.loading || '검색 중입니다…'}</p>}
       {!loading && !error && !results.length && query.trim() && (
