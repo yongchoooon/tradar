@@ -907,10 +907,6 @@ function SelectedGoodsPanel({ selectedGroups, onToggleGroup, copy, language = 'k
                 }
               }}
             >
-              <span className="goods-selected__meta">
-                {classLabel === '류' ? `${item.classCode}류` : `${classLabel} ${item.classCode}`} · {item.groupCode}
-              </span>
-              <span className="goods-selected__names">{item.names.join(', ')}</span>
               <button
                 type="button"
                 className="goods-selected__remove"
@@ -929,6 +925,10 @@ function SelectedGoodsPanel({ selectedGroups, onToggleGroup, copy, language = 'k
               >
                 ×
               </button>
+              <span className="goods-selected__meta">
+                {classLabel === '류' ? `${item.classCode}류` : `${classLabel} ${item.classCode}`} · {item.groupCode}
+              </span>
+              <span className="goods-selected__names">{item.names.join(', ')}</span>
             </div>
           );
         })}
