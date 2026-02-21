@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>T-RADAR 관리자</title>
+    <style>
+      * { box-sizing:border-box; }
+      body { font-family: system-ui, sans-serif; background:#f6f8fc; margin:0; padding:2rem; }
+      header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+      h1 { margin:0; }
+      .section { background:#fff; padding:1.5rem; border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,0.08); margin-bottom:1.5rem; }
+      .section h2 { margin:0; font-size:1.1rem; }
+      .section-header { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:0.75rem; }
+      .summary { color:#475569; font-size:0.9rem; }
+      table { width:100%; border-collapse:collapse; }
+      th, td { text-align:left; padding:0.6rem 0.5rem; border-bottom:1px solid #e2e8f0; vertical-align:top; }
+      th { color:#64748b; font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+      tbody tr:hover { background:#f8fafc; }
+      .muted { color:#64748b; font-size:0.85rem; }
+      .detail-row td { background:#f8fafc; }
+      .detail-box { white-space:pre-wrap; font-size:0.85rem; color:#0f172a; }
+      .clickable { cursor:pointer; }
+      .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
+      .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
+      .narrow { white-space:nowrap; width:1%; }
+      a.button { text-decoration:none; padding:0.5rem 0.8rem; border-radius:10px; background:#e2e8f0; color:#0f172a; }
+      .badge { display:inline-block; padding:0.2rem 0.5rem; border-radius:999px; background:#e2e8f0; font-size:0.75rem; color:#334155; }
+      .pagination { display:flex; align-items:center; gap:0.35rem; margin-top:0.8rem; flex-wrap:wrap; }
+      .page-btn { border:1px solid #e2e8f0; background:#fff; color:#0f172a; padding:0.25rem 0.55rem; border-radius:8px; cursor:pointer; font-size:0.85rem; }
+      .page-btn.is-active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+      .page-btn:disabled { cursor:default; opacity:0.4; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>T-RADAR 관리자</h1>
+      <a class="button" href="/admin/logout">로그아웃</a>
+    </header>
+    <section class="section">
+      <div class="section-header">
+        <h2>시뮬레이션 AI Agent 로그</h2>
+        <div class="summary" id="ai-summary">총 비용 합계: -</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable narrow" data-table="ai" data-key="last_modified">날짜<span class="sort-indicator"></span></th>
+            <th class="narrow">run_id</th>
+            <th>상표명</th>
+            <th>호출 수</th>
+            <th>총 비용</th>
+            <th>IP</th>
+            <th>user_agent</th>
+          </tr>
+        </thead>
+        <tbody id="ai-table">
+          <tr><td colspan="7" class="muted">로딩 중...</td></tr>
+        </tbody>
+      </table>
+      <div class="pagination" id="ai-pagination"></div>
+      <div class="summary muted" id="ai-note"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>LLM 유사어 로그</h2>
+        <div class="summary" id="variants-summary">총 비용 합계: -</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable narrow" data-table="variants" data-key="timestamp">시간<span class="sort-indicator"></span></th>
+            <th>검색어</th>
+            <th>모델</th>
+            <th>토큰</th>
+            <th>총 비용</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody id="variants-table">
+          <tr><td colspan="6" class="muted">로딩 중...</td></tr>
+        </tbody>
+      </table>
+      <div class="pagination" id="variants-pagination"></div>
+      <div class="summary muted" id="variants-note"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>시뮬레이션 내용 로그</h2>
+        <div class="summary muted">행을 클릭하면 상세 내용을 펼칩니다.</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable narrow" data-table="debug" data-key="last_modified">수정 시간<span class="sort-indicator"></span></th>
+            <th>run_tag</th>
+            <th>출원번호</th>
+            <th>파일 종류</th>
+            <th>크기</th>
+          </tr>
+        </thead>
+        <tbody id="debug-table">
+          <tr><td colspan="5" class="muted">로딩 중...</td></tr>
+        </tbody>
+      </table>
+      <div class="pagination" id="debug-pagination"></div>
+    </section>
+
+    <script>
+      const PAGE_SIZE = 30;
+      const formatCost = (value) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return "-";
+        return "$" + Number(value).toFixed(6);
+      };
+      const formatDate = (value) => {
+        if (!value) return "-";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? value : date.toLocaleString("ko-KR");
+      };
+      const formatSize = (bytes) => {
+        if (!bytes && bytes !== 0) return "-";
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      };
+
+      const fetchLogs = async (type) => {
+        const res = await fetch(`/admin/api/logs?type=${type}`);
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || "Failed to load logs");
+        }
+        return res.json();
+      };
+
+      const state = {
+        ai: { items: [], total_cost_usd: 0, sortKey: "last_modified", sortDir: "desc", page: 1 },
+        variants: { items: [], total_cost_usd: 0, sortKey: "timestamp", sortDir: "desc", page: 1 },
+        debug: { items: [], sortKey: "last_modified", sortDir: "desc", page: 1 },
+      };
+
+      const sortItems = (items, key, dir) => {
+        const copy = items.slice();
+        copy.sort((a, b) => {
+          const ta = new Date(a[key] || 0).getTime();
+          const tb = new Date(b[key] || 0).getTime();
+          const av = Number.isNaN(ta) ? 0 : ta;
+          const bv = Number.isNaN(tb) ? 0 : tb;
+          return dir === "asc" ? av - bv : bv - av;
+        });
+        return copy;
+      };
+
+      const getPageCount = (items) => Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+
+      const paginateItems = (items, page) => {
+        const start = (page - 1) * PAGE_SIZE;
+        return items.slice(start, start + PAGE_SIZE);
+      };
+
+      const buildPageNumbers = (current, total) => {
+        const pages = [];
+        const start = Math.max(1, current - 2);
+        const end = Math.min(total, current + 2);
+        for (let i = start; i <= end; i += 1) {
+          pages.push(i);
+        }
+        return pages;
+      };
+
+      const renderPagination = (targetId, tableKey) => {
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        const st = state[tableKey];
+        const totalPages = getPageCount(st.items);
+        if (totalPages <= 1) {
+          container.innerHTML = "";
+          return;
+        }
+        const pages = buildPageNumbers(st.page, totalPages);
+        const buttons = [];
+        const prevBtn = `<button class="page-btn" ${st.page === 1 ? "disabled" : ""} data-page="${st.page - 1}" data-table="${tableKey}">◀</button>`;
+        const nextBtn = `<button class="page-btn" ${st.page === totalPages ? "disabled" : ""} data-page="${st.page + 1}" data-table="${tableKey}">▶</button>`;
+        buttons.push(prevBtn);
+        pages.forEach((page) => {
+          buttons.push(
+            `<button class="page-btn ${page === st.page ? "is-active" : ""}" data-page="${page}" data-table="${tableKey}">${page}</button>`
+          );
+        });
+        buttons.push(nextBtn);
+        container.innerHTML = buttons.join("");
+        container.querySelectorAll(".page-btn").forEach((btn) => {
+          if (btn.disabled) return;
+          btn.addEventListener("click", () => {
+            const next = Number(btn.dataset.page || st.page);
+            if (!Number.isFinite(next) || next < 1 || next > totalPages) return;
+            st.page = next;
+            if (tableKey === "ai") renderAiAgent();
+            if (tableKey === "variants") renderVariants();
+            if (tableKey === "debug") renderDebug();
+          });
+        });
+      };
+
+      const updateSortIndicators = (tableKey) => {
+        document.querySelectorAll(`.sortable[data-table="${tableKey}"]`).forEach((th) => {
+          const indicator = th.querySelector(".sort-indicator");
+          if (!indicator) return;
+          if (th.dataset.key === state[tableKey].sortKey) {
+            indicator.textContent = state[tableKey].sortDir === "asc" ? "▲" : "▼";
+          } else {
+            indicator.textContent = "";
+          }
+        });
+      };
+
+      const renderAiAgent = () => {
+        const body = document.getElementById("ai-table");
+        body.innerHTML = "";
+        const sorted = sortItems(state.ai.items, state.ai.sortKey, state.ai.sortDir);
+        const items = paginateItems(sorted, state.ai.page);
+        if (!items.length) {
+          body.innerHTML = '<tr><td colspan="7" class="muted">데이터가 없습니다.</td></tr>';
+          return;
+        }
+        items.forEach((item) => {
+          const row = document.createElement("tr");
+          row.classList.add("clickable");
+          row.innerHTML = `
+            <td class="narrow">${formatDate(item.last_modified)}</td>
+            <td class="narrow">${item.run_id || "-"}</td>
+            <td>${item.query_title || "-"}</td>
+            <td>${item.total_calls ?? "-"}</td>
+            <td>${formatCost(item.total_cost_usd)}</td>
+            <td>${item.client_ip || "-"}</td>
+            <td>${item.user_agent || "-"}</td>
+          `;
+          row.addEventListener("click", () => toggleDetail(row, item.key, 7));
+          body.appendChild(row);
+        });
+        document.getElementById("ai-summary").textContent =
+          `총 비용 합계: ${formatCost(state.ai.total_cost_usd)}`;
+        document.getElementById("ai-note").textContent = state.ai.note || "";
+        renderPagination("ai-pagination", "ai");
+        updateSortIndicators("ai");
+      };
+
+      const renderVariants = () => {
+        const body = document.getElementById("variants-table");
+        body.innerHTML = "";
+        const sorted = sortItems(state.variants.items, state.variants.sortKey, state.variants.sortDir);
+        const items = paginateItems(sorted, state.variants.page);
+        if (!items.length) {
+          body.innerHTML = '<tr><td colspan="6" class="muted">데이터가 없습니다.</td></tr>';
+          return;
+        }
+        items.forEach((item) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="narrow">${formatDate(item.timestamp)}</td>
+            <td>${item.query_text || "-"}</td>
+            <td>${item.model || "-"}</td>
+            <td>${item.total_tokens ?? "-"}</td>
+            <td>${formatCost(item.total_cost_usd)}</td>
+            <td>${item.client_ip || "-"}</td>
+          `;
+          body.appendChild(row);
+        });
+        document.getElementById("variants-summary").textContent =
+          `총 비용 합계: ${formatCost(state.variants.total_cost_usd)}`;
+        document.getElementById("variants-note").textContent = state.variants.note || "";
+        renderPagination("variants-pagination", "variants");
+        updateSortIndicators("variants");
+      };
+
+      const renderDebug = () => {
+        const body = document.getElementById("debug-table");
+        body.innerHTML = "";
+        const sorted = sortItems(state.debug.items, state.debug.sortKey, state.debug.sortDir);
+        const items = paginateItems(sorted, state.debug.page);
+        if (!items.length) {
+          body.innerHTML = '<tr><td colspan="5" class="muted">데이터가 없습니다.</td></tr>';
+          return;
+        }
+        items.forEach((item) => {
+          const row = document.createElement("tr");
+          row.classList.add("clickable");
+          row.innerHTML = `
+            <td class="narrow">${formatDate(item.last_modified)}</td>
+            <td>${item.run_tag || "-"}</td>
+            <td>${item.app_no || "-"}</td>
+            <td><span class="badge">${item.file_type || "-"}</span></td>
+            <td>${formatSize(item.size)}</td>
+          `;
+          row.addEventListener("click", () => toggleDetail(row, item.key, 5));
+          body.appendChild(row);
+        });
+        renderPagination("debug-pagination", "debug");
+        updateSortIndicators("debug");
+      };
+
+      const toggleDetail = async (row, key, colspan) => {
+        const next = row.nextElementSibling;
+        if (next && next.classList.contains("detail-row")) {
+          next.remove();
+          return;
+        }
+        const detailRow = document.createElement("tr");
+        detailRow.classList.add("detail-row");
+        detailRow.innerHTML = `<td colspan="${colspan}"><div class="detail-box">로딩 중...</div></td>`;
+        row.parentNode.insertBefore(detailRow, row.nextSibling);
+        try {
+          const res = await fetch(`/admin/api/logs/detail?key=${encodeURIComponent(key)}`);
+          if (!res.ok) throw new Error(await res.text());
+          const payload = await res.json();
+          const text = payload.content || "";
+          const box = detailRow.querySelector(".detail-box");
+          box.textContent = text;
+        } catch (err) {
+          const box = detailRow.querySelector(".detail-box");
+          box.textContent = "상세 내용을 불러오지 못했습니다.";
+        }
+      };
+
+      const bindSorting = () => {
+        document.querySelectorAll(".sortable").forEach((th) => {
+          th.addEventListener("click", () => {
+            const table = th.dataset.table;
+            const key = th.dataset.key;
+            if (!table || !key || !state[table]) return;
+            const st = state[table];
+            if (st.sortKey === key) {
+              st.sortDir = st.sortDir === "asc" ? "desc" : "asc";
+            } else {
+              st.sortKey = key;
+              st.sortDir = "desc";
+            }
+            st.page = 1;
+            if (table === "ai") renderAiAgent();
+            if (table === "variants") renderVariants();
+            if (table === "debug") renderDebug();
+          });
+        });
+      };
+
+      const init = async () => {
+        try {
+          const data = await fetchLogs("ai_agent");
+          state.ai.items = data.items || [];
+          state.ai.total_cost_usd = data.total_cost_usd || 0;
+          state.ai.note = data.note || "";
+          renderAiAgent();
+        } catch (err) {
+          document.getElementById("ai-table").innerHTML =
+            `<tr><td colspan="7" class="muted">불러오기 실패</td></tr>`;
+        }
+        try {
+          const data = await fetchLogs("variants");
+          state.variants.items = data.items || [];
+          state.variants.total_cost_usd = data.total_cost_usd || 0;
+          state.variants.note = data.note || "";
+          renderVariants();
+        } catch (err) {
+          document.getElementById("variants-table").innerHTML =
+            `<tr><td colspan="6" class="muted">불러오기 실패</td></tr>`;
+        }
+        try {
+          const data = await fetchLogs("debug");
+          state.debug.items = data.items || [];
+          renderDebug();
+        } catch (err) {
+          document.getElementById("debug-table").innerHTML =
+            `<tr><td colspan="5" class="muted">불러오기 실패</td></tr>`;
+        }
+      };
+
+      bindSorting();
+      init();
+    </script>
+  </body>
+</html>
