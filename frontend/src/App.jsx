@@ -1010,35 +1010,33 @@ function GuidedTour({
 
   return (
     <div className="tour-overlay" ref={overlayRef}>
-      {highlights.length > 0 && (
-        <div className="tour-dim">
-          <svg width="100%" height="100%" aria-hidden="true">
-            <defs>
-              <mask id={maskId}>
-                <rect width="100%" height="100%" fill="white" />
-                {highlights.map((highlight, index) => (
-                  <rect
-                    key={`tour-mask-${index}`}
-                    x={highlight.left}
-                    y={highlight.top}
-                    width={highlight.width}
-                    height={highlight.height}
-                    rx="16"
-                    ry="16"
-                    fill="black"
-                  />
-                ))}
-              </mask>
-            </defs>
-            <rect
-              width="100%"
-              height="100%"
-              fill="rgba(15, 23, 42, 0.55)"
-              mask={`url(#${maskId})`}
-            />
-          </svg>
-        </div>
-      )}
+      <div className="tour-dim">
+        <svg width="100%" height="100%" aria-hidden="true">
+          <defs>
+            <mask id={maskId}>
+              <rect width="100%" height="100%" fill="white" />
+              {highlights.map((highlight, index) => (
+                <rect
+                  key={`tour-mask-${index}`}
+                  x={highlight.left}
+                  y={highlight.top}
+                  width={highlight.width}
+                  height={highlight.height}
+                  rx="16"
+                  ry="16"
+                  fill="black"
+                />
+              ))}
+            </mask>
+          </defs>
+          <rect
+            width="100%"
+            height="100%"
+            fill="rgba(15, 23, 42, 0.55)"
+            mask={`url(#${maskId})`}
+          />
+        </svg>
+      </div>
       {highlights.map((highlight, index) => (
         <div
           key={`tour-spotlight-${index}`}
