@@ -1604,6 +1604,46 @@ main.container {
     display: none;
   }
 
+  .goods-group__row input[type="checkbox"],
+  .goods-class__groups input[type="checkbox"],
+  .tour-card__checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(32, 58, 123, 0.45);
+    background: #fff;
+    position: relative;
+    display: inline-block;
+    margin: 0;
+  }
+
+  .goods-group__row input[type="checkbox"]::after,
+  .goods-class__groups input[type="checkbox"]::after,
+  .tour-card__checkbox input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  .goods-group__row input[type="checkbox"]:checked,
+  .goods-class__groups input[type="checkbox"]:checked,
+  .tour-card__checkbox input[type="checkbox"]:checked {
+    background: var(--brand);
+    border-color: var(--brand);
+  }
+
+  .goods-group__row input[type="checkbox"]:checked::after,
+  .goods-class__groups input[type="checkbox"]:checked::after,
+  .tour-card__checkbox input[type="checkbox"]:checked::after {
+    opacity: 1;
+  }
+
   .goods-panel,
   .search-panel,
   .results-section,
