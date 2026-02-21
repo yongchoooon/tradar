@@ -979,7 +979,11 @@ function GuidedTour({
       ? document.querySelector(step.selectors[0])
       : document.querySelector(step.selector);
     if (scrollTarget?.scrollIntoView) {
-      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+      const selectors = Array.isArray(step?.selectors) ? step.selectors : [step?.selector].filter(Boolean);
+      const isSimulationStep = selectors.some((selector) => selector && selector.includes('simulation-panel'));
+      const block = isMobile && isSimulationStep ? 'start' : 'center';
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block });
     }
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);

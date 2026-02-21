@@ -1480,10 +1480,191 @@ main.container {
 
 @media (max-width: 768px) {
   .tour-card {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: calc(100% - 2.5rem);
+    left: 0.75rem;
+    right: 0.75rem;
+    transform: none;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    zoom: 1;
+  }
+
+  #root,
+  .app-shell {
+    transform: none !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  main.container {
+    padding: 1.4rem 1.1rem 1.8rem;
+    margin-top: 1.4rem;
+    border-radius: 22px;
+  }
+
+  .app-shell {
+    gap: 1rem;
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .hero .logo {
+    width: 82px;
+    height: 82px;
+  }
+
+  .hero-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .hero-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 0.4rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hero .title {
+    font-size: clamp(1.6rem, 7vw, 2.1rem);
+    white-space: nowrap;
+  }
+
+  .hero .subtitle {
+    font-size: 0.98rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .github-link,
+  .github-link:visited {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .language-toggle {
+    padding: 0.3rem 0.7rem;
+  }
+
+  .hero-tutorial-wrap {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
+
+  .tutorial-hint-bubble {
+    position: static;
+    transform: none;
+    margin-bottom: 0;
+    margin-right: 0.35rem;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .tutorial-hint-bubble::before,
+  .tutorial-hint-bubble::after {
+    display: none;
+  }
+
+  .goods-panel,
+  .search-panel,
+  .results-section,
+  .simulation-panel {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .goods-panel {
+    margin: 1.1rem 0;
+    padding: 1rem 1.1rem;
+  }
+
+  .results-section {
+    margin: 1.4rem 0;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .result-card {
+    border-radius: 18px;
+  }
+
+  .result-card__thumb-inner {
+    padding: 0.2rem;
+  }
+
+  .thumb-placeholder {
+    font-size: 0.7rem;
+  }
+
+  .result-card__body {
+    padding: 0.75rem 0.7rem 0.6rem;
+    gap: 0.45rem;
+  }
+
+  .result-card__body header,
+  .result-card__header {
+    gap: 0.35rem;
+    min-height: 2.1rem;
+  }
+
+  .result-title {
+    font-size: 0.76rem;
+    max-height: 2rem;
+    min-height: 2rem;
+  }
+
+  .status-badge {
+    font-size: 0.62rem;
+    padding: 0.05rem 0.4rem;
+  }
+
+  .result-card__app-no {
+    font-size: 0.66rem;
+    margin-top: -0.25rem;
+  }
+
+  .result-divider {
+    width: 100%;
+    transform: none;
+  }
+
+  .result-card__footer {
+    font-size: 0.74rem;
+  }
+
+  .result-card__sim-label {
+    font-size: 0.68rem;
+    min-height: 1rem;
+  }
+
+  .result-card__select input[type="checkbox"] {
+    width: 0.62rem;
+    height: 0.62rem;
+    margin: 0 0 0.2rem 0;
+    border-radius: 2px;
+  }
+
+  .result-card__select input[type="checkbox"]::after {
+    width: 0.36rem;
+    height: 0.18rem;
+    border-width: 1.2px;
   }
 }
 
