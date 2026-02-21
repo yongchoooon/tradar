@@ -2974,60 +2974,76 @@ function App() {
     ? (placeholderCopy.goodsAction || '상품/서비스류 선택하러 가기')
     : (placeholderCopy.imageAction || '이미지 선택하러 가기');
 
+  const renderHeroActions = () => (
+    <div className="hero-actions">
+      <div className="hero-tutorial-wrap">
+        {!tutorialActive && (
+          <span className="tutorial-hint-bubble" aria-hidden="true">
+            {language === 'en' ? 'Start tutorial here' : '여기서 튜토리얼 시작'}
+          </span>
+        )}
+        <button
+          type="button"
+          className="github-link hero-tutorial"
+          onClick={handleTutorialOpen}
+          aria-label="Tutorial"
+          title="Tutorial"
+        >
+          <span className="github-link__icon">?</span>
+          <span className="github-link__label">Tutorial</span>
+        </button>
+      </div>
+      <a
+        className="github-link hero-github"
+        href="https://github.com/yongchoooon/tradar"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={copy.hero?.githubLabel || 'GitHub 저장소'}
+        title={copy.hero?.githubLabel || 'GitHub 저장소'}
+      >
+        <span className="github-link__icon">⭐</span>
+        <span className="github-link__label">GitHub</span>
+      </a>
+      <button
+        type="button"
+        className="github-link language-toggle"
+        onClick={toggleLanguage}
+        aria-label={copy.toggleAria || '언어 전환'}
+        title={copy.toggleAria || '언어 전환'}
+      >
+        <span className="language-toggle__label">
+          <span className="language-toggle__flag" aria-hidden="true">
+            {language === 'en' ? '🇬🇧' : '🇰🇷'}
+          </span>
+          <span className={`language-toggle__item ${language === 'en' ? 'is-active' : ''}`}>Eng</span>
+          <span className="language-toggle__divider">/</span>
+          <span className={`language-toggle__item ${language === 'ko' ? 'is-active' : ''}`}>한</span>
+        </span>
+      </button>
+    </div>
+  );
+
   return (
     <div className={`app-shell ${language === 'en' ? 'is-lang-en' : 'is-lang-ko'}`}>
       <div className="search-column">
-      <section className="hero">
-        <img className="logo" src={logo} alt="T-RADAR" />
-        <div className="hero-text" data-tour="hero-area">
-          <div className="hero-heading">
-            <h1 className="title">T-RADAR</h1>
-            <div className="hero-actions">
-              <div className="hero-tutorial-wrap">
-                {!tutorialActive && (
-                  <span className="tutorial-hint-bubble" aria-hidden="true">
-                    {language === 'en' ? 'Start tutorial here' : '여기서 튜토리얼 시작'}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="github-link hero-tutorial"
-                  onClick={handleTutorialOpen}
-                  aria-label="Tutorial"
-                  title="Tutorial"
-                >
-                  <span className="github-link__icon">?</span>
-                  <span className="github-link__label">Tutorial</span>
-                </button>
-              </div>
-              <a
-                className="github-link hero-github"
-                href="https://github.com/yongchoooon/tradar"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={copy.hero?.githubLabel || 'GitHub 저장소'}
-                title={copy.hero?.githubLabel || 'GitHub 저장소'}
-              >
-                <span className="github-link__icon">⭐</span>
-                <span className="github-link__label">GitHub</span>
-              </a>
-              <button
-                type="button"
-                className="github-link language-toggle"
-                onClick={toggleLanguage}
-                aria-label={copy.toggleAria || '언어 전환'}
-                title={copy.toggleAria || '언어 전환'}
-              >
-                <span className="language-toggle__label">
-                  <span className="language-toggle__flag" aria-hidden="true">
-                    {language === 'en' ? '🇬🇧' : '🇰🇷'}
-                  </span>
-                  <span className={`language-toggle__item ${language === 'en' ? 'is-active' : ''}`}>Eng</span>
-                  <span className="language-toggle__divider">/</span>
-                  <span className={`language-toggle__item ${language === 'ko' ? 'is-active' : ''}`}>한</span>
-                </span>
-              </button>
+      <section className="hero" data-tour="hero-area">
+        <div className="hero-desktop">
+          <img className="logo" src={logo} alt="T-RADAR" />
+          <div className="hero-text">
+            <div className="hero-heading">
+              <h1 className="title">T-RADAR</h1>
+              {renderHeroActions()}
             </div>
+            <p className="subtitle">{copy.hero?.subtitle || '멀티모달 검색과 심사 시뮬레이션으로 상표 충돌 위험을 판단하는 서비스'}</p>
+          </div>
+        </div>
+        <div className="hero-mobile">
+          <div className="hero-top-row">
+            <img className="logo" src={logo} alt="T-RADAR" />
+            <div className="hero-title-row">
+              <h1 className="title">T-RADAR</h1>
+            </div>
+            {renderHeroActions()}
           </div>
           <p className="subtitle">{copy.hero?.subtitle || '멀티모달 검색과 심사 시뮬레이션으로 상표 충돌 위험을 판단하는 서비스'}</p>
         </div>

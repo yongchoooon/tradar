@@ -1090,9 +1090,16 @@ main.container {
 .hero {
   margin: 0 0 2.2rem;
   text-align: left;
+}
+
+.hero-desktop {
   display: flex;
-  gap: 1.6rem;
   align-items: center;
+  gap: 1.6rem;
+}
+
+.hero-mobile {
+  display: none;
 }
 
 .hero .logo {
@@ -1534,40 +1541,62 @@ main.container {
     gap: 1rem;
   }
 
-  .hero {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+  .example-button-group {
+    width: 100%;
+    justify-content: flex-end;
   }
 
-  .hero .logo {
-    width: 82px;
-    height: 82px;
+  .hero-desktop {
+    display: none;
   }
 
-  .hero-heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.6rem;
+  .hero-mobile {
+    display: block;
   }
 
-  .hero-actions {
+  .hero-mobile .hero-top-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "logo title"
+      "actions actions";
+    column-gap: 0.75rem;
+    row-gap: 0.4rem;
+    width: 100%;
+    align-items: center;
+  }
+
+  .hero-mobile .logo {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    grid-area: logo;
+  }
+
+  .hero-mobile .hero-title-row {
+    grid-area: title;
+  }
+
+  .hero-mobile .hero-actions {
     flex-wrap: nowrap;
     justify-content: flex-end;
     width: 100%;
     gap: 0.4rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    grid-area: actions;
   }
 
-  .hero .title {
+  .hero-mobile .title {
     font-size: clamp(1.6rem, 7vw, 2.1rem);
     white-space: nowrap;
+    line-height: 1;
   }
 
-  .hero .subtitle {
+  .hero-mobile .subtitle {
     font-size: 0.98rem;
     max-width: 100%;
+    margin: 1rem 0 0;
     overflow-wrap: anywhere;
   }
 
