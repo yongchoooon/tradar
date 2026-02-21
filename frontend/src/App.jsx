@@ -988,8 +988,13 @@ function GuidedTour({
       : document.querySelector(step.selector);
     if (scrollTarget?.scrollIntoView) {
       const isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-      const block = isMobile ? 'start' : 'center';
-      scrollTarget.scrollIntoView({ behavior: 'smooth', block });
+      if (isMobile) {
+        const rect = scrollTarget.getBoundingClientRect();
+        const targetTop = rect.top + window.scrollY - 20;
+        window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' });
+      } else {
+        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);

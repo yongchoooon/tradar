@@ -3122,6 +3122,45 @@ main.container {
   border-color: rgba(16, 185, 129, 0.35);
 }
 
+@media (max-width: 720px) {
+  .simulation-panel__score-pills {
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+    justify-self: stretch;
+    align-self: stretch;
+  }
+
+  .simulation-panel__score-pill {
+    flex: 1 1 0;
+    max-width: none;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.72rem;
+    border-radius: 8px;
+  }
+
+  .simulation-panel__score-pill label,
+  .simulation-panel__score-pill strong {
+    padding: 0;
+    text-align: left;
+    white-space: nowrap;
+    line-height: 1.2;
+    font-size: 0.8rem;
+  }
+
+  .simulation-panel__score-pill label {
+    flex: 1 1 auto;
+  }
+
+  .simulation-panel__score-pill strong {
+    flex: 0 0 auto;
+  }
+}
 
 .markdown-block {
   line-height: 1.5;
