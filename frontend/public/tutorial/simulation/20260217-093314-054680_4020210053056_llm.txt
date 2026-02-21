@@ -1,0 +1,590 @@
+[1] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: PIXEL RADAR (Application No. 4020210053056)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09
+
+- Goods/services summary:
+
+  - 전자센서,전기 또는 전자 부품용 순환장치,송수신기,거리 센서,디지털 센서(의료용은 제외),동작감지센서,동작인식 센서,레 벨센서,물체감지센서,바이오센서,속도센서,위치센서,위치측정 및 제어센서,위치확인센서,전기식 센서,차량용 측방거리센서,정밀측정 기기용 센서,측정용 센서,마이크로웨이브형 침입자 센서,전자소자 모듈,홈네트워크용 전자보안시스템,자동 출입보안장치,사람출입 통제 원격제어장치,사람의 식별 및 인증을 위한 생체인식 시스템용 컴퓨터 소프트웨어,움직임 탐지기
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Instruction: Using prior examination cases and goods/services for similar marks, analyze possible refusal risks for the user's mark and write a logical evaluation comparable to an Office Action. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Derive high-conflict points from past similar cases, but do not mention mitigation or adjustment strategies.
+  - Do not apply past cases as facts or assert them as identical.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All direct comparisons must be only between [User mark] and [Compared prior mark]. Other marks cited in the office action should only be referenced as supporting grounds in a 'prior mark refusal reasons' section.
+  - Compare the marks (appearance, lettering, pronunciation, concept) and the scope of goods/services logically.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Explain potential refusal reasons with evidence.
+  - Ground reasoning in KIPO examination practice.
+  - It is acceptable to mention conventional criteria (pronunciation, concept, appearance).
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Comparison of Marks
+
+### 1. Similarity of Appearance
+*   The User mark "T-RADAR" consists of the English letter 'T' followed by a hyphen and the word 'RADAR'.
+*   The Compared prior mark "PIXEL RADAR" consists of two English words, 'PIXEL' and 'RADAR', separated by a space.
+*   While the prefixes ("T-" vs. "PIXEL") differ, both marks share the identical word "RADAR" as their terminal and distinctive component.
+
+### 2. Similarity of Pronunciation
+*   The User mark is pronounced as "T-RADAR" (티-레이더).
+*   The Compared prior mark is pronounced as "PIXEL RADAR" (픽셀 레이더).
+*   Both marks share the identical three-syllable pronunciation "RA-DAR" (레이더). In trademark practice, if the latter part of a mark is identical and carries significant weight in identification, the phonetic similarity is considered high.
+
+### 3. Similarity of Concept
+*   The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated goods and services, it suggests "searching," "detecting," or "retrieving" information or signals.
+*   The User mark "T-RADAR" conveys the concept of a radar specifically for 'T' (possibly representing Trademarks or Technology).
+*   The Compared prior mark "PIXEL RADAR" conveys the concept of a radar operating at a pixel level or within a digital/imaging context.
+*   Both marks share the core concept of a "detection/search system," leading to a strong conceptual connection.
+
+## 2. Comparison of Goods and Services
+
+### 1. Relationship between Class 45/35 and Class 09
+*   The User mark designates "trademark information retrieval research" (Class 45) and "information retrieval services on the internet" (Class 35).
+*   The Compared prior mark designates "computer software for identification and authentication" and various "sensors/security systems" (Class 09).
+*   In modern commerce, information retrieval services (Classes 35 and 45) are almost exclusively provided via specialized software and computer databases. Consequently, there is a significant overlap between the software that performs the identification/retrieval (Class 09) and the service of providing that information to others (Classes 35/45).
+
+### 2. Similar Group Code Analysis
+*   While the group codes (S120402, S123301) differ from the typical hardware codes of Class 09, KIPO examination standards often recognize the similarity between "software" and the "services provided through said software." Consumers are likely to believe that "T-RADAR" retrieval services and "PIXEL RADAR" identification software originate from the same entity due to the functional convergence of IT services and software products.
+
+## 3. Evaluation of Refusal Risk
+
+### 1. Risk of Confusion (Similarity of Mark and Goods)
+*   The User mark "T-RADAR" and the Prior mark "PIXEL RADAR" both utilize "RADAR" as a prominent identifying element. Since "RADAR" is the common denominator that dictates the concept of the marks, they are judged to be similar in pronunciation and concept.
+*   Given the similarity of the marks, the use of the User mark for information retrieval services may cause consumers to mistakenly believe the services are associated with the software and sensor products of the Prior mark "PIXEL RADAR."
+
+### 2. Conclusion based on Examination Practice
+*   The User mark is likely to face a refusal based on the existence of the Prior registered mark. The shared use of "RADAR" combined with the relatedness between digital retrieval services and identification software creates a high probability of consumer confusion regarding the source of the services. 
+*   Unless the "RADAR" portion is deemed entirely descriptive (which would then raise issues of distinctiveness), the similarity in the dominant portion of the marks remains a significant obstacle to registration.
+
+[2] 역할: 출원인
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: PIXEL RADAR (Application No. 4020210053056)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09
+
+- Goods/services summary:
+
+  - 전자센서,전기 또는 전자 부품용 순환장치,송수신기,거리 센서,디지털 센서(의료용은 제외),동작감지센서,동작인식 센서,레 벨센서,물체감지센서,바이오센서,속도센서,위치센서,위치측정 및 제어센서,위치확인센서,전기식 센서,차량용 측방거리센서,정밀측정 기기용 센서,측정용 센서,마이크로웨이브형 침입자 센서,전자소자 모듈,홈네트워크용 전자보안시스템,자동 출입보안장치,사람출입 통제 원격제어장치,사람의 식별 및 인증을 위한 생체인식 시스템용 컴퓨터 소프트웨어,움직임 탐지기
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Comparison of Marks
+
+### 1. Similarity of Appearance
+*   The User mark "T-RADAR" consists of the English letter 'T' followed by a hyphen and the word 'RADAR'.
+*   The Compared prior mark "PIXEL RADAR" consists of two English words, 'PIXEL' and 'RADAR', separated by a space.
+*   While the prefixes ("T-" vs. "PIXEL") differ, both marks share the identical word "RADAR" as their terminal and distinctive component.
+
+### 2. Similarity of Pronunciation
+*   The User mark is pronounced as "T-RADAR" (티-레이더).
+*   The Compared prior mark is pronounced as "PIXEL RADAR" (픽셀 레이더).
+*   Both marks share the identical three-syllable pronunciation "RA-DAR" (레이더). In trademark practice, if the latter part of a mark is identical and carries significant weight in identification, the phonetic similarity is considered high.
+
+### 3. Similarity of Concept
+*   The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated goods and services, it suggests "searching," "detecting," or "retrieving" information or signals.
+*   The User mark "T-RADAR" conveys the concept of a radar specifically for 'T' (possibly representing Trademarks or Technology).
+*   The Compared prior mark "PIXEL RADAR" conveys the concept of a radar operating at a pixel level or within a digital/imaging context.
+*   Both marks share the core concept of a "detection/search system," leading to a strong conceptual connection.
+
+## 2. Comparison of Goods and Services
+
+### 1. Relationship between Class 45/35 and Class 09
+*   The User mark designates "trademark information retrieval research" (Class 45) and "information retrieval services on the internet" (Class 35).
+*   The Compared prior mark designates "computer software for identification and authentication" and various "sensors/security systems" (Class 09).
+*   In modern commerce, information retrieval services (Classes 35 and 45) are almost exclusively provided via specialized software and computer databases. Consequently, there is a significant overlap between the software that performs the identification/retrieval (Class 09) and the service of providing that information to others (Classes 35/45).
+
+### 2. Similar Group Code Analysis
+*   While the group codes (S120402, S123301) differ from the typical hardware codes of Class 09, KIPO examination standards often recognize the similarity between "software" and the "services provided through said software." Consumers are likely to believe that "T-RADAR" retrieval services and "PIXEL RADAR" identification software originate from the same entity due to the functional convergence of IT services and software products.
+
+## 3. Evaluation of Refusal Risk
+
+### 1. Risk of Confusion (Similarity of Mark and Goods)
+*   The User mark "T-RADAR" and the Prior mark "PIXEL RADAR" both utilize "RADAR" as a prominent identifying element. Since "RADAR" is the common denominator that dictates the concept of the marks, they are judged to be similar in pronunciation and concept.
+*   Given the similarity of the marks, the use of the User mark for information retrieval services may cause consumers to mistakenly believe the services are associated with the software and sensor products of the Prior mark "PIXEL RADAR."
+
+### 2. Conclusion based on Examination Practice
+*   The User mark is likely to face a refusal based on the existence of the Prior registered mark. The shared use of "RADAR" combined with the relatedness between digital retrieval services and identification software creates a high probability of consumer confusion regarding the source of the services. 
+*   Unless the "RADAR" portion is deemed entirely descriptive (which would then raise issues of distinctiveness), the similarity in the dominant portion of the marks remains a significant obstacle to registration.
+
+Instruction: Based on the examiner's points, provide a logical rebuttal or appropriate adjustment directions. The examiner's refusal reasons are only possibilities; the applicant must present clear rebuttal logic, distinguishing factors, and adjustment directions. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Identify misunderstandings or overstatements in the examiner's analysis and rebut them.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All comparisons must be between [User mark] and [Compared prior mark]; prior marks in the office action are referenced only as supporting cases.
+  - Provide evidence that the user's mark is sufficiently distinguishable in pronunciation, concept, appearance, and market context.
+  - If adjustment is advantageous or feasible, propose directions such as clarifying goods/services or adjusting expression elements.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Provide reasons why the marks are not similar for each issue.
+  - Point out overreliance on past cases when applicable.
+  - Build a logical direction that the application is registrable, without asserting certainty.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Rebuttal of Similarity between Marks
+
+### 1. Dissimilarity in Appearance and Visual Composition
+*   The User mark "T-RADAR" is a compact, hyphenated single-word structure consisting of only seven characters. In contrast, the Prior mark "PIXEL RADAR" is composed of two distinct English words separated by a space, creating a significantly different visual rhythm and length.
+*   The letter 'T' in the User mark serves as a prominent, stylized prefix that immediately distinguishes it from the multi-syllable word "PIXEL." Consumers are trained to focus on the prefix of a mark, and the visual brevity of "T-" compared to "PIXEL" prevents any likelihood of visual confusion.
+
+### 2. Phonetic Distinction and Initial Sound Importance
+*   Phonetically, the User mark "T-RADAR" (티-레이더) consists of four syllables in Korean pronunciation, whereas the Prior mark "PIXEL RADAR" (픽셀 레이더) consists of six syllables. This difference in syllable count and cadence creates a clear phonetic distinction.
+*   In trademark jurisprudence, the initial sound of a mark is generally considered the most critical factor in consumer recognition. The sharp, single-syllable "T" (티) sound is entirely different from the two-syllable "PIX-EL" (픽셀) sound. As the prefixes are distinct, the overall phonetic impression of the marks remains dissimilar even if they share a common suffix.
+
+### 3. Weak Distinctiveness of the Term "RADAR"
+*   The examiner's argument relies heavily on the shared word "RADAR." However, in the context of "information retrieval" (User mark) and "sensing/detection software" (Prior mark), the term "RADAR" is highly suggestive, if not descriptive, of the function of searching, scanning, or detecting data.
+*   Because "RADAR" describes a core characteristic of the designated goods and services, its ability to function as a source identifier is weak. Therefore, the scope of protection for "RADAR" should be limited, and the focus of comparison should shift to the distinctive prefixes "T" and "PIXEL," which are unmistakably different.
+
+## 2. Rebuttal of Similarity between Goods and Services
+
+### 1. Divergence in Target Consumers and Purpose
+*   The User mark's services, such as "trademark information retrieval research" (Class 45), are highly specialized professional services targeted at legal experts, trademark attorneys, and corporate IP departments. 
+*   The Prior mark's goods in Class 09, such as "electronic sensors," "biometric authentication software," and "motion recognition sensors," are technical hardware components or security software used by engineers, security professionals, or hardware manufacturers. 
+*   Given the specialized nature of these fields, the relevant consumers are sophisticated and likely to exercise a high degree of care, further reducing any possibility of confusion between a professional IP service and a technical sensor component.
+
+### 2. Distinction between Professional Services and Industrial Hardware
+*   While the examiner suggests "functional convergence" between software and services, there is a fundamental difference between providing "trademark research" (a service involving analysis and reporting) and "sensors/biometric software" (industrial or security hardware/software). 
+*   The User mark does not involve the sale of software as a product but provides a specialized information service. Therefore, there is no direct competitive relationship or overlap in the channels of trade with the goods of the Prior mark.
+
+## 3. Proposed Adjustment Directions
+
+### 1. Narrowing the Scope of Designated Services
+*   To further distinguish the User mark from the Prior mark’s technical and security-focused software, the applicant may consider refining the descriptions of services in Class 35 and 45. 
+*   For example, specifying the services as "trademark legal information retrieval" or "business information research for intellectual property" would clarify that the User mark operates in a professional legal/business domain, distinctly separate from the electronic sensor and security software industry of Class 09.
+
+### 2. Emphasizing the "T" Element
+*   The applicant can argue that "T" specifically stands for "Trademark" or "Technology" in a way that creates a specific compound meaning with "RADAR," distinguishing it from the "PIXEL" (digital imaging) concept of the Prior mark. This conceptual divergence ensures that consumers perceive the marks as representing entirely different fields of expertise.
+
+[3] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: PIXEL RADAR (Application No. 4020210053056)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09
+
+- Goods/services summary:
+
+  - 전자센서,전기 또는 전자 부품용 순환장치,송수신기,거리 센서,디지털 센서(의료용은 제외),동작감지센서,동작인식 센서,레 벨센서,물체감지센서,바이오센서,속도센서,위치센서,위치측정 및 제어센서,위치확인센서,전기식 센서,차량용 측방거리센서,정밀측정 기기용 센서,측정용 센서,마이크로웨이브형 침입자 센서,전자소자 모듈,홈네트워크용 전자보안시스템,자동 출입보안장치,사람출입 통제 원격제어장치,사람의 식별 및 인증을 위한 생체인식 시스템용 컴퓨터 소프트웨어,움직임 탐지기
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Comparison of Marks
+
+### 1. Similarity of Appearance
+*   The User mark "T-RADAR" consists of the English letter 'T' followed by a hyphen and the word 'RADAR'.
+*   The Compared prior mark "PIXEL RADAR" consists of two English words, 'PIXEL' and 'RADAR', separated by a space.
+*   While the prefixes ("T-" vs. "PIXEL") differ, both marks share the identical word "RADAR" as their terminal and distinctive component.
+
+### 2. Similarity of Pronunciation
+*   The User mark is pronounced as "T-RADAR" (티-레이더).
+*   The Compared prior mark is pronounced as "PIXEL RADAR" (픽셀 레이더).
+*   Both marks share the identical three-syllable pronunciation "RA-DAR" (레이더). In trademark practice, if the latter part of a mark is identical and carries significant weight in identification, the phonetic similarity is considered high.
+
+### 3. Similarity of Concept
+*   The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated goods and services, it suggests "searching," "detecting," or "retrieving" information or signals.
+*   The User mark "T-RADAR" conveys the concept of a radar specifically for 'T' (possibly representing Trademarks or Technology).
+*   The Compared prior mark "PIXEL RADAR" conveys the concept of a radar operating at a pixel level or within a digital/imaging context.
+*   Both marks share the core concept of a "detection/search system," leading to a strong conceptual connection.
+
+## 2. Comparison of Goods and Services
+
+### 1. Relationship between Class 45/35 and Class 09
+*   The User mark designates "trademark information retrieval research" (Class 45) and "information retrieval services on the internet" (Class 35).
+*   The Compared prior mark designates "computer software for identification and authentication" and various "sensors/security systems" (Class 09).
+*   In modern commerce, information retrieval services (Classes 35 and 45) are almost exclusively provided via specialized software and computer databases. Consequently, there is a significant overlap between the software that performs the identification/retrieval (Class 09) and the service of providing that information to others (Classes 35/45).
+
+### 2. Similar Group Code Analysis
+*   While the group codes (S120402, S123301) differ from the typical hardware codes of Class 09, KIPO examination standards often recognize the similarity between "software" and the "services provided through said software." Consumers are likely to believe that "T-RADAR" retrieval services and "PIXEL RADAR" identification software originate from the same entity due to the functional convergence of IT services and software products.
+
+## 3. Evaluation of Refusal Risk
+
+### 1. Risk of Confusion (Similarity of Mark and Goods)
+*   The User mark "T-RADAR" and the Prior mark "PIXEL RADAR" both utilize "RADAR" as a prominent identifying element. Since "RADAR" is the common denominator that dictates the concept of the marks, they are judged to be similar in pronunciation and concept.
+*   Given the similarity of the marks, the use of the User mark for information retrieval services may cause consumers to mistakenly believe the services are associated with the software and sensor products of the Prior mark "PIXEL RADAR."
+
+### 2. Conclusion based on Examination Practice
+*   The User mark is likely to face a refusal based on the existence of the Prior registered mark. The shared use of "RADAR" combined with the relatedness between digital retrieval services and identification software creates a high probability of consumer confusion regarding the source of the services. 
+*   Unless the "RADAR" portion is deemed entirely descriptive (which would then raise issues of distinctiveness), the similarity in the dominant portion of the marks remains a significant obstacle to registration.
+[출원인]
+## 1. Rebuttal of Similarity between Marks
+
+### 1. Dissimilarity in Appearance and Visual Composition
+*   The User mark "T-RADAR" is a compact, hyphenated single-word structure consisting of only seven characters. In contrast, the Prior mark "PIXEL RADAR" is composed of two distinct English words separated by a space, creating a significantly different visual rhythm and length.
+*   The letter 'T' in the User mark serves as a prominent, stylized prefix that immediately distinguishes it from the multi-syllable word "PIXEL." Consumers are trained to focus on the prefix of a mark, and the visual brevity of "T-" compared to "PIXEL" prevents any likelihood of visual confusion.
+
+### 2. Phonetic Distinction and Initial Sound Importance
+*   Phonetically, the User mark "T-RADAR" (티-레이더) consists of four syllables in Korean pronunciation, whereas the Prior mark "PIXEL RADAR" (픽셀 레이더) consists of six syllables. This difference in syllable count and cadence creates a clear phonetic distinction.
+*   In trademark jurisprudence, the initial sound of a mark is generally considered the most critical factor in consumer recognition. The sharp, single-syllable "T" (티) sound is entirely different from the two-syllable "PIX-EL" (픽셀) sound. As the prefixes are distinct, the overall phonetic impression of the marks remains dissimilar even if they share a common suffix.
+
+### 3. Weak Distinctiveness of the Term "RADAR"
+*   The examiner's argument relies heavily on the shared word "RADAR." However, in the context of "information retrieval" (User mark) and "sensing/detection software" (Prior mark), the term "RADAR" is highly suggestive, if not descriptive, of the function of searching, scanning, or detecting data.
+*   Because "RADAR" describes a core characteristic of the designated goods and services, its ability to function as a source identifier is weak. Therefore, the scope of protection for "RADAR" should be limited, and the focus of comparison should shift to the distinctive prefixes "T" and "PIXEL," which are unmistakably different.
+
+## 2. Rebuttal of Similarity between Goods and Services
+
+### 1. Divergence in Target Consumers and Purpose
+*   The User mark's services, such as "trademark information retrieval research" (Class 45), are highly specialized professional services targeted at legal experts, trademark attorneys, and corporate IP departments. 
+*   The Prior mark's goods in Class 09, such as "electronic sensors," "biometric authentication software," and "motion recognition sensors," are technical hardware components or security software used by engineers, security professionals, or hardware manufacturers. 
+*   Given the specialized nature of these fields, the relevant consumers are sophisticated and likely to exercise a high degree of care, further reducing any possibility of confusion between a professional IP service and a technical sensor component.
+
+### 2. Distinction between Professional Services and Industrial Hardware
+*   While the examiner suggests "functional convergence" between software and services, there is a fundamental difference between providing "trademark research" (a service involving analysis and reporting) and "sensors/biometric software" (industrial or security hardware/software). 
+*   The User mark does not involve the sale of software as a product but provides a specialized information service. Therefore, there is no direct competitive relationship or overlap in the channels of trade with the goods of the Prior mark.
+
+## 3. Proposed Adjustment Directions
+
+### 1. Narrowing the Scope of Designated Services
+*   To further distinguish the User mark from the Prior mark’s technical and security-focused software, the applicant may consider refining the descriptions of services in Class 35 and 45. 
+*   For example, specifying the services as "trademark legal information retrieval" or "business information research for intellectual property" would clarify that the User mark operates in a professional legal/business domain, distinctly separate from the electronic sensor and security software industry of Class 09.
+
+### 2. Emphasizing the "T" Element
+*   The applicant can argue that "T" specifically stands for "Trademark" or "Technology" in a way that creates a specific compound meaning with "RADAR," distinguishing it from the "PIXEL" (digital imaging) concept of the Prior mark. This conceptual divergence ensures that consumers perceive the marks as representing entirely different fields of expertise.
+
+Instruction: Accept reasonable parts of the applicant's rebuttal, but rebut weak or legally insufficient points and provide a final direction. Do not repeat prior dialogue. You must clearly state acceptance or rejection for each point and then give a final conclusion. Decide only on conflict assessment and do not provide mitigation or adjustment strategies. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Explicitly accept reasonable arguments and summarize why.
+  - Rebut parts with weak legal basis or insufficient logic, and explain why they should stand.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - Keep comparison consistent between [User mark] and [Compared prior mark]; prior marks in the office action may be used only as supporting evidence when needed.
+  - Do not mention adjustments or mitigation strategies.
+  - If the issue is clear, you may deliver a firm conclusion.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Clarify issues and provide a final direction by accepting or rejecting the applicant's points.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Reasoning
+
+### 1. Acceptance of Arguments regarding Mark Similarity
+*   **Distinctiveness of Prefixes**: It is accepted that the prefixes "T-" and "PIXEL" are visually and phonetically distinct. "T-" is a single-syllable, sharp initial sound, whereas "PIXEL" is a two-syllable word with a different rhythmic structure. In trademark evaluation, the initial portion of a mark often carries significant weight in consumer perception.
+*   **Suggestive Nature of "RADAR"**: The applicant’s argument that "RADAR" is highly suggestive of the "searching" or "detecting" function in the context of the designated goods and services is reasonable. Because "RADAR" alludes to the functional characteristic of the software or service, its distinctiveness is relatively weakened, allowing the differentiating prefixes ("T" vs. "PIXEL") to play a larger role in distinguishing the source of the marks.
+
+### 2. Rejection of Arguments regarding Goods and Service Similarity
+*   **Functional Convergence in Class 35**: The applicant's claim that there is no overlap between "internet data retrieval services" (Class 35) and "computer software" (Class 09) is rejected. Under KIPO examination standards, information retrieval services provided via the internet are inextricably linked to the software and databases used to perform those functions. Consumers are likely to perceive "T-RADAR" retrieval services and "PIXEL RADAR" identification software as originating from the same technical source, as the service is essentially the commercial application of the software.
+*   **Similarity of Group Codes**: While the applicant emphasizes the professional nature of trademark research, the selected service "computer database retrieval services" (S123301) is broad. This category overlaps significantly with the "computer software" and "biometric systems" of the Prior mark in terms of technical infrastructure and purpose (identifying and fetching specific data).
+
+### 3. Partial Acceptance regarding Class 45
+*   **Specialized Consumer Base**: The argument that "trademark information retrieval research" (Class 45) targets a specialized professional audience (legal experts and IP departments) is accepted. These consumers exercise a higher degree of care compared to general consumers, which reduces the likelihood of confusion between a specialized legal service and the industrial hardware/sensors of the Prior mark.
+
+## 2. Final Conclusion
+
+*   **Class 35 (Refusal Maintained)**: For "retrieval services for internet data" and "computer database retrieval services," the risk of refusal remains high. The conceptual overlap of "RADAR" combined with the functional identity between data retrieval services and the prior mark's software/sensing systems creates a strong likelihood of confusion. The weak distinctiveness of "RADAR" is not sufficient to overcome the similarity when the underlying digital functions of the goods and services are nearly identical.
+*   **Class 45 (Potential for Approval)**: For "trademark information retrieval research," the User mark has a higher chance of overcoming the refusal. The combination of the distinct "T-" prefix and the highly specialized nature of the IP professional service creates a sufficient distance from the industrial sensors and security software of the Prior mark. In this specific niche, the sophisticated consumer base is capable of distinguishing "T-RADAR" as a trademark-specific tool.
+
+[4] 역할: Reporter
+--- Prompt ---
+Case information:
+[심사관]
+## 1. Comparison of Marks
+
+### 1. Similarity of Appearance
+*   The User mark "T-RADAR" consists of the English letter 'T' followed by a hyphen and the word 'RADAR'.
+*   The Compared prior mark "PIXEL RADAR" consists of two English words, 'PIXEL' and 'RADAR', separated by a space.
+*   While the prefixes ("T-" vs. "PIXEL") differ, both marks share the identical word "RADAR" as their terminal and distinctive component.
+
+### 2. Similarity of Pronunciation
+*   The User mark is pronounced as "T-RADAR" (티-레이더).
+*   The Compared prior mark is pronounced as "PIXEL RADAR" (픽셀 레이더).
+*   Both marks share the identical three-syllable pronunciation "RA-DAR" (레이더). In trademark practice, if the latter part of a mark is identical and carries significant weight in identification, the phonetic similarity is considered high.
+
+### 3. Similarity of Concept
+*   The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated goods and services, it suggests "searching," "detecting," or "retrieving" information or signals.
+*   The User mark "T-RADAR" conveys the concept of a radar specifically for 'T' (possibly representing Trademarks or Technology).
+*   The Compared prior mark "PIXEL RADAR" conveys the concept of a radar operating at a pixel level or within a digital/imaging context.
+*   Both marks share the core concept of a "detection/search system," leading to a strong conceptual connection.
+
+## 2. Comparison of Goods and Services
+
+### 1. Relationship between Class 45/35 and Class 09
+*   The User mark designates "trademark information retrieval research" (Class 45) and "information retrieval services on the internet" (Class 35).
+*   The Compared prior mark designates "computer software for identification and authentication" and various "sensors/security systems" (Class 09).
+*   In modern commerce, information retrieval services (Classes 35 and 45) are almost exclusively provided via specialized software and computer databases. Consequently, there is a significant overlap between the software that performs the identification/retrieval (Class 09) and the service of providing that information to others (Classes 35/45).
+
+### 2. Similar Group Code Analysis
+*   While the group codes (S120402, S123301) differ from the typical hardware codes of Class 09, KIPO examination standards often recognize the similarity between "software" and the "services provided through said software." Consumers are likely to believe that "T-RADAR" retrieval services and "PIXEL RADAR" identification software originate from the same entity due to the functional convergence of IT services and software products.
+
+## 3. Evaluation of Refusal Risk
+
+### 1. Risk of Confusion (Similarity of Mark and Goods)
+*   The User mark "T-RADAR" and the Prior mark "PIXEL RADAR" both utilize "RADAR" as a prominent identifying element. Since "RADAR" is the common denominator that dictates the concept of the marks, they are judged to be similar in pronunciation and concept.
+*   Given the similarity of the marks, the use of the User mark for information retrieval services may cause consumers to mistakenly believe the services are associated with the software and sensor products of the Prior mark "PIXEL RADAR."
+
+### 2. Conclusion based on Examination Practice
+*   The User mark is likely to face a refusal based on the existence of the Prior registered mark. The shared use of "RADAR" combined with the relatedness between digital retrieval services and identification software creates a high probability of consumer confusion regarding the source of the services. 
+*   Unless the "RADAR" portion is deemed entirely descriptive (which would then raise issues of distinctiveness), the similarity in the dominant portion of the marks remains a significant obstacle to registration.
+[출원인]
+## 1. Rebuttal of Similarity between Marks
+
+### 1. Dissimilarity in Appearance and Visual Composition
+*   The User mark "T-RADAR" is a compact, hyphenated single-word structure consisting of only seven characters. In contrast, the Prior mark "PIXEL RADAR" is composed of two distinct English words separated by a space, creating a significantly different visual rhythm and length.
+*   The letter 'T' in the User mark serves as a prominent, stylized prefix that immediately distinguishes it from the multi-syllable word "PIXEL." Consumers are trained to focus on the prefix of a mark, and the visual brevity of "T-" compared to "PIXEL" prevents any likelihood of visual confusion.
+
+### 2. Phonetic Distinction and Initial Sound Importance
+*   Phonetically, the User mark "T-RADAR" (티-레이더) consists of four syllables in Korean pronunciation, whereas the Prior mark "PIXEL RADAR" (픽셀 레이더) consists of six syllables. This difference in syllable count and cadence creates a clear phonetic distinction.
+*   In trademark jurisprudence, the initial sound of a mark is generally considered the most critical factor in consumer recognition. The sharp, single-syllable "T" (티) sound is entirely different from the two-syllable "PIX-EL" (픽셀) sound. As the prefixes are distinct, the overall phonetic impression of the marks remains dissimilar even if they share a common suffix.
+
+### 3. Weak Distinctiveness of the Term "RADAR"
+*   The examiner's argument relies heavily on the shared word "RADAR." However, in the context of "information retrieval" (User mark) and "sensing/detection software" (Prior mark), the term "RADAR" is highly suggestive, if not descriptive, of the function of searching, scanning, or detecting data.
+*   Because "RADAR" describes a core characteristic of the designated goods and services, its ability to function as a source identifier is weak. Therefore, the scope of protection for "RADAR" should be limited, and the focus of comparison should shift to the distinctive prefixes "T" and "PIXEL," which are unmistakably different.
+
+## 2. Rebuttal of Similarity between Goods and Services
+
+### 1. Divergence in Target Consumers and Purpose
+*   The User mark's services, such as "trademark information retrieval research" (Class 45), are highly specialized professional services targeted at legal experts, trademark attorneys, and corporate IP departments. 
+*   The Prior mark's goods in Class 09, such as "electronic sensors," "biometric authentication software," and "motion recognition sensors," are technical hardware components or security software used by engineers, security professionals, or hardware manufacturers. 
+*   Given the specialized nature of these fields, the relevant consumers are sophisticated and likely to exercise a high degree of care, further reducing any possibility of confusion between a professional IP service and a technical sensor component.
+
+### 2. Distinction between Professional Services and Industrial Hardware
+*   While the examiner suggests "functional convergence" between software and services, there is a fundamental difference between providing "trademark research" (a service involving analysis and reporting) and "sensors/biometric software" (industrial or security hardware/software). 
+*   The User mark does not involve the sale of software as a product but provides a specialized information service. Therefore, there is no direct competitive relationship or overlap in the channels of trade with the goods of the Prior mark.
+
+## 3. Proposed Adjustment Directions
+
+### 1. Narrowing the Scope of Designated Services
+*   To further distinguish the User mark from the Prior mark’s technical and security-focused software, the applicant may consider refining the descriptions of services in Class 35 and 45. 
+*   For example, specifying the services as "trademark legal information retrieval" or "business information research for intellectual property" would clarify that the User mark operates in a professional legal/business domain, distinctly separate from the electronic sensor and security software industry of Class 09.
+
+### 2. Emphasizing the "T" Element
+*   The applicant can argue that "T" specifically stands for "Trademark" or "Technology" in a way that creates a specific compound meaning with "RADAR," distinguishing it from the "PIXEL" (digital imaging) concept of the Prior mark. This conceptual divergence ensures that consumers perceive the marks as representing entirely different fields of expertise.
+[심사관]
+## 1. Reasoning
+
+### 1. Acceptance of Arguments regarding Mark Similarity
+*   **Distinctiveness of Prefixes**: It is accepted that the prefixes "T-" and "PIXEL" are visually and phonetically distinct. "T-" is a single-syllable, sharp initial sound, whereas "PIXEL" is a two-syllable word with a different rhythmic structure. In trademark evaluation, the initial portion of a mark often carries significant weight in consumer perception.
+*   **Suggestive Nature of "RADAR"**: The applicant’s argument that "RADAR" is highly suggestive of the "searching" or "detecting" function in the context of the designated goods and services is reasonable. Because "RADAR" alludes to the functional characteristic of the software or service, its distinctiveness is relatively weakened, allowing the differentiating prefixes ("T" vs. "PIXEL") to play a larger role in distinguishing the source of the marks.
+
+### 2. Rejection of Arguments regarding Goods and Service Similarity
+*   **Functional Convergence in Class 35**: The applicant's claim that there is no overlap between "internet data retrieval services" (Class 35) and "computer software" (Class 09) is rejected. Under KIPO examination standards, information retrieval services provided via the internet are inextricably linked to the software and databases used to perform those functions. Consumers are likely to perceive "T-RADAR" retrieval services and "PIXEL RADAR" identification software as originating from the same technical source, as the service is essentially the commercial application of the software.
+*   **Similarity of Group Codes**: While the applicant emphasizes the professional nature of trademark research, the selected service "computer database retrieval services" (S123301) is broad. This category overlaps significantly with the "computer software" and "biometric systems" of the Prior mark in terms of technical infrastructure and purpose (identifying and fetching specific data).
+
+### 3. Partial Acceptance regarding Class 45
+*   **Specialized Consumer Base**: The argument that "trademark information retrieval research" (Class 45) targets a specialized professional audience (legal experts and IP departments) is accepted. These consumers exercise a higher degree of care compared to general consumers, which reduces the likelihood of confusion between a specialized legal service and the industrial hardware/sensors of the Prior mark.
+
+## 2. Final Conclusion
+
+*   **Class 35 (Refusal Maintained)**: For "retrieval services for internet data" and "computer database retrieval services," the risk of refusal remains high. The conceptual overlap of "RADAR" combined with the functional identity between data retrieval services and the prior mark's software/sensing systems creates a strong likelihood of confusion. The weak distinctiveness of "RADAR" is not sufficient to overcome the similarity when the underlying digital functions of the goods and services are nearly identical.
+*   **Class 45 (Potential for Approval)**: For "trademark information retrieval research," the User mark has a higher chance of overcoming the refusal. The combination of the distinct "T-" prefix and the highly specialized nature of the IP professional service creates a sufficient distance from the industrial sensors and security software of the Prior mark. In this specific niche, the sophisticated consumer base is capable of distinguishing "T-RADAR" as a trademark-specific tool.
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.830
+
+Instruction: Based on the dialogue between the examiner and the applicant's representative, write in Markdown only using the exact format below.
+**Important**: Respond in English only.
+
+## One-line summary
+- <Summarize whether the user mark conflicts with the prior mark in one sentence>
+
+## Key issues
+1. **<Issue name>** - <Explain the impact on the user's mark and KIPRIS evidence in 2+ sentences>
+2. **...** - ...
+3. **...** - ...
+
+
+
+All items must follow the format 'number. **<Issue name>** - description', and the entire '<Issue name>' must be bolded. Include critical risks and adjustment strategies without omission. Image similarity is the 0.5:0.5 ensemble of DINOv2 similarity and MetaCLIP2 similarity between [User mark] and [Compared prior mark]; text similarity is the MetaCLIP2 similarity between the mark names. These values must be mentioned only in the quantitative metrics section. Do not use internal abbreviations or code names (e.g., Track A/B). Do not add any intro or closing sentences beyond the titles and lists. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+## Quantitative metrics
+- Same mark name: <Copy exactly from the [Quantitative metrics] block>
+- Same image: <Copy exactly from the [Quantitative metrics] block>
+- Text similarity: <Copy exactly from the [Quantitative metrics] block>
+
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## One-line summary
+- The user mark "T-RADAR" faces a significant refusal risk in Class 35 due to phonetic and functional overlap with "PIXEL RADAR," but it has a strong chance of registration in Class 45 by targeting a specialized professional audience.
+
+## Key issues
+1. **Weak Distinctiveness of the "RADAR" Component** - Both marks share the word "RADAR," which refers to detecting or searching for information within the context of the designated services. Because this term is highly suggestive of the actual function of the software and retrieval services, its ability to serve as a unique source identifier is limited, requiring the prefixes "T-" and "PIXEL" to carry the weight of differentiation.
+2. **Functional Convergence between Software and Retrieval Services** - For the services in Class 35, the examiner finds a high likelihood of confusion because internet data retrieval is the commercial application of the prior mark's software. Under KIPO standards, consumers are likely to believe that the retrieval service and the underlying identification software originate from the same entity due to their technical and functional identity.
+3. **Consumer Sophistication in Specialized Legal Services** - The refusal is likely to be overcome for Class 45 services, such as "trademark information retrieval research," because these services target IP experts and legal professionals rather than general consumers. This specialized audience exercises a high degree of care, which, combined with the distinct "T-" prefix, sufficiently differentiates the user mark from the industrial sensors and security software of the prior mark.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.830
+
+[5] 역할: Scorer
+--- Prompt ---
+Case information:
+## One-line summary
+- The user mark "T-RADAR" faces a significant refusal risk in Class 35 due to phonetic and functional overlap with "PIXEL RADAR," but it has a strong chance of registration in Class 45 by targeting a specialized professional audience.
+
+## Key issues
+1. **Weak Distinctiveness of the "RADAR" Component** - Both marks share the word "RADAR," which refers to detecting or searching for information within the context of the designated services. Because this term is highly suggestive of the actual function of the software and retrieval services, its ability to serve as a unique source identifier is limited, requiring the prefixes "T-" and "PIXEL" to carry the weight of differentiation.
+2. **Functional Convergence between Software and Retrieval Services** - For the services in Class 35, the examiner finds a high likelihood of confusion because internet data retrieval is the commercial application of the prior mark's software. Under KIPO standards, consumers are likely to believe that the retrieval service and the underlying identification software originate from the same entity due to their technical and functional identity.
+3. **Consumer Sophistication in Specialized Legal Services** - The refusal is likely to be overcome for Class 45 services, such as "trademark information retrieval research," because these services target IP experts and legal professionals rather than general consumers. This specialized audience exercises a high degree of care, which, combined with the distinct "T-" prefix, sufficiently differentiates the user mark from the industrial sensors and security software of the prior mark.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.830
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.830
+
+Instruction: Below is the reporter's summary comparing the user mark vs. the prior mark. Based only on this summary, score conflict risk and registrability on a 0-100 scale. Assume the prior mark status and KIPRIS details are already reflected in the summary. Follow these two steps in order: 1) On the first line, output a JSON object {conflict_score, register_score, rationale, factors[]}. 2) Then write the evaluation using the exact [Markdown format] below.
+**Important**: Respond in English only.
+
+Use the following priorities: (1) whether pronunciation/concept/visual core are identical or effectively identical, (2) inherent distinctiveness of the user mark (less distinctive means stricter evaluation), (3) visual similarity of mark images, (4) proximity of goods/services classes and market context. If identical mark/image flags or extreme similarity values are provided, treat conflict risk as very high and registrability as very low. Assess each candidate strictly; if the conflict basis is clear, give a high conflict score, and if issues are minimal, give a low conflict score. When evidence is strong, avoid the 40-60 middle range and choose higher or lower values.
+
+[Markdown format]
+
+## Decision summary
+- **Conflict risk**: <number> pts
+- **Registrability**: <number> pts
+## Rationale
+- <Key reason 1>
+- <Key reason 2>
+## Recommended action
+- <Follow-up action or adjustment strategy>
+
+Headings must be exactly '## Decision summary', '## Rationale', '## Recommended action' in this order. Do not add any other headings or closing sentences. Do not write paragraphs; use bullets only. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+{"conflict_score": 82, "register_score": 28, "rationale": "The user mark faces high conflict risk in Class 35 due to the functional convergence between data retrieval services and the prior mark's software, compounded by a high text similarity score of 0.830.", "factors": ["Text similarity score of 0.830", "Functional overlap in Class 35", "Weak distinctiveness of the 'RADAR' component", "Target audience sophistication in Class 45"]}
+
+## Decision summary
+- **Conflict risk**: 82 pts
+- **Registrability**: 28 pts
+
+## Rationale
+- High functional convergence exists in Class 35 because internet data retrieval is the commercial application of the prior mark's identification software, leading KIPO to assume a common source.
+- The shared "RADAR" suffix is descriptive of the search and detection functions in both marks, placing the burden of differentiation on the "T-" and "PIXEL" prefixes, which is insufficient for general consumer services.
+- A text similarity score of 0.830 indicates a high phonetic and visual overlap that outweighs the minor differences in prefixes within the broader data and retrieval market.
+
+## Recommended action
+1. Delete or narrow the scope of services in Class 35, specifically removing "internet data retrieval" to avoid direct functional overlap with the prior mark's software.
+2. File a targeted argument for Class 45 services, emphasizing that the "T-" prefix provides sufficient differentiation for a specialized professional audience (legal and IP experts) who exercise a high degree of care.
+3. Prepare a rebuttal highlighting the weak inherent distinctiveness of the term "RADAR" in the information technology sector to argue that the marks should be distinguishable based on their prefixes.

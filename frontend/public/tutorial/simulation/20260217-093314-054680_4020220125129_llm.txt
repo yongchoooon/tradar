@@ -1,0 +1,583 @@
+[1] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: IP Radar (Application No. 4020220125129)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09, 42, 45
+
+- Goods/services summary:
+
+  - 특허검색과 검색결과의 활용을 위한 내려받기 가능한 컴퓨터 프로그램(소프트웨어),특허분석과 분석결과의 활용을 위한 컴퓨터프로그램, 지식재산권 관련 컴퓨터소프트웨어개발업,과학 및 기술 서비스업,기술조사업, 특허정보제공업
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Instruction: Using prior examination cases and goods/services for similar marks, analyze possible refusal risks for the user's mark and write a logical evaluation comparable to an Office Action. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Derive high-conflict points from past similar cases, but do not mention mitigation or adjustment strategies.
+  - Do not apply past cases as facts or assert them as identical.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All direct comparisons must be only between [User mark] and [Compared prior mark]. Other marks cited in the office action should only be referenced as supporting grounds in a 'prior mark refusal reasons' section.
+  - Compare the marks (appearance, lettering, pronunciation, concept) and the scope of goods/services logically.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Explain potential refusal reasons with evidence.
+  - Ground reasoning in KIPO examination practice.
+  - It is acceptable to mention conventional criteria (pronunciation, concept, appearance).
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Analysis of Similarity between Marks
+
+1. **Comparison of Appearance**
+   - The [User mark] "T-RADAR" and the [Compared prior mark] "IP Radar" share the identical word "RADAR."
+   - While the prefixes "T-" and "IP" differ, both marks utilize a combination of a short prefix and the main English word "RADAR." Visually, the core identifying element in both marks is "RADAR," which occupies a significant portion of the composition.
+
+2. **Comparison of Pronunciation**
+   - The [User mark] is pronounced as 'T-RADAR' (티-레이더), and the [Compared prior mark] is pronounced as 'IP-RADAR' (아이피-레이더).
+   - Both marks share the three-syllable suffix 'RADAR' (레이더). In trademark examination, when the suffix of a mark is identical and carries a strong phonetic weight, the marks are often deemed similar despite differences in short, one or two-syllable prefixes. The identical phonetic conclusion of both marks leads to a high risk of auditory confusion among consumers.
+
+3. **Comparison of Concept**
+   - The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated services, it is used metaphorically to signify "search," "detection," or "monitoring."
+   - The prefix "IP" in the [Compared prior mark] stands for "Intellectual Property," and the "T" in the [User mark] can be perceived as an abbreviation for "Trademark" or "Technology." Therefore, both marks convey a highly similar concept of "monitoring/searching for intellectual property or specific data," leading to conceptual overlap.
+
+## 2. Similarity of Goods and Services
+
+1. **Functional Overlap**
+   - The [User mark] designates "trademark information retrieval research" (S120402) and "information retrieval services on the internet for others" (S123301).
+   - The [Compared prior mark] includes "patent information provision" and "computer programs for patent search." 
+   - Both sets of services fall under the broad category of providing or facilitating the search of intellectual property and digital information. They share the same purpose (data retrieval) and methodology (database/internet-based search).
+
+2. **Similarity of Target Consumers and Channels**
+   - The consumers for trademark retrieval (User) and patent information provision (Prior) are identical: legal professionals, patent attorneys, and businesses seeking to manage intellectual property.
+   - These services are often provided through the same platforms or specialized agencies, creating a high likelihood that consumers would perceive the services as originating from the same source if the marks are similar.
+
+## 3. Prior Mark Refusal Reasons
+
+1. **Dominant Element Recognition**
+   - Based on the examination history of related marks in similar fields, the term "RADAR" is frequently viewed as the essential part of the mark when combined with descriptive or suggestive prefixes like "T" or "IP." 
+   - Because "IP" is descriptive of the field (Intellectual Property), the [Compared prior mark] "IP Radar" gains its distinctiveness primarily from the word "RADAR." Consequently, the [User mark] "T-RADAR" is likely to be seen as a variation of the prior mark, sharing the same dominant identifier.
+
+2. **Risk of Confusion under Trademark Act Standards**
+   - Under KIPO's examination practice, a mark is refused if it is identical or similar to a prior registered mark and is used for identical or similar goods/services. 
+   - The combination of identical suffixes ("RADAR") and the substantial overlap in the specialized field of "IP/Data retrieval" constitutes a strong ground for refusal. The similarity in the overall impression of the marks is sufficient to cause mistake or deception regarding the origin of the services.
+
+[2] 역할: 출원인
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: IP Radar (Application No. 4020220125129)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09, 42, 45
+
+- Goods/services summary:
+
+  - 특허검색과 검색결과의 활용을 위한 내려받기 가능한 컴퓨터 프로그램(소프트웨어),특허분석과 분석결과의 활용을 위한 컴퓨터프로그램, 지식재산권 관련 컴퓨터소프트웨어개발업,과학 및 기술 서비스업,기술조사업, 특허정보제공업
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Analysis of Similarity between Marks
+
+1. **Comparison of Appearance**
+   - The [User mark] "T-RADAR" and the [Compared prior mark] "IP Radar" share the identical word "RADAR."
+   - While the prefixes "T-" and "IP" differ, both marks utilize a combination of a short prefix and the main English word "RADAR." Visually, the core identifying element in both marks is "RADAR," which occupies a significant portion of the composition.
+
+2. **Comparison of Pronunciation**
+   - The [User mark] is pronounced as 'T-RADAR' (티-레이더), and the [Compared prior mark] is pronounced as 'IP-RADAR' (아이피-레이더).
+   - Both marks share the three-syllable suffix 'RADAR' (레이더). In trademark examination, when the suffix of a mark is identical and carries a strong phonetic weight, the marks are often deemed similar despite differences in short, one or two-syllable prefixes. The identical phonetic conclusion of both marks leads to a high risk of auditory confusion among consumers.
+
+3. **Comparison of Concept**
+   - The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated services, it is used metaphorically to signify "search," "detection," or "monitoring."
+   - The prefix "IP" in the [Compared prior mark] stands for "Intellectual Property," and the "T" in the [User mark] can be perceived as an abbreviation for "Trademark" or "Technology." Therefore, both marks convey a highly similar concept of "monitoring/searching for intellectual property or specific data," leading to conceptual overlap.
+
+## 2. Similarity of Goods and Services
+
+1. **Functional Overlap**
+   - The [User mark] designates "trademark information retrieval research" (S120402) and "information retrieval services on the internet for others" (S123301).
+   - The [Compared prior mark] includes "patent information provision" and "computer programs for patent search." 
+   - Both sets of services fall under the broad category of providing or facilitating the search of intellectual property and digital information. They share the same purpose (data retrieval) and methodology (database/internet-based search).
+
+2. **Similarity of Target Consumers and Channels**
+   - The consumers for trademark retrieval (User) and patent information provision (Prior) are identical: legal professionals, patent attorneys, and businesses seeking to manage intellectual property.
+   - These services are often provided through the same platforms or specialized agencies, creating a high likelihood that consumers would perceive the services as originating from the same source if the marks are similar.
+
+## 3. Prior Mark Refusal Reasons
+
+1. **Dominant Element Recognition**
+   - Based on the examination history of related marks in similar fields, the term "RADAR" is frequently viewed as the essential part of the mark when combined with descriptive or suggestive prefixes like "T" or "IP." 
+   - Because "IP" is descriptive of the field (Intellectual Property), the [Compared prior mark] "IP Radar" gains its distinctiveness primarily from the word "RADAR." Consequently, the [User mark] "T-RADAR" is likely to be seen as a variation of the prior mark, sharing the same dominant identifier.
+
+2. **Risk of Confusion under Trademark Act Standards**
+   - Under KIPO's examination practice, a mark is refused if it is identical or similar to a prior registered mark and is used for identical or similar goods/services. 
+   - The combination of identical suffixes ("RADAR") and the substantial overlap in the specialized field of "IP/Data retrieval" constitutes a strong ground for refusal. The similarity in the overall impression of the marks is sufficient to cause mistake or deception regarding the origin of the services.
+
+Instruction: Based on the examiner's points, provide a logical rebuttal or appropriate adjustment directions. The examiner's refusal reasons are only possibilities; the applicant must present clear rebuttal logic, distinguishing factors, and adjustment directions. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Identify misunderstandings or overstatements in the examiner's analysis and rebut them.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All comparisons must be between [User mark] and [Compared prior mark]; prior marks in the office action are referenced only as supporting cases.
+  - Provide evidence that the user's mark is sufficiently distinguishable in pronunciation, concept, appearance, and market context.
+  - If adjustment is advantageous or feasible, propose directions such as clarifying goods/services or adjusting expression elements.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Provide reasons why the marks are not similar for each issue.
+  - Point out overreliance on past cases when applicable.
+  - Build a logical direction that the application is registrable, without asserting certainty.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Rebuttal against Similarity of Marks
+
+1. **Phonetic Distinction**
+   - The [User mark] "T-RADAR" is pronounced as four syllables in Korean (티-레이-더), whereas the [Compared prior mark] "IP Radar" is pronounced as five syllables (아-이-피-레이-더). 
+   - The initial sounds—"T" (티) and "IP" (아이피)—are distinctly different in both length and articulation. In trademark practice, the beginning of a mark is generally recognized as the most important part for consumer recognition. Since the prefixes are auditory focal points, the difference between a single-syllable "T" and a two-syllable "IP" is sufficient to prevent phonetic confusion.
+
+2. **Visual Distinction and Composition**
+   - Visually, the [User mark] "T-RADAR" utilizes a hyphen and a single capital letter, creating a concise and modern branding image. In contrast, "IP Radar" consists of two distinct letters "IP" followed by the word "Radar." 
+   - The presence of the hyphen in the [User mark] serves as a visual separator that emphasizes the "T" as a unique brand identifier, whereas "IP Radar" presents as a descriptive combination of a technical term (Intellectual Property) and a functional term (Radar).
+
+3. **Weak Distinctiveness of the Suffix "RADAR"**
+   - The examiner asserts that "RADAR" is the dominant element. However, in the fields of information retrieval, monitoring, and intellectual property services, "RADAR" is a highly suggestive or common metaphorical term indicating "search," "detection," or "tracking."
+   - Because "RADAR" describes the function of the services (scanning or searching for data), its distinctiveness is relatively weak. Therefore, consumers will naturally look to the prefixes—"T" and "IP"—to distinguish the source of the services. Since "T" and "IP" are visually and phonetically distinct, the marks as a whole are not similar.
+
+4. **Conceptual Differentiation**
+   - "IP" in the [Compared prior mark] is a well-known abbreviation for "Intellectual Property," directly describing the field of patent and trademark services. 
+   - The letter "T" in the [User mark] is more abstract and can be interpreted in various ways, such as "Technology," "Total," or "Trend." This creates a different conceptual impression compared to the specifically technical and descriptive "IP Radar."
+
+## 2. Rebuttal against Similarity of Goods and Services
+
+1. **Specific vs. General Service Scope**
+   - The [Compared prior mark] is heavily focused on "Patent" (특허) related software and information provision. 
+   - While the [User mark] includes "trademark information retrieval," it also encompasses broader "internet data retrieval services" (S123301). The primary focus of the [User mark] is on general data and trademark research, which caters to a broader marketing and branding audience, whereas the prior mark is targeted specifically at the legal and technical patent industry.
+
+2. **Sophistication of Consumers**
+   - The consumers of these services—legal professionals, patent attorneys, and corporate IP departments—are highly sophisticated and exercise a high degree of care when selecting information retrieval tools. 
+   - Such professional consumers are unlikely to be confused by the common use of the word "RADAR" and are well-equipped to distinguish between a "T" branded service and an "IP" branded service based on the specific specialized features and branding.
+
+## 3. Directions for Adjustment
+
+1. **Clarification of Designated Services**
+   - To further differentiate the [User mark] from the [Compared prior mark], the applicant can narrow the scope of the services in Class 45. For example, "trademark information retrieval research" can be further specified to exclude "patent-related information services" to avoid direct competition with the prior mark's core business area.
+
+2. **Emphasizing the Brand Identity**
+   - The applicant can argue that "T-RADAR" is part of a specific "T" series of services, which would further establish "T" as the distinctive source identifier rather than the descriptive "RADAR" element. This alignment helps in asserting that the "T" prefix is the essential part that prevents any likelihood of confusion with the prior "IP Radar."
+
+[3] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: IP Radar (Application No. 4020220125129)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09, 42, 45
+
+- Goods/services summary:
+
+  - 특허검색과 검색결과의 활용을 위한 내려받기 가능한 컴퓨터 프로그램(소프트웨어),특허분석과 분석결과의 활용을 위한 컴퓨터프로그램, 지식재산권 관련 컴퓨터소프트웨어개발업,과학 및 기술 서비스업,기술조사업, 특허정보제공업
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Analysis of Similarity between Marks
+
+1. **Comparison of Appearance**
+   - The [User mark] "T-RADAR" and the [Compared prior mark] "IP Radar" share the identical word "RADAR."
+   - While the prefixes "T-" and "IP" differ, both marks utilize a combination of a short prefix and the main English word "RADAR." Visually, the core identifying element in both marks is "RADAR," which occupies a significant portion of the composition.
+
+2. **Comparison of Pronunciation**
+   - The [User mark] is pronounced as 'T-RADAR' (티-레이더), and the [Compared prior mark] is pronounced as 'IP-RADAR' (아이피-레이더).
+   - Both marks share the three-syllable suffix 'RADAR' (레이더). In trademark examination, when the suffix of a mark is identical and carries a strong phonetic weight, the marks are often deemed similar despite differences in short, one or two-syllable prefixes. The identical phonetic conclusion of both marks leads to a high risk of auditory confusion among consumers.
+
+3. **Comparison of Concept**
+   - The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated services, it is used metaphorically to signify "search," "detection," or "monitoring."
+   - The prefix "IP" in the [Compared prior mark] stands for "Intellectual Property," and the "T" in the [User mark] can be perceived as an abbreviation for "Trademark" or "Technology." Therefore, both marks convey a highly similar concept of "monitoring/searching for intellectual property or specific data," leading to conceptual overlap.
+
+## 2. Similarity of Goods and Services
+
+1. **Functional Overlap**
+   - The [User mark] designates "trademark information retrieval research" (S120402) and "information retrieval services on the internet for others" (S123301).
+   - The [Compared prior mark] includes "patent information provision" and "computer programs for patent search." 
+   - Both sets of services fall under the broad category of providing or facilitating the search of intellectual property and digital information. They share the same purpose (data retrieval) and methodology (database/internet-based search).
+
+2. **Similarity of Target Consumers and Channels**
+   - The consumers for trademark retrieval (User) and patent information provision (Prior) are identical: legal professionals, patent attorneys, and businesses seeking to manage intellectual property.
+   - These services are often provided through the same platforms or specialized agencies, creating a high likelihood that consumers would perceive the services as originating from the same source if the marks are similar.
+
+## 3. Prior Mark Refusal Reasons
+
+1. **Dominant Element Recognition**
+   - Based on the examination history of related marks in similar fields, the term "RADAR" is frequently viewed as the essential part of the mark when combined with descriptive or suggestive prefixes like "T" or "IP." 
+   - Because "IP" is descriptive of the field (Intellectual Property), the [Compared prior mark] "IP Radar" gains its distinctiveness primarily from the word "RADAR." Consequently, the [User mark] "T-RADAR" is likely to be seen as a variation of the prior mark, sharing the same dominant identifier.
+
+2. **Risk of Confusion under Trademark Act Standards**
+   - Under KIPO's examination practice, a mark is refused if it is identical or similar to a prior registered mark and is used for identical or similar goods/services. 
+   - The combination of identical suffixes ("RADAR") and the substantial overlap in the specialized field of "IP/Data retrieval" constitutes a strong ground for refusal. The similarity in the overall impression of the marks is sufficient to cause mistake or deception regarding the origin of the services.
+[출원인]
+## 1. Rebuttal against Similarity of Marks
+
+1. **Phonetic Distinction**
+   - The [User mark] "T-RADAR" is pronounced as four syllables in Korean (티-레이-더), whereas the [Compared prior mark] "IP Radar" is pronounced as five syllables (아-이-피-레이-더). 
+   - The initial sounds—"T" (티) and "IP" (아이피)—are distinctly different in both length and articulation. In trademark practice, the beginning of a mark is generally recognized as the most important part for consumer recognition. Since the prefixes are auditory focal points, the difference between a single-syllable "T" and a two-syllable "IP" is sufficient to prevent phonetic confusion.
+
+2. **Visual Distinction and Composition**
+   - Visually, the [User mark] "T-RADAR" utilizes a hyphen and a single capital letter, creating a concise and modern branding image. In contrast, "IP Radar" consists of two distinct letters "IP" followed by the word "Radar." 
+   - The presence of the hyphen in the [User mark] serves as a visual separator that emphasizes the "T" as a unique brand identifier, whereas "IP Radar" presents as a descriptive combination of a technical term (Intellectual Property) and a functional term (Radar).
+
+3. **Weak Distinctiveness of the Suffix "RADAR"**
+   - The examiner asserts that "RADAR" is the dominant element. However, in the fields of information retrieval, monitoring, and intellectual property services, "RADAR" is a highly suggestive or common metaphorical term indicating "search," "detection," or "tracking."
+   - Because "RADAR" describes the function of the services (scanning or searching for data), its distinctiveness is relatively weak. Therefore, consumers will naturally look to the prefixes—"T" and "IP"—to distinguish the source of the services. Since "T" and "IP" are visually and phonetically distinct, the marks as a whole are not similar.
+
+4. **Conceptual Differentiation**
+   - "IP" in the [Compared prior mark] is a well-known abbreviation for "Intellectual Property," directly describing the field of patent and trademark services. 
+   - The letter "T" in the [User mark] is more abstract and can be interpreted in various ways, such as "Technology," "Total," or "Trend." This creates a different conceptual impression compared to the specifically technical and descriptive "IP Radar."
+
+## 2. Rebuttal against Similarity of Goods and Services
+
+1. **Specific vs. General Service Scope**
+   - The [Compared prior mark] is heavily focused on "Patent" (특허) related software and information provision. 
+   - While the [User mark] includes "trademark information retrieval," it also encompasses broader "internet data retrieval services" (S123301). The primary focus of the [User mark] is on general data and trademark research, which caters to a broader marketing and branding audience, whereas the prior mark is targeted specifically at the legal and technical patent industry.
+
+2. **Sophistication of Consumers**
+   - The consumers of these services—legal professionals, patent attorneys, and corporate IP departments—are highly sophisticated and exercise a high degree of care when selecting information retrieval tools. 
+   - Such professional consumers are unlikely to be confused by the common use of the word "RADAR" and are well-equipped to distinguish between a "T" branded service and an "IP" branded service based on the specific specialized features and branding.
+
+## 3. Directions for Adjustment
+
+1. **Clarification of Designated Services**
+   - To further differentiate the [User mark] from the [Compared prior mark], the applicant can narrow the scope of the services in Class 45. For example, "trademark information retrieval research" can be further specified to exclude "patent-related information services" to avoid direct competition with the prior mark's core business area.
+
+2. **Emphasizing the Brand Identity**
+   - The applicant can argue that "T-RADAR" is part of a specific "T" series of services, which would further establish "T" as the distinctive source identifier rather than the descriptive "RADAR" element. This alignment helps in asserting that the "T" prefix is the essential part that prevents any likelihood of confusion with the prior "IP Radar."
+
+Instruction: Accept reasonable parts of the applicant's rebuttal, but rebut weak or legally insufficient points and provide a final direction. Do not repeat prior dialogue. You must clearly state acceptance or rejection for each point and then give a final conclusion. Decide only on conflict assessment and do not provide mitigation or adjustment strategies. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Explicitly accept reasonable arguments and summarize why.
+  - Rebut parts with weak legal basis or insufficient logic, and explain why they should stand.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - Keep comparison consistent between [User mark] and [Compared prior mark]; prior marks in the office action may be used only as supporting evidence when needed.
+  - Do not mention adjustments or mitigation strategies.
+  - If the issue is clear, you may deliver a firm conclusion.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Clarify issues and provide a final direction by accepting or rejecting the applicant's points.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Reasoning
+
+1.  **Analysis of Mark Similarity**
+    *   **Acceptance of Weak Distinctiveness of "RADAR":** The applicant’s argument that "RADAR" possesses weak distinctiveness in the field of information retrieval is partially acceptable. In the context of "searching," "monitoring," or "detecting" data, the term "RADAR" is indeed suggestive of the service's function. Under trademark examination standards, when a common element is suggestive, consumers may focus more on the prefix to distinguish the source.
+    *   **Rebuttal of Phonetic and Visual Distinction:** Despite the difference in syllable count (4 vs. 5) and the presence of a hyphen, the suffix "RADAR" remains the dominant phonetic and visual anchor in both marks. In the specialized field of Intellectual Property (IP) services, "IP" is a generic abbreviation for "Intellectual Property." Similarly, "T" is frequently used as an abbreviation for "Trademark" or "Technology." Consequently, "T-RADAR" and "IP Radar" are likely to be perceived by consumers as part of the same brand family or as specific sub-services (Trademark Radar vs. Intellectual Property Radar) from the same provider. The visual and phonetic differences in the prefixes are insufficient to overcome the overwhelming similarity created by the shared dominant term "RADAR."
+
+2.  **Analysis of Goods and Services Similarity**
+    *   **Rebuttal of Specific vs. General Scope:** The applicant’s claim that "trademark information retrieval" and "patent information provision" are distinct is legally insufficient. Both services belong to the broader category of "Intellectual Property Information Services." Under KIPO standards, goods or services are considered similar if they share the same target consumers, distribution channels, and functional purposes. 
+    *   **Rebuttal of Consumer Sophistication:** While it is true that legal professionals and patent attorneys are sophisticated consumers, this sophistication does not eliminate the risk of confusion regarding the *source* of the service. On the contrary, professionals familiar with the industry are more likely to assume that "T-RADAR" (Trademark Radar) and "IP Radar" (Intellectual Property Radar) are related software modules or service tiers offered by the same entity. The overlapping nature of the similar group codes (S120402, S123301) and the prior mark's designated services confirms a high degree of competition and potential for confusion.
+
+3.  **Risk of Confusion and Dominant Element Recognition**
+    *   **Consistency with Examination Standards:** According to the examination history of related marks, "RADAR" is consistently identified as a core component in IP-related service marks. When both the [User mark] and the [Compared prior mark] utilize this core component alongside descriptive or suggestive prefixes ("T" and "IP"), the overall impression remains confusingly similar. The applicant’s argument that "T" is abstract does not hold weight because, in the context of the designated service "trademark information retrieval," "T" will instinctively be linked to "Trademark."
+
+## 2. Final Conclusion
+
+The refusal should be maintained. Although "RADAR" carries suggestive weight, the combination of the shared dominant suffix and the highly similar nature of the intellectual property information services creates a significant likelihood of confusion. The phonetic and visual differences in the one-to-two-syllable prefixes ("T" vs. "IP") are not strong enough to distinguish the marks when used in identical specialized markets. Therefore, the [User mark] "T-RADAR" is deemed similar to the [Compared prior mark] "IP Radar" under the Trademark Act.
+
+[4] 역할: Reporter
+--- Prompt ---
+Case information:
+[심사관]
+## 1. Analysis of Similarity between Marks
+
+1. **Comparison of Appearance**
+   - The [User mark] "T-RADAR" and the [Compared prior mark] "IP Radar" share the identical word "RADAR."
+   - While the prefixes "T-" and "IP" differ, both marks utilize a combination of a short prefix and the main English word "RADAR." Visually, the core identifying element in both marks is "RADAR," which occupies a significant portion of the composition.
+
+2. **Comparison of Pronunciation**
+   - The [User mark] is pronounced as 'T-RADAR' (티-레이더), and the [Compared prior mark] is pronounced as 'IP-RADAR' (아이피-레이더).
+   - Both marks share the three-syllable suffix 'RADAR' (레이더). In trademark examination, when the suffix of a mark is identical and carries a strong phonetic weight, the marks are often deemed similar despite differences in short, one or two-syllable prefixes. The identical phonetic conclusion of both marks leads to a high risk of auditory confusion among consumers.
+
+3. **Comparison of Concept**
+   - The term "RADAR" refers to a system for detecting the presence, direction, or speed of objects. In the context of the designated services, it is used metaphorically to signify "search," "detection," or "monitoring."
+   - The prefix "IP" in the [Compared prior mark] stands for "Intellectual Property," and the "T" in the [User mark] can be perceived as an abbreviation for "Trademark" or "Technology." Therefore, both marks convey a highly similar concept of "monitoring/searching for intellectual property or specific data," leading to conceptual overlap.
+
+## 2. Similarity of Goods and Services
+
+1. **Functional Overlap**
+   - The [User mark] designates "trademark information retrieval research" (S120402) and "information retrieval services on the internet for others" (S123301).
+   - The [Compared prior mark] includes "patent information provision" and "computer programs for patent search." 
+   - Both sets of services fall under the broad category of providing or facilitating the search of intellectual property and digital information. They share the same purpose (data retrieval) and methodology (database/internet-based search).
+
+2. **Similarity of Target Consumers and Channels**
+   - The consumers for trademark retrieval (User) and patent information provision (Prior) are identical: legal professionals, patent attorneys, and businesses seeking to manage intellectual property.
+   - These services are often provided through the same platforms or specialized agencies, creating a high likelihood that consumers would perceive the services as originating from the same source if the marks are similar.
+
+## 3. Prior Mark Refusal Reasons
+
+1. **Dominant Element Recognition**
+   - Based on the examination history of related marks in similar fields, the term "RADAR" is frequently viewed as the essential part of the mark when combined with descriptive or suggestive prefixes like "T" or "IP." 
+   - Because "IP" is descriptive of the field (Intellectual Property), the [Compared prior mark] "IP Radar" gains its distinctiveness primarily from the word "RADAR." Consequently, the [User mark] "T-RADAR" is likely to be seen as a variation of the prior mark, sharing the same dominant identifier.
+
+2. **Risk of Confusion under Trademark Act Standards**
+   - Under KIPO's examination practice, a mark is refused if it is identical or similar to a prior registered mark and is used for identical or similar goods/services. 
+   - The combination of identical suffixes ("RADAR") and the substantial overlap in the specialized field of "IP/Data retrieval" constitutes a strong ground for refusal. The similarity in the overall impression of the marks is sufficient to cause mistake or deception regarding the origin of the services.
+[출원인]
+## 1. Rebuttal against Similarity of Marks
+
+1. **Phonetic Distinction**
+   - The [User mark] "T-RADAR" is pronounced as four syllables in Korean (티-레이-더), whereas the [Compared prior mark] "IP Radar" is pronounced as five syllables (아-이-피-레이-더). 
+   - The initial sounds—"T" (티) and "IP" (아이피)—are distinctly different in both length and articulation. In trademark practice, the beginning of a mark is generally recognized as the most important part for consumer recognition. Since the prefixes are auditory focal points, the difference between a single-syllable "T" and a two-syllable "IP" is sufficient to prevent phonetic confusion.
+
+2. **Visual Distinction and Composition**
+   - Visually, the [User mark] "T-RADAR" utilizes a hyphen and a single capital letter, creating a concise and modern branding image. In contrast, "IP Radar" consists of two distinct letters "IP" followed by the word "Radar." 
+   - The presence of the hyphen in the [User mark] serves as a visual separator that emphasizes the "T" as a unique brand identifier, whereas "IP Radar" presents as a descriptive combination of a technical term (Intellectual Property) and a functional term (Radar).
+
+3. **Weak Distinctiveness of the Suffix "RADAR"**
+   - The examiner asserts that "RADAR" is the dominant element. However, in the fields of information retrieval, monitoring, and intellectual property services, "RADAR" is a highly suggestive or common metaphorical term indicating "search," "detection," or "tracking."
+   - Because "RADAR" describes the function of the services (scanning or searching for data), its distinctiveness is relatively weak. Therefore, consumers will naturally look to the prefixes—"T" and "IP"—to distinguish the source of the services. Since "T" and "IP" are visually and phonetically distinct, the marks as a whole are not similar.
+
+4. **Conceptual Differentiation**
+   - "IP" in the [Compared prior mark] is a well-known abbreviation for "Intellectual Property," directly describing the field of patent and trademark services. 
+   - The letter "T" in the [User mark] is more abstract and can be interpreted in various ways, such as "Technology," "Total," or "Trend." This creates a different conceptual impression compared to the specifically technical and descriptive "IP Radar."
+
+## 2. Rebuttal against Similarity of Goods and Services
+
+1. **Specific vs. General Service Scope**
+   - The [Compared prior mark] is heavily focused on "Patent" (특허) related software and information provision. 
+   - While the [User mark] includes "trademark information retrieval," it also encompasses broader "internet data retrieval services" (S123301). The primary focus of the [User mark] is on general data and trademark research, which caters to a broader marketing and branding audience, whereas the prior mark is targeted specifically at the legal and technical patent industry.
+
+2. **Sophistication of Consumers**
+   - The consumers of these services—legal professionals, patent attorneys, and corporate IP departments—are highly sophisticated and exercise a high degree of care when selecting information retrieval tools. 
+   - Such professional consumers are unlikely to be confused by the common use of the word "RADAR" and are well-equipped to distinguish between a "T" branded service and an "IP" branded service based on the specific specialized features and branding.
+
+## 3. Directions for Adjustment
+
+1. **Clarification of Designated Services**
+   - To further differentiate the [User mark] from the [Compared prior mark], the applicant can narrow the scope of the services in Class 45. For example, "trademark information retrieval research" can be further specified to exclude "patent-related information services" to avoid direct competition with the prior mark's core business area.
+
+2. **Emphasizing the Brand Identity**
+   - The applicant can argue that "T-RADAR" is part of a specific "T" series of services, which would further establish "T" as the distinctive source identifier rather than the descriptive "RADAR" element. This alignment helps in asserting that the "T" prefix is the essential part that prevents any likelihood of confusion with the prior "IP Radar."
+[심사관]
+## 1. Reasoning
+
+1.  **Analysis of Mark Similarity**
+    *   **Acceptance of Weak Distinctiveness of "RADAR":** The applicant’s argument that "RADAR" possesses weak distinctiveness in the field of information retrieval is partially acceptable. In the context of "searching," "monitoring," or "detecting" data, the term "RADAR" is indeed suggestive of the service's function. Under trademark examination standards, when a common element is suggestive, consumers may focus more on the prefix to distinguish the source.
+    *   **Rebuttal of Phonetic and Visual Distinction:** Despite the difference in syllable count (4 vs. 5) and the presence of a hyphen, the suffix "RADAR" remains the dominant phonetic and visual anchor in both marks. In the specialized field of Intellectual Property (IP) services, "IP" is a generic abbreviation for "Intellectual Property." Similarly, "T" is frequently used as an abbreviation for "Trademark" or "Technology." Consequently, "T-RADAR" and "IP Radar" are likely to be perceived by consumers as part of the same brand family or as specific sub-services (Trademark Radar vs. Intellectual Property Radar) from the same provider. The visual and phonetic differences in the prefixes are insufficient to overcome the overwhelming similarity created by the shared dominant term "RADAR."
+
+2.  **Analysis of Goods and Services Similarity**
+    *   **Rebuttal of Specific vs. General Scope:** The applicant’s claim that "trademark information retrieval" and "patent information provision" are distinct is legally insufficient. Both services belong to the broader category of "Intellectual Property Information Services." Under KIPO standards, goods or services are considered similar if they share the same target consumers, distribution channels, and functional purposes. 
+    *   **Rebuttal of Consumer Sophistication:** While it is true that legal professionals and patent attorneys are sophisticated consumers, this sophistication does not eliminate the risk of confusion regarding the *source* of the service. On the contrary, professionals familiar with the industry are more likely to assume that "T-RADAR" (Trademark Radar) and "IP Radar" (Intellectual Property Radar) are related software modules or service tiers offered by the same entity. The overlapping nature of the similar group codes (S120402, S123301) and the prior mark's designated services confirms a high degree of competition and potential for confusion.
+
+3.  **Risk of Confusion and Dominant Element Recognition**
+    *   **Consistency with Examination Standards:** According to the examination history of related marks, "RADAR" is consistently identified as a core component in IP-related service marks. When both the [User mark] and the [Compared prior mark] utilize this core component alongside descriptive or suggestive prefixes ("T" and "IP"), the overall impression remains confusingly similar. The applicant’s argument that "T" is abstract does not hold weight because, in the context of the designated service "trademark information retrieval," "T" will instinctively be linked to "Trademark."
+
+## 2. Final Conclusion
+
+The refusal should be maintained. Although "RADAR" carries suggestive weight, the combination of the shared dominant suffix and the highly similar nature of the intellectual property information services creates a significant likelihood of confusion. The phonetic and visual differences in the one-to-two-syllable prefixes ("T" vs. "IP") are not strong enough to distinguish the marks when used in identical specialized markets. Therefore, the [User mark] "T-RADAR" is deemed similar to the [Compared prior mark] "IP Radar" under the Trademark Act.
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.820
+
+Instruction: Based on the dialogue between the examiner and the applicant's representative, write in Markdown only using the exact format below.
+**Important**: Respond in English only.
+
+## One-line summary
+- <Summarize whether the user mark conflicts with the prior mark in one sentence>
+
+## Key issues
+1. **<Issue name>** - <Explain the impact on the user's mark and KIPRIS evidence in 2+ sentences>
+2. **...** - ...
+3. **...** - ...
+
+
+
+All items must follow the format 'number. **<Issue name>** - description', and the entire '<Issue name>' must be bolded. Include critical risks and adjustment strategies without omission. Image similarity is the 0.5:0.5 ensemble of DINOv2 similarity and MetaCLIP2 similarity between [User mark] and [Compared prior mark]; text similarity is the MetaCLIP2 similarity between the mark names. These values must be mentioned only in the quantitative metrics section. Do not use internal abbreviations or code names (e.g., Track A/B). Do not add any intro or closing sentences beyond the titles and lists. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+## Quantitative metrics
+- Same mark name: <Copy exactly from the [Quantitative metrics] block>
+- Same image: <Copy exactly from the [Quantitative metrics] block>
+- Text similarity: <Copy exactly from the [Quantitative metrics] block>
+
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## One-line summary
+- The [User mark] "T-RADAR" is likely to be refused due to its phonetic and conceptual similarity to the [Compared prior mark] "IP Radar," as both share the dominant suffix "RADAR" within the overlapping field of intellectual property information services.
+
+## Key issues
+1. **Dominance of the Suffix "RADAR"** - Although the applicant argues that "RADAR" is suggestive and weakly distinctive, it remains the primary phonetic and visual anchor for both marks. Under KIPO standards, the identical three-syllable suffix "RADAR" creates a high risk of auditory confusion that short, one-to-two-syllable prefixes like "T-" or "IP" cannot sufficiently overcome.
+2. **Conceptual Overlap in Specialized Fields** - The prefix "IP" is a generic abbreviation for Intellectual Property, and "T" is commonly understood as an abbreviation for Trademark or Technology in this context. Consequently, both marks convey a nearly identical concept of "data detection or monitoring tools," leading consumers to perceive them as related service modules or sub-brands from the same source.
+3. **Similarity of Target Consumers and Service Channels** - The designated services for both marks—ranging from trademark retrieval to patent information provision—share identical group codes and target a specific demographic of legal professionals and corporate IP departments. Even sophisticated consumers are likely to be confused by the similar naming conventions used for these specialized digital search tools.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.820
+
+[5] 역할: Scorer
+--- Prompt ---
+Case information:
+## One-line summary
+- The [User mark] "T-RADAR" is likely to be refused due to its phonetic and conceptual similarity to the [Compared prior mark] "IP Radar," as both share the dominant suffix "RADAR" within the overlapping field of intellectual property information services.
+
+## Key issues
+1. **Dominance of the Suffix "RADAR"** - Although the applicant argues that "RADAR" is suggestive and weakly distinctive, it remains the primary phonetic and visual anchor for both marks. Under KIPO standards, the identical three-syllable suffix "RADAR" creates a high risk of auditory confusion that short, one-to-two-syllable prefixes like "T-" or "IP" cannot sufficiently overcome.
+2. **Conceptual Overlap in Specialized Fields** - The prefix "IP" is a generic abbreviation for Intellectual Property, and "T" is commonly understood as an abbreviation for Trademark or Technology in this context. Consequently, both marks convey a nearly identical concept of "data detection or monitoring tools," leading consumers to perceive them as related service modules or sub-brands from the same source.
+3. **Similarity of Target Consumers and Service Channels** - The designated services for both marks—ranging from trademark retrieval to patent information provision—share identical group codes and target a specific demographic of legal professionals and corporate IP departments. Even sophisticated consumers are likely to be confused by the similar naming conventions used for these specialized digital search tools.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.820
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.820
+
+Instruction: Below is the reporter's summary comparing the user mark vs. the prior mark. Based only on this summary, score conflict risk and registrability on a 0-100 scale. Assume the prior mark status and KIPRIS details are already reflected in the summary. Follow these two steps in order: 1) On the first line, output a JSON object {conflict_score, register_score, rationale, factors[]}. 2) Then write the evaluation using the exact [Markdown format] below.
+**Important**: Respond in English only.
+
+Use the following priorities: (1) whether pronunciation/concept/visual core are identical or effectively identical, (2) inherent distinctiveness of the user mark (less distinctive means stricter evaluation), (3) visual similarity of mark images, (4) proximity of goods/services classes and market context. If identical mark/image flags or extreme similarity values are provided, treat conflict risk as very high and registrability as very low. Assess each candidate strictly; if the conflict basis is clear, give a high conflict score, and if issues are minimal, give a low conflict score. When evidence is strong, avoid the 40-60 middle range and choose higher or lower values.
+
+[Markdown format]
+
+## Decision summary
+- **Conflict risk**: <number> pts
+- **Registrability**: <number> pts
+## Rationale
+- <Key reason 1>
+- <Key reason 2>
+## Recommended action
+- <Follow-up action or adjustment strategy>
+
+Headings must be exactly '## Decision summary', '## Rationale', '## Recommended action' in this order. Do not add any other headings or closing sentences. Do not write paragraphs; use bullets only. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+{"conflict_score": 85, "register_score": 20, "rationale": "High phonetic similarity due to the dominant suffix 'RADAR' and significant conceptual overlap within the specialized intellectual property service industry.", "factors": ["Suffix dominance", "Conceptual similarity", "Overlapping target consumers", "High text similarity score"]}
+
+## Decision summary
+- **Conflict risk**: 85 pts
+- **Registrability**: 20 pts
+
+## Rationale
+1. The identical three-syllable suffix "RADAR" serves as the dominant phonetic and visual anchor for both marks, creating a high likelihood of auditory confusion that the short prefixes "T-" and "IP" fail to mitigate.
+2. There is a strong conceptual overlap as "IP" (Intellectual Property) and "T" (commonly associated with Technology or Trademark in this field) both describe the nature of the data being monitored, leading consumers to view the marks as related offerings from the same source.
+3. Both marks target identical service channels and sophisticated consumer groups, such as legal professionals and corporate IP departments, using nearly identical group codes for trademark and patent information services.
+4. A text similarity score of 0.820 indicates a high degree of literal correspondence that reinforces the risk of the user mark being perceived as a derivative or sub-brand of the prior mark.
+
+## Recommended action
+1. Incorporate a highly distinctive figurative element or a unique, non-descriptive prefix to shift the consumer's focus away from the common "RADAR" suffix.
+2. Narrow the designated services to very specific niche applications that do not directly overlap with the broad IP information services covered by the prior mark.
+3. Prepare a formal rebuttal arguing that "RADAR" is a weak, suggestive term for search and monitoring tools, though this may be difficult to sustain given the high phonetic similarity and overlapping market context.

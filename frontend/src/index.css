@@ -1286,6 +1286,130 @@ main.container {
   color: rgba(31, 41, 55, 0.9);
 }
 
+/* Tutorial overlay */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.tour-spotlight {
+  position: fixed;
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+.tour-card {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  width: 320px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem 1.2rem 1.2rem;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+}
+
+.tour-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.tour-card__step {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.tour-card__close {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.tour-card h4 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.05rem;
+}
+
+.tour-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.tour-card__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #475569;
+  margin-top: 0.8rem;
+}
+
+.tour-card__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.tour-card__action-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tour-btn {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-width: 70px;
+}
+
+.tour-btn--primary {
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #1d4ed8;
+}
+
+.tour-btn--secondary {
+  background: #fff;
+  color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.tour-btn--done {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+
+.tour-btn--ghost {
+  background: transparent;
+  color: #64748b;
+  border-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .tour-card {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100% - 2.5rem);
+  }
+}
+
 
 .goods-error {
   color: #dc2626;

@@ -1,0 +1,622 @@
+[1] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: Radar (Application No. 4020200012698)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 28
+
+- Goods/services summary:
+
+  - 낚시 받침대,낚시가방,낚시그물,낚시대 케이스,낚시대,낚시뜰채,낚시릴,낚시바늘,낚시방울,낚시용 가짜미끼,낚시용 목줄,낚시용 발광등,낚시용 아이스박스,낚시용 인조미끼,낚시용 장갑,낚시찌,낚시용구,낚시밑밥 투척용 주걱
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Instruction: Using prior examination cases and goods/services for similar marks, analyze possible refusal risks for the user's mark and write a logical evaluation comparable to an Office Action. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Derive high-conflict points from past similar cases, but do not mention mitigation or adjustment strategies.
+  - Do not apply past cases as facts or assert them as identical.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All direct comparisons must be only between [User mark] and [Compared prior mark]. Other marks cited in the office action should only be referenced as supporting grounds in a 'prior mark refusal reasons' section.
+  - Compare the marks (appearance, lettering, pronunciation, concept) and the scope of goods/services logically.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Explain potential refusal reasons with evidence.
+  - Ground reasoning in KIPO examination practice.
+  - It is acceptable to mention conventional criteria (pronunciation, concept, appearance).
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Comparison of Mark Similarity
+
+1. **Comparison of Appearance**
+   - The user mark "T-RADAR" is composed of the English letter 'T' followed by a hyphen and the word 'RADAR'. The compared prior mark is "Radar". 
+   - The user mark essentially incorporates the entirety of the prior mark "Radar". The addition of the prefix "T-" is often perceived by consumers as a simple modifier (potentially standing for 'Technology' or 'Telecommunication') rather than a distinctive element that separates the two marks visually.
+
+2. **Comparison of Pronunciation**
+   - The user mark is pronounced as "Ti-Ra-Dar" [티-레이더], while the compared prior mark is pronounced "Ra-Dar" [레이더].
+   - Both marks share the identical three-syllable suffix "Ra-Dar". Under Korean Intellectual Property Office (KIPO) examination standards, when a mark consists of a simple prefix and a prominent noun, the suffix often carries the primary phonetic impression. Thus, the marks are phonetically highly similar.
+
+3. **Comparison of Concept**
+   - The prior mark "Radar" refers to a system for detecting the presence, direction, distance, and speed of objects. 
+   - The user mark "T-RADAR" conveys a nearly identical concept, suggesting a "Technology Radar" or a specialized radar system. Because they share the same core concept of "detection and searching," the conceptual similarity is significant.
+
+## 2. Analysis of Goods and Services Similarity
+
+1. **Dissimilarity of Classes and Group Codes**
+   - The user mark is designated for Class 45 (trademark information retrieval) and Class 35 (internet data/information retrieval), with similar group codes S120402 and S123301.
+   - The compared prior mark is registered in Class 28 for fishing equipment (e.g., fishing rods, lures, nets), which falls under different similar group codes related to leisure and sports.
+   - According to the principle of "Similarity of Goods," a refusal based on Article 34(1)7 of the Trademark Act generally requires both the marks and the goods to be similar. In this case, despite the high similarity of the marks, the designated goods and services are distinct in nature, purpose, and distribution channels.
+
+## 3. Potential Refusal Grounds and Prior Mark Refusal Reasons
+
+1. **Risk of Refusal based on Descriptiveness (Article 33(1)3)**
+   - Regardless of the similarity to the prior mark in Class 28, the user mark "T-RADAR" faces a significant risk of refusal concerning its own designated services. 
+   - For services such as "trademark information retrieval research" and "information retrieval services on the internet," the term "RADAR" directly describes the function or quality of the service—specifically, the act of "detecting," "scanning," or "searching" for data. 
+   - Under KIPO standards, a mark that consists solely of a term indicating the quality, purpose, or method of the service is considered descriptive and lacks distinctiveness.
+
+2. **Prior Mark Refusal Reasons (Reference Only)**
+   - In similar examination cases, marks containing "RADAR" or "T-" prefixes have been scrutinized for their lack of inherent distinctiveness when applied to IT or search-related services. 
+   - Previous office actions for marks sharing similar components often cited that the term "RADAR" is a common metaphorical expression for "searching/monitoring" systems in the digital industry, thus failing to function as a source identifier. 
+
+## 4. Logical Evaluation
+
+1. **Conclusion on Article 34(1)7**
+   - A refusal based on the compared prior mark "Radar" (Class 28) is unlikely to be sustained because the scope of "fishing gear" does not overlap with "information retrieval services." The difference in similar group codes serves as strong evidence that there is no likelihood of confusion regarding the source of the goods.
+
+2. **Conclusion on Article 33(1)**
+   - The primary refusal risk lies in the inherent nature of the user mark. The combination of "T" and "RADAR" for "retrieval services" is highly likely to be viewed as a descriptive indication of the service's utility (i.e., a tool that finds/detects information). Therefore, the mark may be rejected on the grounds that it is a descriptive mark or lacks sufficient distinctiveness to distinguish the applicant's service from others in the information technology and research sectors.
+
+[2] 역할: 출원인
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: Radar (Application No. 4020200012698)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 28
+
+- Goods/services summary:
+
+  - 낚시 받침대,낚시가방,낚시그물,낚시대 케이스,낚시대,낚시뜰채,낚시릴,낚시바늘,낚시방울,낚시용 가짜미끼,낚시용 목줄,낚시용 발광등,낚시용 아이스박스,낚시용 인조미끼,낚시용 장갑,낚시찌,낚시용구,낚시밑밥 투척용 주걱
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Comparison of Mark Similarity
+
+1. **Comparison of Appearance**
+   - The user mark "T-RADAR" is composed of the English letter 'T' followed by a hyphen and the word 'RADAR'. The compared prior mark is "Radar". 
+   - The user mark essentially incorporates the entirety of the prior mark "Radar". The addition of the prefix "T-" is often perceived by consumers as a simple modifier (potentially standing for 'Technology' or 'Telecommunication') rather than a distinctive element that separates the two marks visually.
+
+2. **Comparison of Pronunciation**
+   - The user mark is pronounced as "Ti-Ra-Dar" [티-레이더], while the compared prior mark is pronounced "Ra-Dar" [레이더].
+   - Both marks share the identical three-syllable suffix "Ra-Dar". Under Korean Intellectual Property Office (KIPO) examination standards, when a mark consists of a simple prefix and a prominent noun, the suffix often carries the primary phonetic impression. Thus, the marks are phonetically highly similar.
+
+3. **Comparison of Concept**
+   - The prior mark "Radar" refers to a system for detecting the presence, direction, distance, and speed of objects. 
+   - The user mark "T-RADAR" conveys a nearly identical concept, suggesting a "Technology Radar" or a specialized radar system. Because they share the same core concept of "detection and searching," the conceptual similarity is significant.
+
+## 2. Analysis of Goods and Services Similarity
+
+1. **Dissimilarity of Classes and Group Codes**
+   - The user mark is designated for Class 45 (trademark information retrieval) and Class 35 (internet data/information retrieval), with similar group codes S120402 and S123301.
+   - The compared prior mark is registered in Class 28 for fishing equipment (e.g., fishing rods, lures, nets), which falls under different similar group codes related to leisure and sports.
+   - According to the principle of "Similarity of Goods," a refusal based on Article 34(1)7 of the Trademark Act generally requires both the marks and the goods to be similar. In this case, despite the high similarity of the marks, the designated goods and services are distinct in nature, purpose, and distribution channels.
+
+## 3. Potential Refusal Grounds and Prior Mark Refusal Reasons
+
+1. **Risk of Refusal based on Descriptiveness (Article 33(1)3)**
+   - Regardless of the similarity to the prior mark in Class 28, the user mark "T-RADAR" faces a significant risk of refusal concerning its own designated services. 
+   - For services such as "trademark information retrieval research" and "information retrieval services on the internet," the term "RADAR" directly describes the function or quality of the service—specifically, the act of "detecting," "scanning," or "searching" for data. 
+   - Under KIPO standards, a mark that consists solely of a term indicating the quality, purpose, or method of the service is considered descriptive and lacks distinctiveness.
+
+2. **Prior Mark Refusal Reasons (Reference Only)**
+   - In similar examination cases, marks containing "RADAR" or "T-" prefixes have been scrutinized for their lack of inherent distinctiveness when applied to IT or search-related services. 
+   - Previous office actions for marks sharing similar components often cited that the term "RADAR" is a common metaphorical expression for "searching/monitoring" systems in the digital industry, thus failing to function as a source identifier. 
+
+## 4. Logical Evaluation
+
+1. **Conclusion on Article 34(1)7**
+   - A refusal based on the compared prior mark "Radar" (Class 28) is unlikely to be sustained because the scope of "fishing gear" does not overlap with "information retrieval services." The difference in similar group codes serves as strong evidence that there is no likelihood of confusion regarding the source of the goods.
+
+2. **Conclusion on Article 33(1)**
+   - The primary refusal risk lies in the inherent nature of the user mark. The combination of "T" and "RADAR" for "retrieval services" is highly likely to be viewed as a descriptive indication of the service's utility (i.e., a tool that finds/detects information). Therefore, the mark may be rejected on the grounds that it is a descriptive mark or lacks sufficient distinctiveness to distinguish the applicant's service from others in the information technology and research sectors.
+
+Instruction: Based on the examiner's points, provide a logical rebuttal or appropriate adjustment directions. The examiner's refusal reasons are only possibilities; the applicant must present clear rebuttal logic, distinguishing factors, and adjustment directions. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Identify misunderstandings or overstatements in the examiner's analysis and rebut them.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All comparisons must be between [User mark] and [Compared prior mark]; prior marks in the office action are referenced only as supporting cases.
+  - Provide evidence that the user's mark is sufficiently distinguishable in pronunciation, concept, appearance, and market context.
+  - If adjustment is advantageous or feasible, propose directions such as clarifying goods/services or adjusting expression elements.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Provide reasons why the marks are not similar for each issue.
+  - Point out overreliance on past cases when applicable.
+  - Build a logical direction that the application is registrable, without asserting certainty.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Rebuttal against Similarity of the Marks
+
+1. **Distinctive Visual Composition of "T-RADAR"**
+   - The user mark is not merely a combination of a modifier and a noun. The inclusion of the uppercase 'T' followed by a hyphen ('-') creates a specific visual structure that distinguishes it from the prior mark "Radar." The hyphen acts as a visual break, causing consumers to perceive the mark as a compound identifier rather than a single descriptive word.
+
+2. **Phonetic Differentiation through Syllable Count**
+   - While the examiner suggests that the suffix "Ra-Dar" is the primary impression, the addition of the "Ti" [티] sound significantly alters the phonetic rhythm. "T-RADAR" consists of three distinct syllables [Ti-Ra-Dar], whereas the prior mark has only two [Ra-Dar]. In short marks, a one-syllable difference at the beginning is highly perceptible to consumers and serves to prevent phonetic confusion.
+
+3. **Conceptual Shift from Generic Tool to Brand Identifier**
+   - The term "Radar" in the prior mark (Class 28) is likely used in a literal or decorative sense for fishing equipment. In contrast, "T-RADAR" functions as a coined term. The prefix "T-" does not exclusively stand for "Technology"; it can represent various meanings such as a brand's initial or "Total." This ambiguity moves the mark away from the literal meaning of a detection device and toward a unique brand identity.
+
+## 2. Rebuttal against Descriptiveness (Article 33(1)3)
+
+1. **Suggestive vs. Descriptive Nature**
+   - The examiner's concern regarding Article 33(1)3 assumes that "RADAR" directly describes the function of "information retrieval." However, a radar is a physical device that uses radio waves to detect tangible objects (aircraft, ships, etc.). Using this term for "trademark information retrieval" is a metaphorical leap. 
+   - Under KIPO standards, marks that require a degree of imagination or mental reasoning to connect the mark to the service are classified as "suggestive" rather than "descriptive." "RADAR" does not literally describe the act of searching a digital database, making it inherently distinctive for IT-related services.
+
+2. **Lack of Direct Indication of Quality or Method**
+   - "T-RADAR" does not specify the method (e.g., keyword search, AI algorithm) or the quality of the trademark research. It is an evocative name that suggests "efficiency" or "scanning" without being a common trade term in the information retrieval industry. Therefore, it should not be viewed as a term that must remain available for all competitors to use.
+
+## 3. Evidence of Non-Similarity in Goods and Services
+
+1. **Complete Divergence in Trade Channels and Consumers**
+   - The compared prior mark is registered for fishing gear (Class 28), targeting leisure sports enthusiasts through specialized retail stores. The user mark is designated for professional trademark research (Class 45) and IT data retrieval (Class 35), targeting legal professionals, business owners, and IT specialists.
+   - Given the vast difference in similar group codes (S120402/S123301 vs. leisure goods codes), there is no possibility that a consumer would associate a fishing rod with a trademark search service, regardless of the similarity in the name.
+
+## 4. Direction for Adjustment and Registration
+
+1. **Clarification of Designated Services**
+   - If the examiner maintains a descriptiveness objection, the applicant can narrow the scope of "information retrieval services" to more specific professional services, such as "legal research services for intellectual property" or "specialized technical data analysis." This reinforces that the mark is a brand name for a high-level professional service rather than a generic search tool.
+
+2. **Addition of Figurative Elements (Optional)**
+   - While the word mark "T-RADAR" possesses sufficient distinctiveness through its suggestive nature, the applicant may consider adding a unique logo or stylized font to the letter 'T'. This would further distance the mark from the prior mark "Radar" and overcome any perceived lack of inherent distinctiveness by creating a strong visual "source identifier."
+
+3. **Reliance on Suggestive Metaphor Logic**
+   - The applicant should argue that the examiner’s reference to "RADAR" as a "metaphorical expression" actually supports its registrability. Metaphors are, by definition, not literal descriptions. Since it is not a standard industry term for "retrieval," it functions effectively as a trademark.
+
+[3] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: Radar (Application No. 4020200012698)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 28
+
+- Goods/services summary:
+
+  - 낚시 받침대,낚시가방,낚시그물,낚시대 케이스,낚시대,낚시뜰채,낚시릴,낚시바늘,낚시방울,낚시용 가짜미끼,낚시용 목줄,낚시용 발광등,낚시용 아이스박스,낚시용 인조미끼,낚시용 장갑,낚시찌,낚시용구,낚시밑밥 투척용 주걱
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Comparison of Mark Similarity
+
+1. **Comparison of Appearance**
+   - The user mark "T-RADAR" is composed of the English letter 'T' followed by a hyphen and the word 'RADAR'. The compared prior mark is "Radar". 
+   - The user mark essentially incorporates the entirety of the prior mark "Radar". The addition of the prefix "T-" is often perceived by consumers as a simple modifier (potentially standing for 'Technology' or 'Telecommunication') rather than a distinctive element that separates the two marks visually.
+
+2. **Comparison of Pronunciation**
+   - The user mark is pronounced as "Ti-Ra-Dar" [티-레이더], while the compared prior mark is pronounced "Ra-Dar" [레이더].
+   - Both marks share the identical three-syllable suffix "Ra-Dar". Under Korean Intellectual Property Office (KIPO) examination standards, when a mark consists of a simple prefix and a prominent noun, the suffix often carries the primary phonetic impression. Thus, the marks are phonetically highly similar.
+
+3. **Comparison of Concept**
+   - The prior mark "Radar" refers to a system for detecting the presence, direction, distance, and speed of objects. 
+   - The user mark "T-RADAR" conveys a nearly identical concept, suggesting a "Technology Radar" or a specialized radar system. Because they share the same core concept of "detection and searching," the conceptual similarity is significant.
+
+## 2. Analysis of Goods and Services Similarity
+
+1. **Dissimilarity of Classes and Group Codes**
+   - The user mark is designated for Class 45 (trademark information retrieval) and Class 35 (internet data/information retrieval), with similar group codes S120402 and S123301.
+   - The compared prior mark is registered in Class 28 for fishing equipment (e.g., fishing rods, lures, nets), which falls under different similar group codes related to leisure and sports.
+   - According to the principle of "Similarity of Goods," a refusal based on Article 34(1)7 of the Trademark Act generally requires both the marks and the goods to be similar. In this case, despite the high similarity of the marks, the designated goods and services are distinct in nature, purpose, and distribution channels.
+
+## 3. Potential Refusal Grounds and Prior Mark Refusal Reasons
+
+1. **Risk of Refusal based on Descriptiveness (Article 33(1)3)**
+   - Regardless of the similarity to the prior mark in Class 28, the user mark "T-RADAR" faces a significant risk of refusal concerning its own designated services. 
+   - For services such as "trademark information retrieval research" and "information retrieval services on the internet," the term "RADAR" directly describes the function or quality of the service—specifically, the act of "detecting," "scanning," or "searching" for data. 
+   - Under KIPO standards, a mark that consists solely of a term indicating the quality, purpose, or method of the service is considered descriptive and lacks distinctiveness.
+
+2. **Prior Mark Refusal Reasons (Reference Only)**
+   - In similar examination cases, marks containing "RADAR" or "T-" prefixes have been scrutinized for their lack of inherent distinctiveness when applied to IT or search-related services. 
+   - Previous office actions for marks sharing similar components often cited that the term "RADAR" is a common metaphorical expression for "searching/monitoring" systems in the digital industry, thus failing to function as a source identifier. 
+
+## 4. Logical Evaluation
+
+1. **Conclusion on Article 34(1)7**
+   - A refusal based on the compared prior mark "Radar" (Class 28) is unlikely to be sustained because the scope of "fishing gear" does not overlap with "information retrieval services." The difference in similar group codes serves as strong evidence that there is no likelihood of confusion regarding the source of the goods.
+
+2. **Conclusion on Article 33(1)**
+   - The primary refusal risk lies in the inherent nature of the user mark. The combination of "T" and "RADAR" for "retrieval services" is highly likely to be viewed as a descriptive indication of the service's utility (i.e., a tool that finds/detects information). Therefore, the mark may be rejected on the grounds that it is a descriptive mark or lacks sufficient distinctiveness to distinguish the applicant's service from others in the information technology and research sectors.
+[출원인]
+## 1. Rebuttal against Similarity of the Marks
+
+1. **Distinctive Visual Composition of "T-RADAR"**
+   - The user mark is not merely a combination of a modifier and a noun. The inclusion of the uppercase 'T' followed by a hyphen ('-') creates a specific visual structure that distinguishes it from the prior mark "Radar." The hyphen acts as a visual break, causing consumers to perceive the mark as a compound identifier rather than a single descriptive word.
+
+2. **Phonetic Differentiation through Syllable Count**
+   - While the examiner suggests that the suffix "Ra-Dar" is the primary impression, the addition of the "Ti" [티] sound significantly alters the phonetic rhythm. "T-RADAR" consists of three distinct syllables [Ti-Ra-Dar], whereas the prior mark has only two [Ra-Dar]. In short marks, a one-syllable difference at the beginning is highly perceptible to consumers and serves to prevent phonetic confusion.
+
+3. **Conceptual Shift from Generic Tool to Brand Identifier**
+   - The term "Radar" in the prior mark (Class 28) is likely used in a literal or decorative sense for fishing equipment. In contrast, "T-RADAR" functions as a coined term. The prefix "T-" does not exclusively stand for "Technology"; it can represent various meanings such as a brand's initial or "Total." This ambiguity moves the mark away from the literal meaning of a detection device and toward a unique brand identity.
+
+## 2. Rebuttal against Descriptiveness (Article 33(1)3)
+
+1. **Suggestive vs. Descriptive Nature**
+   - The examiner's concern regarding Article 33(1)3 assumes that "RADAR" directly describes the function of "information retrieval." However, a radar is a physical device that uses radio waves to detect tangible objects (aircraft, ships, etc.). Using this term for "trademark information retrieval" is a metaphorical leap. 
+   - Under KIPO standards, marks that require a degree of imagination or mental reasoning to connect the mark to the service are classified as "suggestive" rather than "descriptive." "RADAR" does not literally describe the act of searching a digital database, making it inherently distinctive for IT-related services.
+
+2. **Lack of Direct Indication of Quality or Method**
+   - "T-RADAR" does not specify the method (e.g., keyword search, AI algorithm) or the quality of the trademark research. It is an evocative name that suggests "efficiency" or "scanning" without being a common trade term in the information retrieval industry. Therefore, it should not be viewed as a term that must remain available for all competitors to use.
+
+## 3. Evidence of Non-Similarity in Goods and Services
+
+1. **Complete Divergence in Trade Channels and Consumers**
+   - The compared prior mark is registered for fishing gear (Class 28), targeting leisure sports enthusiasts through specialized retail stores. The user mark is designated for professional trademark research (Class 45) and IT data retrieval (Class 35), targeting legal professionals, business owners, and IT specialists.
+   - Given the vast difference in similar group codes (S120402/S123301 vs. leisure goods codes), there is no possibility that a consumer would associate a fishing rod with a trademark search service, regardless of the similarity in the name.
+
+## 4. Direction for Adjustment and Registration
+
+1. **Clarification of Designated Services**
+   - If the examiner maintains a descriptiveness objection, the applicant can narrow the scope of "information retrieval services" to more specific professional services, such as "legal research services for intellectual property" or "specialized technical data analysis." This reinforces that the mark is a brand name for a high-level professional service rather than a generic search tool.
+
+2. **Addition of Figurative Elements (Optional)**
+   - While the word mark "T-RADAR" possesses sufficient distinctiveness through its suggestive nature, the applicant may consider adding a unique logo or stylized font to the letter 'T'. This would further distance the mark from the prior mark "Radar" and overcome any perceived lack of inherent distinctiveness by creating a strong visual "source identifier."
+
+3. **Reliance on Suggestive Metaphor Logic**
+   - The applicant should argue that the examiner’s reference to "RADAR" as a "metaphorical expression" actually supports its registrability. Metaphors are, by definition, not literal descriptions. Since it is not a standard industry term for "retrieval," it functions effectively as a trademark.
+
+Instruction: Accept reasonable parts of the applicant's rebuttal, but rebut weak or legally insufficient points and provide a final direction. Do not repeat prior dialogue. You must clearly state acceptance or rejection for each point and then give a final conclusion. Decide only on conflict assessment and do not provide mitigation or adjustment strategies. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Explicitly accept reasonable arguments and summarize why.
+  - Rebut parts with weak legal basis or insufficient logic, and explain why they should stand.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - Keep comparison consistent between [User mark] and [Compared prior mark]; prior marks in the office action may be used only as supporting evidence when needed.
+  - Do not mention adjustments or mitigation strategies.
+  - If the issue is clear, you may deliver a firm conclusion.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Clarify issues and provide a final direction by accepting or rejecting the applicant's points.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Reasoning on Mark and Goods Similarity
+
+1. **Acceptance of Dissimilarity of Goods and Services (Article 34(1)7)**
+   - The applicant's argument regarding the complete divergence in trade channels and consumers is **accepted**. The user mark is designated for professional information retrieval services (Classes 45 and 35), while the compared prior mark is registered for fishing gear (Class 28). These fields target different consumer bases and utilize distinct distribution networks. Consequently, there is no likelihood of confusion between the two marks regarding the source of the goods/services.
+
+2. **Rejection of Phonetic and Visual Differentiation**
+   - The applicant's argument that "T-" and the hyphen create a distinctive visual and phonetic identity is **rejected**. Under KIPO standards, a single-letter prefix like "T-" is often perceived as a simple modifier (indicating 'Technology' or 'Total') and does not possess sufficient distinctiveness to separate it from the main noun "RADAR." Phonetically, the suffix "RADAR" remains the dominant auditory element. However, this similarity does not trigger a refusal under Article 34(1)7 because the goods themselves are not similar.
+
+## 2. Reasoning on Descriptiveness (Article 33(1)3)
+
+1. **Rejection of the "Suggestive" Logic for Retrieval Services**
+   - The applicant's claim that "RADAR" is purely suggestive or metaphorical for information retrieval is **rejected**. In the context of "trademark information retrieval" and "internet data retrieval," the word "RADAR" is a common industry term used to describe the function of scanning, detecting, or monitoring data. 
+   - A mark is considered descriptive if it directly indicates the quality, purpose, or method of the service. "RADAR" explicitly informs the consumer that the service's purpose is to "detect" or "search for" specific information, which is the core utility of the designated services.
+
+2. **Maintenance of Lack of Distinctiveness**
+   - The combination of "T" and "RADAR" directly refers to a "Technical Detection/Search" system. Because this combination describes the characteristic of the retrieval services (scanning and finding data), it must remain available for all competitors in the field to use. Therefore, the mark lacks the inherent distinctiveness required to function as a trademark under Article 33(1)3.
+
+## 3. Final Conclusion
+
+1. **Resolution of Conflict with Compared Prior Mark**
+   - The user mark does not conflict with the compared prior mark "Radar" (Application No. 4020200012698) because the designated goods (fishing gear) and services (information retrieval) are fundamentally dissimilar. The refusal ground based on Article 34(1)7 is not applicable.
+
+2. **Confirmation of Refusal Ground (Article 33(1)3)**
+   - The user mark "T-RADAR" is subject to refusal based on **Article 33(1)3 of the Trademark Act**. The mark is a descriptive indication of the function and purpose of the designated services in Classes 35 and 45. The applicant's rebuttal failed to demonstrate that the term is anything other than a direct description of the "detecting/searching" nature of the retrieval services.
+
+[4] 역할: Reporter
+--- Prompt ---
+Case information:
+[심사관]
+## 1. Comparison of Mark Similarity
+
+1. **Comparison of Appearance**
+   - The user mark "T-RADAR" is composed of the English letter 'T' followed by a hyphen and the word 'RADAR'. The compared prior mark is "Radar". 
+   - The user mark essentially incorporates the entirety of the prior mark "Radar". The addition of the prefix "T-" is often perceived by consumers as a simple modifier (potentially standing for 'Technology' or 'Telecommunication') rather than a distinctive element that separates the two marks visually.
+
+2. **Comparison of Pronunciation**
+   - The user mark is pronounced as "Ti-Ra-Dar" [티-레이더], while the compared prior mark is pronounced "Ra-Dar" [레이더].
+   - Both marks share the identical three-syllable suffix "Ra-Dar". Under Korean Intellectual Property Office (KIPO) examination standards, when a mark consists of a simple prefix and a prominent noun, the suffix often carries the primary phonetic impression. Thus, the marks are phonetically highly similar.
+
+3. **Comparison of Concept**
+   - The prior mark "Radar" refers to a system for detecting the presence, direction, distance, and speed of objects. 
+   - The user mark "T-RADAR" conveys a nearly identical concept, suggesting a "Technology Radar" or a specialized radar system. Because they share the same core concept of "detection and searching," the conceptual similarity is significant.
+
+## 2. Analysis of Goods and Services Similarity
+
+1. **Dissimilarity of Classes and Group Codes**
+   - The user mark is designated for Class 45 (trademark information retrieval) and Class 35 (internet data/information retrieval), with similar group codes S120402 and S123301.
+   - The compared prior mark is registered in Class 28 for fishing equipment (e.g., fishing rods, lures, nets), which falls under different similar group codes related to leisure and sports.
+   - According to the principle of "Similarity of Goods," a refusal based on Article 34(1)7 of the Trademark Act generally requires both the marks and the goods to be similar. In this case, despite the high similarity of the marks, the designated goods and services are distinct in nature, purpose, and distribution channels.
+
+## 3. Potential Refusal Grounds and Prior Mark Refusal Reasons
+
+1. **Risk of Refusal based on Descriptiveness (Article 33(1)3)**
+   - Regardless of the similarity to the prior mark in Class 28, the user mark "T-RADAR" faces a significant risk of refusal concerning its own designated services. 
+   - For services such as "trademark information retrieval research" and "information retrieval services on the internet," the term "RADAR" directly describes the function or quality of the service—specifically, the act of "detecting," "scanning," or "searching" for data. 
+   - Under KIPO standards, a mark that consists solely of a term indicating the quality, purpose, or method of the service is considered descriptive and lacks distinctiveness.
+
+2. **Prior Mark Refusal Reasons (Reference Only)**
+   - In similar examination cases, marks containing "RADAR" or "T-" prefixes have been scrutinized for their lack of inherent distinctiveness when applied to IT or search-related services. 
+   - Previous office actions for marks sharing similar components often cited that the term "RADAR" is a common metaphorical expression for "searching/monitoring" systems in the digital industry, thus failing to function as a source identifier. 
+
+## 4. Logical Evaluation
+
+1. **Conclusion on Article 34(1)7**
+   - A refusal based on the compared prior mark "Radar" (Class 28) is unlikely to be sustained because the scope of "fishing gear" does not overlap with "information retrieval services." The difference in similar group codes serves as strong evidence that there is no likelihood of confusion regarding the source of the goods.
+
+2. **Conclusion on Article 33(1)**
+   - The primary refusal risk lies in the inherent nature of the user mark. The combination of "T" and "RADAR" for "retrieval services" is highly likely to be viewed as a descriptive indication of the service's utility (i.e., a tool that finds/detects information). Therefore, the mark may be rejected on the grounds that it is a descriptive mark or lacks sufficient distinctiveness to distinguish the applicant's service from others in the information technology and research sectors.
+[출원인]
+## 1. Rebuttal against Similarity of the Marks
+
+1. **Distinctive Visual Composition of "T-RADAR"**
+   - The user mark is not merely a combination of a modifier and a noun. The inclusion of the uppercase 'T' followed by a hyphen ('-') creates a specific visual structure that distinguishes it from the prior mark "Radar." The hyphen acts as a visual break, causing consumers to perceive the mark as a compound identifier rather than a single descriptive word.
+
+2. **Phonetic Differentiation through Syllable Count**
+   - While the examiner suggests that the suffix "Ra-Dar" is the primary impression, the addition of the "Ti" [티] sound significantly alters the phonetic rhythm. "T-RADAR" consists of three distinct syllables [Ti-Ra-Dar], whereas the prior mark has only two [Ra-Dar]. In short marks, a one-syllable difference at the beginning is highly perceptible to consumers and serves to prevent phonetic confusion.
+
+3. **Conceptual Shift from Generic Tool to Brand Identifier**
+   - The term "Radar" in the prior mark (Class 28) is likely used in a literal or decorative sense for fishing equipment. In contrast, "T-RADAR" functions as a coined term. The prefix "T-" does not exclusively stand for "Technology"; it can represent various meanings such as a brand's initial or "Total." This ambiguity moves the mark away from the literal meaning of a detection device and toward a unique brand identity.
+
+## 2. Rebuttal against Descriptiveness (Article 33(1)3)
+
+1. **Suggestive vs. Descriptive Nature**
+   - The examiner's concern regarding Article 33(1)3 assumes that "RADAR" directly describes the function of "information retrieval." However, a radar is a physical device that uses radio waves to detect tangible objects (aircraft, ships, etc.). Using this term for "trademark information retrieval" is a metaphorical leap. 
+   - Under KIPO standards, marks that require a degree of imagination or mental reasoning to connect the mark to the service are classified as "suggestive" rather than "descriptive." "RADAR" does not literally describe the act of searching a digital database, making it inherently distinctive for IT-related services.
+
+2. **Lack of Direct Indication of Quality or Method**
+   - "T-RADAR" does not specify the method (e.g., keyword search, AI algorithm) or the quality of the trademark research. It is an evocative name that suggests "efficiency" or "scanning" without being a common trade term in the information retrieval industry. Therefore, it should not be viewed as a term that must remain available for all competitors to use.
+
+## 3. Evidence of Non-Similarity in Goods and Services
+
+1. **Complete Divergence in Trade Channels and Consumers**
+   - The compared prior mark is registered for fishing gear (Class 28), targeting leisure sports enthusiasts through specialized retail stores. The user mark is designated for professional trademark research (Class 45) and IT data retrieval (Class 35), targeting legal professionals, business owners, and IT specialists.
+   - Given the vast difference in similar group codes (S120402/S123301 vs. leisure goods codes), there is no possibility that a consumer would associate a fishing rod with a trademark search service, regardless of the similarity in the name.
+
+## 4. Direction for Adjustment and Registration
+
+1. **Clarification of Designated Services**
+   - If the examiner maintains a descriptiveness objection, the applicant can narrow the scope of "information retrieval services" to more specific professional services, such as "legal research services for intellectual property" or "specialized technical data analysis." This reinforces that the mark is a brand name for a high-level professional service rather than a generic search tool.
+
+2. **Addition of Figurative Elements (Optional)**
+   - While the word mark "T-RADAR" possesses sufficient distinctiveness through its suggestive nature, the applicant may consider adding a unique logo or stylized font to the letter 'T'. This would further distance the mark from the prior mark "Radar" and overcome any perceived lack of inherent distinctiveness by creating a strong visual "source identifier."
+
+3. **Reliance on Suggestive Metaphor Logic**
+   - The applicant should argue that the examiner’s reference to "RADAR" as a "metaphorical expression" actually supports its registrability. Metaphors are, by definition, not literal descriptions. Since it is not a standard industry term for "retrieval," it functions effectively as a trademark.
+[심사관]
+## 1. Reasoning on Mark and Goods Similarity
+
+1. **Acceptance of Dissimilarity of Goods and Services (Article 34(1)7)**
+   - The applicant's argument regarding the complete divergence in trade channels and consumers is **accepted**. The user mark is designated for professional information retrieval services (Classes 45 and 35), while the compared prior mark is registered for fishing gear (Class 28). These fields target different consumer bases and utilize distinct distribution networks. Consequently, there is no likelihood of confusion between the two marks regarding the source of the goods/services.
+
+2. **Rejection of Phonetic and Visual Differentiation**
+   - The applicant's argument that "T-" and the hyphen create a distinctive visual and phonetic identity is **rejected**. Under KIPO standards, a single-letter prefix like "T-" is often perceived as a simple modifier (indicating 'Technology' or 'Total') and does not possess sufficient distinctiveness to separate it from the main noun "RADAR." Phonetically, the suffix "RADAR" remains the dominant auditory element. However, this similarity does not trigger a refusal under Article 34(1)7 because the goods themselves are not similar.
+
+## 2. Reasoning on Descriptiveness (Article 33(1)3)
+
+1. **Rejection of the "Suggestive" Logic for Retrieval Services**
+   - The applicant's claim that "RADAR" is purely suggestive or metaphorical for information retrieval is **rejected**. In the context of "trademark information retrieval" and "internet data retrieval," the word "RADAR" is a common industry term used to describe the function of scanning, detecting, or monitoring data. 
+   - A mark is considered descriptive if it directly indicates the quality, purpose, or method of the service. "RADAR" explicitly informs the consumer that the service's purpose is to "detect" or "search for" specific information, which is the core utility of the designated services.
+
+2. **Maintenance of Lack of Distinctiveness**
+   - The combination of "T" and "RADAR" directly refers to a "Technical Detection/Search" system. Because this combination describes the characteristic of the retrieval services (scanning and finding data), it must remain available for all competitors in the field to use. Therefore, the mark lacks the inherent distinctiveness required to function as a trademark under Article 33(1)3.
+
+## 3. Final Conclusion
+
+1. **Resolution of Conflict with Compared Prior Mark**
+   - The user mark does not conflict with the compared prior mark "Radar" (Application No. 4020200012698) because the designated goods (fishing gear) and services (information retrieval) are fundamentally dissimilar. The refusal ground based on Article 34(1)7 is not applicable.
+
+2. **Confirmation of Refusal Ground (Article 33(1)3)**
+   - The user mark "T-RADAR" is subject to refusal based on **Article 33(1)3 of the Trademark Act**. The mark is a descriptive indication of the function and purpose of the designated services in Classes 35 and 45. The applicant's rebuttal failed to demonstrate that the term is anything other than a direct description of the "detecting/searching" nature of the retrieval services.
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.834
+
+Instruction: Based on the dialogue between the examiner and the applicant's representative, write in Markdown only using the exact format below.
+**Important**: Respond in English only.
+
+## One-line summary
+- <Summarize whether the user mark conflicts with the prior mark in one sentence>
+
+## Key issues
+1. **<Issue name>** - <Explain the impact on the user's mark and KIPRIS evidence in 2+ sentences>
+2. **...** - ...
+3. **...** - ...
+
+
+
+All items must follow the format 'number. **<Issue name>** - description', and the entire '<Issue name>' must be bolded. Include critical risks and adjustment strategies without omission. Image similarity is the 0.5:0.5 ensemble of DINOv2 similarity and MetaCLIP2 similarity between [User mark] and [Compared prior mark]; text similarity is the MetaCLIP2 similarity between the mark names. These values must be mentioned only in the quantitative metrics section. Do not use internal abbreviations or code names (e.g., Track A/B). Do not add any intro or closing sentences beyond the titles and lists. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+## Quantitative metrics
+- Same mark name: <Copy exactly from the [Quantitative metrics] block>
+- Same image: <Copy exactly from the [Quantitative metrics] block>
+- Text similarity: <Copy exactly from the [Quantitative metrics] block>
+
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## One-line summary
+- The user mark "T-RADAR" does not conflict with the prior mark "Radar" due to the fundamental dissimilarity between information retrieval services and fishing gear, but it faces a high risk of refusal for being descriptive of its own services.
+
+## Key issues
+1. **High Similarity of Marks** - The user mark "T-RADAR" is visually and phonetically similar to the prior mark "Radar" as it fully incorporates the prior mark's literal element. According to KIPO examination standards, the prefix "T-" is often perceived as a simple modifier, meaning the term "RADAR" remains the dominant portion that determines the phonetic and conceptual impression for consumers.
+2. **Dissimilarity of Goods and Services** - A refusal based on Article 34(1)7 is unlikely to be sustained because the designated services for Classes 35 and 45 (information retrieval) share no commonality with the fishing equipment in Class 28. The divergence in similar group codes and trade channels ensures there is no likelihood of confusion regarding the source of the goods or services.
+3. **Inherent Descriptiveness under Article 33(1)3** - The mark faces a significant risk of refusal because "RADAR" directly describes the "scanning" or "searching" function inherent to information retrieval services. The combination of "T" and "RADAR" is viewed as a descriptive indication of a "Technical Search" system, meaning the mark may lack the inherent distinctiveness required to function as a source identifier.
+4. **Adjustment Strategies for Registration** - To overcome the descriptiveness objection, the applicant could narrow the scope of the designated services to more specialized professional analysis or add unique figurative elements to the mark. Emphasizing the metaphorical nature of "RADAR" as a suggestive term rather than a literal description of data processing may also serve as a valid rebuttal strategy.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.834
+
+[5] 역할: Scorer
+--- Prompt ---
+Case information:
+## One-line summary
+- The user mark "T-RADAR" does not conflict with the prior mark "Radar" due to the fundamental dissimilarity between information retrieval services and fishing gear, but it faces a high risk of refusal for being descriptive of its own services.
+
+## Key issues
+1. **High Similarity of Marks** - The user mark "T-RADAR" is visually and phonetically similar to the prior mark "Radar" as it fully incorporates the prior mark's literal element. According to KIPO examination standards, the prefix "T-" is often perceived as a simple modifier, meaning the term "RADAR" remains the dominant portion that determines the phonetic and conceptual impression for consumers.
+2. **Dissimilarity of Goods and Services** - A refusal based on Article 34(1)7 is unlikely to be sustained because the designated services for Classes 35 and 45 (information retrieval) share no commonality with the fishing equipment in Class 28. The divergence in similar group codes and trade channels ensures there is no likelihood of confusion regarding the source of the goods or services.
+3. **Inherent Descriptiveness under Article 33(1)3** - The mark faces a significant risk of refusal because "RADAR" directly describes the "scanning" or "searching" function inherent to information retrieval services. The combination of "T" and "RADAR" is viewed as a descriptive indication of a "Technical Search" system, meaning the mark may lack the inherent distinctiveness required to function as a source identifier.
+4. **Adjustment Strategies for Registration** - To overcome the descriptiveness objection, the applicant could narrow the scope of the designated services to more specialized professional analysis or add unique figurative elements to the mark. Emphasizing the metaphorical nature of "RADAR" as a suggestive term rather than a literal description of data processing may also serve as a valid rebuttal strategy.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.834
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.834
+
+Instruction: Below is the reporter's summary comparing the user mark vs. the prior mark. Based only on this summary, score conflict risk and registrability on a 0-100 scale. Assume the prior mark status and KIPRIS details are already reflected in the summary. Follow these two steps in order: 1) On the first line, output a JSON object {conflict_score, register_score, rationale, factors[]}. 2) Then write the evaluation using the exact [Markdown format] below.
+**Important**: Respond in English only.
+
+Use the following priorities: (1) whether pronunciation/concept/visual core are identical or effectively identical, (2) inherent distinctiveness of the user mark (less distinctive means stricter evaluation), (3) visual similarity of mark images, (4) proximity of goods/services classes and market context. If identical mark/image flags or extreme similarity values are provided, treat conflict risk as very high and registrability as very low. Assess each candidate strictly; if the conflict basis is clear, give a high conflict score, and if issues are minimal, give a low conflict score. When evidence is strong, avoid the 40-60 middle range and choose higher or lower values.
+
+[Markdown format]
+
+## Decision summary
+- **Conflict risk**: <number> pts
+- **Registrability**: <number> pts
+## Rationale
+- <Key reason 1>
+- <Key reason 2>
+## Recommended action
+- <Follow-up action or adjustment strategy>
+
+Headings must be exactly '## Decision summary', '## Rationale', '## Recommended action' in this order. Do not add any other headings or closing sentences. Do not write paragraphs; use bullets only. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+{"conflict_score": 20, "register_score": 30, "rationale": "The risk of conflict with the prior mark is low due to the complete dissimilarity between information retrieval services and fishing gear, but the mark faces a high probability of refusal for being descriptive of its own services under Article 33(1)3.", "factors": ["Visual and phonetic similarity of literal elements", "Total dissimilarity of goods and services (Class 35/45 vs Class 28)", "Inherent descriptiveness of 'RADAR' for searching/scanning services"]}
+
+## Decision summary
+- **Conflict risk**: 20 pts
+- **Registrability**: 30 pts
+
+## Rationale
+- 1. Although the marks are phonetically and visually similar due to the inclusion of "RADAR," the designated services for the user mark (Classes 35 and 45) share no similarity with the fishing equipment in Class 28. This divergence in market channels and similar group codes eliminates the likelihood of confusion.
+- 2. The mark faces a severe hurdle regarding inherent distinctiveness. Under Article 33(1)3, "RADAR" is likely to be viewed as a descriptive term for the "scanning," "searching," or "monitoring" functions fundamental to information retrieval services, making the mark lack the character of a source identifier.
+
+## Recommended action
+- 1. To overcome the descriptiveness objection, the applicant should consider adding a unique figurative or stylized design element to the mark to create a distinctive visual impression.
+- 2. Prepare a rebuttal arguing that "RADAR" is used metaphorically or suggestively rather than as a direct description of the data processing technicality.
+- 3. Narrow the scope of designated services to highly specialized professional fields where "RADAR" is not a standard industry term for search functions.

@@ -16,6 +16,8 @@ import {
 import logo from './assets/logo-tradar.png';
 import { apiFetch, buildApiUrl } from './lib/apiClient';
 import { getLandingCopy } from './i18n/landingCopy';
+import exampleSearchFixture from './tutorial/fixtures/example1_search.json';
+import exampleSimulationFixture from './tutorial/fixtures/example1_simulation.json';
 
 const GOODS_LIMIT = 10;
 const RESULT_PAGE_SIZE = 18;
@@ -23,6 +25,7 @@ const RESULT_LIMIT = 200;
 const SIMULATION_DEFAULT_PER_VARIANT = 5;
 const SIMULATION_MAX_SELECTION = 20;
 const STATIC_PUBLIC_PREFIX = '/home/work/workspace/tradar/frontend/public';
+const TUTORIAL_DISMISS_KEY = 'tradar_tutorial_dismissed_v1';
 
 const buildGoodsSelectionKey = (classCode, groupCode, names = []) => {
   const normalizedNames = Array.isArray(names) ? names.join('|') : '';
@@ -136,6 +139,139 @@ const EXAMPLE_PRESETS = {
   },
 };
 
+const TOUR_CONTENT = {
+  ko: {
+    steps: [
+      {
+        key: 'hero',
+        title: '서비스 개요',
+        body: '이 영역에서 서비스 소개와 주요 버튼을 확인할 수 있습니다.',
+        selector: '[data-tour="hero-area"]',
+      },
+      {
+        key: 'title',
+        title: '상표명 입력',
+        body: '검색할 상표명을 입력하세요.',
+        selector: '[data-tour="title-input"]',
+      },
+      {
+        key: 'image',
+        title: '이미지 업로드',
+        body: '이미지를 함께 넣으면 유사 상표를 더 정확히 찾을 수 있습니다.',
+        selector: '[data-tour="image-dropzone"]',
+      },
+      {
+        key: 'goods',
+        title: '상품/서비스류 검색',
+        body: '상품/서비스류를 검색하고 체크하세요.',
+        selector: '[data-tour="goods-panel"]',
+      },
+      {
+        key: 'selected',
+        title: '선택한 분류 확인',
+        body: '선택된 분류를 확인하거나 해제할 수 있습니다.',
+        selector: '[data-tour="selected-goods"]',
+      },
+      {
+        key: 'search',
+        title: '검색 실행',
+        body: '검색 버튼을 누르면 유사 상표 후보가 표시됩니다.',
+        selector: '[data-tour="search-button"]',
+      },
+      {
+        key: 'results',
+        title: '검색 결과',
+        body: '이미지/텍스트 후보를 확인하세요.',
+        selector: '[data-tour="results-section"]',
+      },
+      {
+        key: 'select',
+        title: '시뮬레이션 후보 선택',
+        body: '체크박스로 시뮬레이션 후보를 고를 수 있으며 최대 20개까지 선택 가능합니다.',
+        selector: '[data-tour="candidate-checkboxes"]',
+      },
+      {
+        key: 'simulation',
+        title: '시뮬레이션',
+        body: '선택한 후보로 심사 시뮬레이션을 실행합니다. 이후 상표명/이미지/상품·서비스류를 바꾼 뒤 다시 실행해 비교할 수 있습니다.',
+        selector: '[data-tour="simulation-panel"]',
+      },
+    ],
+    controls: {
+      next: '다음',
+      prev: '이전',
+      skip: '건너뛰기',
+      done: '완료',
+      dontShow: '다시 보지 않기',
+    },
+  },
+  en: {
+    steps: [
+      {
+        key: 'hero',
+        title: 'Overview',
+        body: 'This area contains the title, intro text, and main actions.',
+        selector: '[data-tour="hero-area"]',
+      },
+      {
+        key: 'title',
+        title: 'Trademark name',
+        body: 'Enter the trademark name to search.',
+        selector: '[data-tour="title-input"]',
+      },
+      {
+        key: 'image',
+        title: 'Upload image',
+        body: 'Add an image for better similarity matching.',
+        selector: '[data-tour="image-dropzone"]',
+      },
+      {
+        key: 'goods',
+        title: 'Goods & services',
+        body: 'Search and select relevant goods/services.',
+        selector: '[data-tour="goods-panel"]',
+      },
+      {
+        key: 'selected',
+        title: 'Selected classes',
+        body: 'Review or remove selected classes here.',
+        selector: '[data-tour="selected-goods"]',
+      },
+      {
+        key: 'search',
+        title: 'Run search',
+        body: 'Click search to retrieve candidates.',
+        selector: '[data-tour="search-button"]',
+      },
+      {
+        key: 'results',
+        title: 'Results',
+        body: 'Review image/text candidates.',
+        selector: '[data-tour="results-section"]',
+      },
+      {
+        key: 'select',
+        title: 'Select candidates',
+        body: 'Use the checkboxes to include candidates in simulation (up to 20).',
+        selector: '[data-tour="candidate-checkboxes"]',
+      },
+      {
+        key: 'simulation',
+        title: 'Simulation',
+        body: 'Run the examination simulation. After results, update title/image/goods and run again to compare.',
+        selector: '[data-tour="simulation-panel"]',
+      },
+    ],
+    controls: {
+      next: 'Next',
+      prev: 'Back',
+      skip: 'Skip',
+      done: 'Done',
+      dontShow: "Don't show again",
+    },
+  },
+};
+
 const resolveStaticAssetPath = (input) => {
   if (!input) return '';
   if (input.startsWith('http://') || input.startsWith('https://')) {
@@ -170,6 +306,29 @@ const resolveMediaUrl = (input) => {
     return buildApiUrl(normalized);
   }
   return normalized;
+};
+
+const buildGroupMapFromPreset = (preset, language) => {
+  if (!preset) return {};
+  const groups = Array.isArray(preset.groups)
+    ? preset.groups
+    : (preset.groups?.[language] || preset.groups?.ko || []);
+  const groupMap = {};
+  groups.forEach((group) => {
+    if (!group?.groupCode) return;
+    const selectionKey = buildGoodsSelectionKey(
+      group.classCode,
+      group.groupCode,
+      group.names,
+    );
+    groupMap[selectionKey] = {
+      classCode: group.classCode,
+      className: group.className,
+      groupCode: group.groupCode,
+      names: group.names || [],
+    };
+  });
+  return groupMap;
 };
 
 const fetchStaticAssetFile = async (assetPath) => {
@@ -601,7 +760,7 @@ function GoodsSearchPanel({
     showLanguageNotice && needsRefresh && query.trim() === lastSearchedQueryRef.current;
 
   return (
-    <section className="goods-panel">
+    <section className="goods-panel" data-tour="goods-panel">
       <div className="goods-panel__heading">
         <h2>{text.sectionTitle || '상품/서비스류 검색'}</h2>
         {text.note ? <span className="goods-panel__note">{text.note}</span> : null}
@@ -692,7 +851,7 @@ function SelectedGoodsPanel({ selectedGroups, onToggleGroup, copy, language = 'k
   };
 
   return (
-    <section className="goods-selected-panel" aria-live="polite">
+    <section className="goods-selected-panel" aria-live="polite" data-tour="selected-goods">
       <div className="goods-selected-panel__header">
         <span className="goods-selected__label">{selectedLabel}</span>
       </div>
@@ -740,6 +899,124 @@ function SelectedGoodsPanel({ selectedGroups, onToggleGroup, copy, language = 'k
         })}
       </div>
     </section>
+  );
+}
+
+function GuidedTour({
+  steps = [],
+  stepIndex = 0,
+  onStepChange,
+  onClose,
+  dontShow,
+  onToggleDontShow,
+  labels = {},
+}) {
+  const step = steps[stepIndex] || steps[0];
+  const [highlight, setHighlight] = useState(null);
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    if (!step?.selector) {
+      setHighlight(null);
+      return;
+    }
+    const update = () => {
+      const element = document.querySelector(step.selector);
+      if (!element) {
+        setHighlight(null);
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      setHighlight({
+        top: Math.max(rect.top - 8, 8),
+        left: Math.max(rect.left - 8, 8),
+        width: Math.max(rect.width + 16, 0),
+        height: Math.max(rect.height + 16, 0),
+      });
+    };
+    update();
+    const element = document.querySelector(step.selector);
+    if (element?.scrollIntoView) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [step]);
+
+  const isLast = stepIndex >= steps.length - 1;
+  const hasPrev = stepIndex > 0;
+  const totalLabel = steps.length ? `${stepIndex + 1} / ${steps.length}` : '';
+
+  return (
+    <div className="tour-overlay" ref={overlayRef}>
+      {highlight && (
+        <div
+          className="tour-spotlight"
+          style={{
+            top: `${highlight.top}px`,
+            left: `${highlight.left}px`,
+            width: `${highlight.width}px`,
+            height: `${highlight.height}px`,
+          }}
+        />
+      )}
+      <div className="tour-card">
+        <div className="tour-card__header">
+          <span className="tour-card__step">{totalLabel}</span>
+          <button
+            type="button"
+            className="tour-card__close"
+            onClick={() => onClose?.(false)}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <h4>{step?.title}</h4>
+        <p>{step?.body}</p>
+        <label className="tour-card__checkbox">
+          <input
+            type="checkbox"
+            checked={dontShow}
+            onChange={(event) => onToggleDontShow?.(event.target.checked)}
+          />
+          <span>{labels.dontShow || '다시 보지 않기'}</span>
+        </label>
+        <div className="tour-card__actions">
+          <button type="button" className="tour-btn tour-btn--ghost" onClick={() => onClose?.(true)}>
+            {labels.skip || '건너뛰기'}
+          </button>
+          <div className="tour-card__action-group">
+            {hasPrev && (
+              <button
+                type="button"
+                className="tour-btn tour-btn--secondary"
+                onClick={() => onStepChange?.(stepIndex - 1)}
+              >
+                {labels.prev || '이전'}
+              </button>
+            )}
+            <button
+              type="button"
+              className={`tour-btn ${isLast ? 'tour-btn--done' : 'tour-btn--primary'}`}
+              onClick={() => {
+                if (isLast) {
+                  onClose?.(true);
+                } else {
+                  onStepChange?.(stepIndex + 1);
+                }
+              }}
+            >
+              {isLast ? (labels.done || '완료') : (labels.next || '다음')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -877,6 +1154,7 @@ function TrademarkSearchForm({
             <span className="field-label">{text.fieldLabel || '상표명'}</span>
             <input
               type="text"
+              data-tour="title-input"
               value={title}
               onChange={(e) => onTitleChange?.(e.target.value)}
               placeholder={text.fieldPlaceholder || '예: 커피한잔'}
@@ -893,6 +1171,7 @@ function TrademarkSearchForm({
           />
           <div
             className={dropzoneClass}
+            data-tour="image-dropzone"
             role="button"
             tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
@@ -932,6 +1211,7 @@ function ResultCard({
   onToggleSelection,
   canSelectMore = true,
   locked = false,
+  tourAnchor = false,
 }) {
   const status = (item.status || '').trim();
   const statusClass = STATUS_MAP[status.toLowerCase()] || 'status-default';
@@ -1001,6 +1281,7 @@ function ResultCard({
             <label
               className={['result-card__select', locked ? 'result-card__select--locked' : ''].filter(Boolean).join(' ')}
               aria-label="시뮬레이션 대상 선택"
+              data-tour={tourAnchor ? 'candidate-checkboxes' : undefined}
             >
               <input
                 type="checkbox"
@@ -1135,7 +1416,7 @@ function ResultSection({
       <div className="results-section__inner">
         {visibleItems.length ? (
           <div className="results-grid">
-            {visibleItems.map((item) => (
+            {visibleItems.map((item, index) => (
               <ResultCard
                 key={`${variant}-top-${item.trademark_id}`}
                 item={item}
@@ -1148,6 +1429,7 @@ function ResultSection({
                 checked={Boolean(selectionMap && selectionMap[getResultKey(item)])}
                 canSelectMore={Boolean(selectionMap && (selectionMap[getResultKey(item)] || totalSelected < selectionLimit))}
                 locked={selectionLocked}
+                tourAnchor={index === 0}
                 onToggleSelection={onToggleSelection ? (checked) => onToggleSelection(item, checked) : undefined}
               />
             ))}
@@ -1392,6 +1674,7 @@ function SimulationPanel({
     <aside
       className={panelClass}
       aria-label={text.ariaLabel || '상표 충돌 위험도 및 등록 가능성 시뮬레이션'}
+      data-tour="simulation-panel"
     >
       <div className="simulation-panel__header">
         <p className="simulation-panel__tag">{text.tag || 'AI Agent Simulation'}</p>
@@ -1829,6 +2112,9 @@ function App() {
   const [language, setLanguage] = useState('en');
   const [selectedGroups, setSelectedGroups] = useState({});
   const [goodsResultsReady, setGoodsResultsReady] = useState(false);
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [tutorialDontShow, setTutorialDontShow] = useState(false);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -1853,10 +2139,14 @@ function App() {
   const [activeSimulationId, setActiveSimulationId] = useState(null);
   const [pendingSimulationTitle, setPendingSimulationTitle] = useState('');
   const simulationTitleRef = useRef(new Map());
+  const tutorialSnapshotRef = useRef(null);
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
   const copy = useMemo(() => getLandingCopy(language), [language]);
+  const tourCopy = useMemo(() => TOUR_CONTENT[language] || TOUR_CONTENT.ko, [language]);
+  const tourSteps = tourCopy.steps || [];
+  const tourLabels = tourCopy.controls || {};
   const searchErrors = copy.search?.errors || {};
   const simulationAlerts = copy.simulation?.alerts || {};
   const simulationErrors = copy.simulation?.errors || {};
@@ -1891,6 +2181,143 @@ function App() {
       ignore = true;
     };
   }, []);
+
+  const startTutorial = useCallback(() => {
+    if (tutorialSnapshotRef.current) {
+      return;
+    }
+    tutorialSnapshotRef.current = {
+      response,
+      simulationResult,
+      simulationStatus,
+      simulationError,
+      simulationHistory,
+      activeSimulationId,
+      simulationSelection,
+      simulationDefaults,
+      selectedGroups,
+      goodsResultsReady,
+      title,
+      imageFile,
+      lastSearchId,
+      placeholderNotice,
+    };
+
+    setResponse(exampleSearchFixture);
+    setSimulationResult(exampleSimulationFixture);
+    setSimulationStatus('complete');
+    setSimulationError('');
+    setSimulationHistory([]);
+    setActiveSimulationId(null);
+    setSimulationSelection({
+      image: buildSelectionMap(exampleSearchFixture.image_top || []),
+      text: buildSelectionMap(exampleSearchFixture.text_top || []),
+    });
+    setSimulationDefaults({
+      image: buildHighlightMap(exampleSearchFixture.image_top || []),
+      text: buildHighlightMap(exampleSearchFixture.text_top || []),
+    });
+    setSelectedGroups(buildGroupMapFromPreset(EXAMPLE_PRESETS.example1, language));
+    setGoodsResultsReady(false);
+    const goodsQuery = EXAMPLE_PRESETS.example1?.goodsQuery?.[language]
+      || EXAMPLE_PRESETS.example1?.goodsQuery?.ko
+      || '';
+    if (goodsQuery) {
+      setGoodsPreset({ term: goodsQuery, nonce: Date.now() });
+    }
+    setTitle(exampleSearchFixture?.query?.text || 'T-RADAR');
+    setLastSearchId(exampleSearchFixture?.search_id || 'tutorial');
+    setPlaceholderNotice('');
+    setLoading(false);
+    setLoadingState({ image: false, text: false });
+    setError('');
+    fetchStaticAssetFile(EXAMPLE_PRESETS.example1.imagePath)
+      .then((file) => {
+        if (tutorialSnapshotRef.current) {
+          setImageFile(file);
+        }
+      })
+      .catch(() => {
+        // ignore errors for tutorial image
+      });
+  }, [
+    response,
+    simulationResult,
+    simulationStatus,
+    simulationError,
+    simulationHistory,
+    activeSimulationId,
+    simulationSelection,
+    simulationDefaults,
+    selectedGroups,
+    goodsResultsReady,
+    title,
+    imageFile,
+    lastSearchId,
+    placeholderNotice,
+    language,
+  ]);
+
+  const restoreTutorialSnapshot = useCallback(() => {
+    const snapshot = tutorialSnapshotRef.current;
+    if (!snapshot) return;
+    setResponse(snapshot.response);
+    setSimulationResult(snapshot.simulationResult);
+    setSimulationStatus(snapshot.simulationStatus);
+    setSimulationError(snapshot.simulationError);
+    setSimulationHistory(snapshot.simulationHistory);
+    setActiveSimulationId(snapshot.activeSimulationId);
+    setSimulationSelection(snapshot.simulationSelection);
+    setSimulationDefaults(snapshot.simulationDefaults);
+    setSelectedGroups(snapshot.selectedGroups);
+    setGoodsResultsReady(snapshot.goodsResultsReady);
+    setTitle(snapshot.title);
+    setImageFile(snapshot.imageFile);
+    setLastSearchId(snapshot.lastSearchId);
+    setPlaceholderNotice(snapshot.placeholderNotice);
+    tutorialSnapshotRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    let dismissed = false;
+    try {
+      dismissed = window.localStorage.getItem(TUTORIAL_DISMISS_KEY) === 'true';
+    } catch {
+      dismissed = false;
+    }
+    if (!dismissed) {
+      setTutorialActive(true);
+      setTutorialStep(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tutorialActive) {
+      startTutorial();
+    } else {
+      restoreTutorialSnapshot();
+    }
+  }, [tutorialActive, startTutorial, restoreTutorialSnapshot]);
+
+  const closeTutorial = useCallback((dismiss = false) => {
+    const shouldDismiss = dismiss || tutorialDontShow;
+    if (shouldDismiss) {
+      try {
+        window.localStorage.setItem(TUTORIAL_DISMISS_KEY, 'true');
+      } catch {
+        // ignore storage issues
+      }
+    }
+    setTutorialActive(false);
+    setTutorialStep(0);
+    setTutorialDontShow(false);
+  }, [tutorialDontShow]);
+
+  const handleTutorialOpen = () => {
+    setTutorialDontShow(false);
+    setTutorialStep(0);
+    setTutorialActive(true);
+  };
 
   useEffect(() => {
     const runningStatuses = ['collecting', 'loading'];
@@ -2065,26 +2492,7 @@ function App() {
       setError('');
       setGoodsResultsReady(false);
       const file = await fetchStaticAssetFile(config.imagePath);
-      const groupMap = {};
-      const groups = Array.isArray(config.groups)
-        ? config.groups
-        : (config.groups?.[language] || config.groups?.ko || []);
-      groups.forEach((group) => {
-        if (!group?.groupCode) {
-          return;
-        }
-        const selectionKey = buildGoodsSelectionKey(
-          group.classCode,
-          group.groupCode,
-          group.names,
-        );
-        groupMap[selectionKey] = {
-          classCode: group.classCode,
-          className: group.className,
-          groupCode: group.groupCode,
-          names: group.names || [],
-        };
-      });
+      const groupMap = buildGroupMapFromPreset(config, language);
       setTitle(config.title);
       const goodsQuery = typeof config.goodsQuery === 'string'
         ? config.goodsQuery
@@ -2432,7 +2840,7 @@ function App() {
       <div className="search-column">
       <section className="hero">
         <img className="logo" src={logo} alt="T-RADAR" />
-        <div className="hero-text">
+        <div className="hero-text" data-tour="hero-area">
           <div className="hero-heading">
             <h1 className="title">T-RADAR</h1>
             <div className="hero-actions">
@@ -2451,6 +2859,16 @@ function App() {
                   <span className="language-toggle__divider">/</span>
                   <span className={`language-toggle__item ${language === 'ko' ? 'is-active' : ''}`}>한</span>
                 </span>
+              </button>
+              <button
+                type="button"
+                className="github-link hero-tutorial"
+                onClick={handleTutorialOpen}
+                aria-label={language === 'en' ? 'Tutorial' : '튜토리얼'}
+                title={language === 'en' ? 'Tutorial' : '튜토리얼'}
+              >
+                <span className="github-link__icon">?</span>
+                <span className="github-link__label">{language === 'en' ? 'Tutorial' : '튜토리얼'}</span>
               </button>
               <a
                 className="github-link hero-github"
@@ -2502,6 +2920,7 @@ function App() {
           <button
             type="button"
             className="action-button action-button--primary"
+            data-tour="search-button"
             onClick={() => executeSearch(false)}
           >
             <FiSearch aria-hidden="true" />
@@ -2530,7 +2949,7 @@ function App() {
         </label>
         */}
       </div>
-      <section className="search-results">
+      <section className="search-results" data-tour="results-section">
         <h2>{copy.results?.sectionTitle || '검색 결과'}</h2>
         {error && <p role="alert">{error}</p>}
         <div className="search-results__body">
@@ -2635,6 +3054,17 @@ function App() {
           copy={copy.simulation}
         />
       </div>
+      {tutorialActive && (
+        <GuidedTour
+          steps={tourSteps}
+          stepIndex={tutorialStep}
+          onStepChange={setTutorialStep}
+          onClose={closeTutorial}
+          dontShow={tutorialDontShow}
+          onToggleDontShow={setTutorialDontShow}
+          labels={tourLabels}
+        />
+      )}
     </div>
   );
 }

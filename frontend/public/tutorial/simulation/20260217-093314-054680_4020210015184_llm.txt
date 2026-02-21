@@ -1,0 +1,557 @@
+[1] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: CnTRadar (Application No. 4020210015184)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09
+
+- Goods/services summary:
+
+  - 컨테이너 샷시의 관제용 컴퓨터 소프트웨어,컨테이너 샷시의 위치 추적용 컴퓨터 소프트웨어,컨테이너 샷시의 배차 관리용 컴퓨터 소프트웨어,컨테이너 샷시의 소유주와 임차인간의 연락을 위한 컴퓨터 소프트웨어,컨테이너 샷시 쉐어링 관리 컴퓨터 소프트웨어,컨테이너 샷시 공유 관리 컴퓨터 소프트웨어,컨테이너 샷시 임대 관리 컴퓨터 소프트웨어
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Instruction: Using prior examination cases and goods/services for similar marks, analyze possible refusal risks for the user's mark and write a logical evaluation comparable to an Office Action. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Derive high-conflict points from past similar cases, but do not mention mitigation or adjustment strategies.
+  - Do not apply past cases as facts or assert them as identical.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All direct comparisons must be only between [User mark] and [Compared prior mark]. Other marks cited in the office action should only be referenced as supporting grounds in a 'prior mark refusal reasons' section.
+  - Compare the marks (appearance, lettering, pronunciation, concept) and the scope of goods/services logically.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Explain potential refusal reasons with evidence.
+  - Ground reasoning in KIPO examination practice.
+  - It is acceptable to mention conventional criteria (pronunciation, concept, appearance).
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Reasoning
+
+### 1. Similarity of Marks
+1. **Comparison of Appearance**: 
+   - The user mark "T-RADAR" consists of the English letter 'T' and the word 'RADAR' separated by a hyphen.
+   - The compared prior mark "CnTRadar" consists of the English letters 'CnT' and 'Radar' combined into a single string.
+   - Both marks share the common component "RADAR," which occupies a significant portion of each mark. Visually, the suffix "RADAR" is identical in both marks, creating a similar visual impression despite the difference in prefixes ('T-' vs. 'CnT').
+
+2. **Comparison of Pronunciation**:
+   - The user mark is pronounced as "Ti-re-i-deo" (티-레이더).
+   - The compared prior mark is pronounced as "Ssi-aen-ti-re-i-deo" (씨앤티-레이더).
+   - Both marks share the four-syllable ending "re-i-deo" (레이더). In trademark examination, when the latter part of a mark is identical and carries a specific meaning, the phonetic similarity is considered high, as consumers often focus on the distinctive or common keyword "RADAR."
+
+3. **Comparison of Concept**:
+   - Both marks utilize the concept of "RADAR," which refers to a system for detecting and tracking objects.
+   - The user mark "T-RADAR" conveys the concept of "T-related tracking or searching," while the prior mark "CnTRadar" conveys "CnT-related tracking or control."
+   - Given that both marks evoke the idea of a detection or search tool, the underlying concept is highly similar, which may lead to confusion regarding the source of the goods or services.
+
+### 2. Similarity of Goods and Services
+1. **Relationship between Software and Services**:
+   - The compared prior mark is registered for "computer software" in Class 09, specifically focusing on control, tracking, and management (e.g., container chassis tracking).
+   - The user mark targets "trademark information retrieval research" (Class 45) and "retrieval services for internet data" (Class 35).
+   - In modern commerce, information retrieval and research services are almost exclusively delivered through specialized computer software or database platforms. Therefore, there is a strong functional relationship between the "software" (Class 09) and the "information retrieval services" (Class 35/45).
+
+2. **Overlap in Consumer Base and Purpose**:
+   - The purpose of the prior mark’s goods is "tracking and management," while the user mark’s services involve "information retrieval." Both belong to the broader category of data processing and search technologies.
+   - If the same or similar marks are used for both software and the services provided by that software, consumers are likely to believe that the services provided under "T-RADAR" originate from the same entity that produces "CnTRadar" software, leading to a risk of confusion.
+
+## 2. Prior Mark Refusal Reasons
+
+1. **Similarity to Pre-existing Marks (Article 34, Paragraph 1, Item 7)**:
+   - According to KIPO examination standards, a mark shall be refused registration if it is identical or similar to a prior registered trademark and is used on identical or similar goods. 
+   - In previous examination cases involving marks ending in "RADAR," the "RADAR" portion has often been recognized as a dominant part of the mark when the preceding letters (like 'T' or 'CnT') lack sufficient distinctiveness or act as simple identifiers.
+
+2. **Cross-Class Similarity between Class 09 and Classes 35/45**:
+   - Examination practice often recognizes the similarity between "recorded software" (Class 09) and "online data/information search services" (Class 35/42/45). This is because the software is the essential tool through which the search service is realized. Thus, even though the class numbers differ, the similarity of the goods/services can be established based on their interdependent relationship in the marketplace.
+
+[2] 역할: 출원인
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: CnTRadar (Application No. 4020210015184)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09
+
+- Goods/services summary:
+
+  - 컨테이너 샷시의 관제용 컴퓨터 소프트웨어,컨테이너 샷시의 위치 추적용 컴퓨터 소프트웨어,컨테이너 샷시의 배차 관리용 컴퓨터 소프트웨어,컨테이너 샷시의 소유주와 임차인간의 연락을 위한 컴퓨터 소프트웨어,컨테이너 샷시 쉐어링 관리 컴퓨터 소프트웨어,컨테이너 샷시 공유 관리 컴퓨터 소프트웨어,컨테이너 샷시 임대 관리 컴퓨터 소프트웨어
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Reasoning
+
+### 1. Similarity of Marks
+1. **Comparison of Appearance**: 
+   - The user mark "T-RADAR" consists of the English letter 'T' and the word 'RADAR' separated by a hyphen.
+   - The compared prior mark "CnTRadar" consists of the English letters 'CnT' and 'Radar' combined into a single string.
+   - Both marks share the common component "RADAR," which occupies a significant portion of each mark. Visually, the suffix "RADAR" is identical in both marks, creating a similar visual impression despite the difference in prefixes ('T-' vs. 'CnT').
+
+2. **Comparison of Pronunciation**:
+   - The user mark is pronounced as "Ti-re-i-deo" (티-레이더).
+   - The compared prior mark is pronounced as "Ssi-aen-ti-re-i-deo" (씨앤티-레이더).
+   - Both marks share the four-syllable ending "re-i-deo" (레이더). In trademark examination, when the latter part of a mark is identical and carries a specific meaning, the phonetic similarity is considered high, as consumers often focus on the distinctive or common keyword "RADAR."
+
+3. **Comparison of Concept**:
+   - Both marks utilize the concept of "RADAR," which refers to a system for detecting and tracking objects.
+   - The user mark "T-RADAR" conveys the concept of "T-related tracking or searching," while the prior mark "CnTRadar" conveys "CnT-related tracking or control."
+   - Given that both marks evoke the idea of a detection or search tool, the underlying concept is highly similar, which may lead to confusion regarding the source of the goods or services.
+
+### 2. Similarity of Goods and Services
+1. **Relationship between Software and Services**:
+   - The compared prior mark is registered for "computer software" in Class 09, specifically focusing on control, tracking, and management (e.g., container chassis tracking).
+   - The user mark targets "trademark information retrieval research" (Class 45) and "retrieval services for internet data" (Class 35).
+   - In modern commerce, information retrieval and research services are almost exclusively delivered through specialized computer software or database platforms. Therefore, there is a strong functional relationship between the "software" (Class 09) and the "information retrieval services" (Class 35/45).
+
+2. **Overlap in Consumer Base and Purpose**:
+   - The purpose of the prior mark’s goods is "tracking and management," while the user mark’s services involve "information retrieval." Both belong to the broader category of data processing and search technologies.
+   - If the same or similar marks are used for both software and the services provided by that software, consumers are likely to believe that the services provided under "T-RADAR" originate from the same entity that produces "CnTRadar" software, leading to a risk of confusion.
+
+## 2. Prior Mark Refusal Reasons
+
+1. **Similarity to Pre-existing Marks (Article 34, Paragraph 1, Item 7)**:
+   - According to KIPO examination standards, a mark shall be refused registration if it is identical or similar to a prior registered trademark and is used on identical or similar goods. 
+   - In previous examination cases involving marks ending in "RADAR," the "RADAR" portion has often been recognized as a dominant part of the mark when the preceding letters (like 'T' or 'CnT') lack sufficient distinctiveness or act as simple identifiers.
+
+2. **Cross-Class Similarity between Class 09 and Classes 35/45**:
+   - Examination practice often recognizes the similarity between "recorded software" (Class 09) and "online data/information search services" (Class 35/42/45). This is because the software is the essential tool through which the search service is realized. Thus, even though the class numbers differ, the similarity of the goods/services can be established based on their interdependent relationship in the marketplace.
+
+Instruction: Based on the examiner's points, provide a logical rebuttal or appropriate adjustment directions. The examiner's refusal reasons are only possibilities; the applicant must present clear rebuttal logic, distinguishing factors, and adjustment directions. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Identify misunderstandings or overstatements in the examiner's analysis and rebut them.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - All comparisons must be between [User mark] and [Compared prior mark]; prior marks in the office action are referenced only as supporting cases.
+  - Provide evidence that the user's mark is sufficiently distinguishable in pronunciation, concept, appearance, and market context.
+  - If adjustment is advantageous or feasible, propose directions such as clarifying goods/services or adjusting expression elements.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Provide reasons why the marks are not similar for each issue.
+  - Point out overreliance on past cases when applicable.
+  - Build a logical direction that the application is registrable, without asserting certainty.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Reasoning
+
+### 1. Distinctiveness of Prefixes and Weakness of "RADAR"
+1. **Focus on Distinctive Components**: In trademark jurisprudence, when a mark consists of a common or suggestive term combined with a distinctive prefix, the prefix often serves as the primary identifier. The term "RADAR" is highly suggestive and commonly used in the fields of data processing, search, and detection to imply the "finding" or "tracking" of information. Therefore, the visual and phonetic focus of consumers naturally shifts to the prefixes "T-" and "CnT."
+2. **Visual Dissimilarity**: The user mark "T-RADAR" utilizes a single letter "T" separated by a hyphen, creating a concise, two-part structure. In contrast, the prior mark "CnTRadar" is a combined string of three letters "CnT" followed by "Radar." The difference in length, capitalization, and the presence of the hyphen in the user mark creates a clearly distinguishable visual impression.
+3. **Phonetic Dissimilarity**: The user mark is pronounced in three to four short syllables ("Ti-re-i-deo"), whereas the prior mark "CnTRadar" is significantly longer and more complex ("Ssi-aen-ti-re-i-deo"). The initial sounds ("T" vs. "S/C") are phonetically distinct, and the difference in the number of syllables ensures that the overall rhythm and cadence of the marks are not confusingly similar.
+
+### 2. Conceptual Differentiation and Specialized Fields
+1. **Specific Meanings**: The prefix "T" in "T-RADAR" is often associated with "Technology," "Trademark," or "Total," especially given the designated services. The prefix "CnT" in the prior mark is clearly an abbreviation related to its registered goods, such as "Container" or "Control." Consumers in the respective markets will perceive these marks as referring to entirely different technological applications.
+2. **Lack of Confusion**: Because "RADAR" is a metaphorical term for search/tracking, its use by multiple parties in different industries is common. Consumers are accustomed to seeing "RADAR" used in various software and service contexts and are unlikely to assume a common source based solely on this shared suffix.
+
+### 3. Dissimilarity of Goods and Services
+1. **Disparity in Purpose and Consumer Base**: The compared prior mark is strictly limited to "computer software for container chassis" (Class 09), which is a highly specialized logistics and transportation tool. The user mark, however, targets "trademark information retrieval" (Class 45) and "internet data retrieval" (Class 35). The target consumers for logistics software (shipping companies, port authorities) are entirely different from the users of trademark research and general internet search services (legal professionals, branding agencies, general internet users).
+2. **Functional Independence**: While the examiner suggests a link between "software" and "services," the specific software in the prior mark is an industrial tool for physical asset management (container chassis). This is fundamentally different from the information-based research services of the user mark. There is no logical reason for a consumer seeking trademark research to encounter or be confused by specialized shipping logistics software.
+3. **Overreliance on Cross-Class Similarity**: The examiner’s assertion of similarity between Class 09 and Classes 35/45 is an overgeneralization. Under Article 34, Paragraph 1, Item 7, similarity must be judged based on the risk of confusion in the actual marketplace. Given the vast difference between "container management" and "trademark research," the functional relationship is non-existent.
+
+## 2. Adjustment Directions
+
+1. **Clarification of Service Scope**: To further distance the user mark from the prior mark's "control and tracking" software, the descriptions in Class 35 and 45 can be refined. For example, explicitly specifying "trademark information retrieval research for legal and branding purposes" would highlight the professional and informational nature of the service, as opposed to the industrial/logistical nature of the prior mark.
+2. **Emphasizing the "T" Identifier**: In marketing and the application description, emphasizing the "T" as a specific brand identifier (e.g., representing "Trademark Radar") can reinforce the distinctiveness of the user mark's prefix compared to the "CnT" of the prior mark.
+3. **Argument of Coexistence**: Evidence can be provided showing that many "RADAR" prefixed or suffixed marks coexist across different classes when the accompanying prefixes are distinct and the fields of use are specialized. This supports the argument that "RADAR" should be treated as a weak element with a narrow scope of protection.
+
+[3] 역할: 심사관
+--- Prompt ---
+Case information:
+[User mark]
+
+- Name: T-RADAR
+
+- Selected classes: 45, 35
+
+- Selected similar group codes: S120402, S123301
+
+- Selected goods/services:
+
+  - (S120402) trademark information retrieval research
+
+  - (S123301) retrieval services for internet data, information retrieval services on the internet for others, computer database retrieval services
+
+
+
+[Compared prior mark]
+
+- Title: CnTRadar (Application No. 4020210015184)
+
+- Current status: Registered
+
+- Selection basis: user selected from Text search results
+
+- Classes: 09
+
+- Goods/services summary:
+
+  - 컨테이너 샷시의 관제용 컴퓨터 소프트웨어,컨테이너 샷시의 위치 추적용 컴퓨터 소프트웨어,컨테이너 샷시의 배차 관리용 컴퓨터 소프트웨어,컨테이너 샷시의 소유주와 임차인간의 연락을 위한 컴퓨터 소프트웨어,컨테이너 샷시 쉐어링 관리 컴퓨터 소프트웨어,컨테이너 샷시 공유 관리 컴퓨터 소프트웨어,컨테이너 샷시 임대 관리 컴퓨터 소프트웨어
+
+- The KIPRIS documents below show prior refusal grounds for the similar mark and serve as reference material to assess whether similar grounds could apply to the user mark.
+
+- **Important**: Prior registered/earlier-filed marks mentioned in office actions are for reference only. Do not mention them in the direct comparison between [User mark] and [Compared prior mark]. They may be referenced only in a separate explanation such as "prior mark refusal reasons".
+
+Conversation so far:
+[심사관]
+## 1. Reasoning
+
+### 1. Similarity of Marks
+1. **Comparison of Appearance**: 
+   - The user mark "T-RADAR" consists of the English letter 'T' and the word 'RADAR' separated by a hyphen.
+   - The compared prior mark "CnTRadar" consists of the English letters 'CnT' and 'Radar' combined into a single string.
+   - Both marks share the common component "RADAR," which occupies a significant portion of each mark. Visually, the suffix "RADAR" is identical in both marks, creating a similar visual impression despite the difference in prefixes ('T-' vs. 'CnT').
+
+2. **Comparison of Pronunciation**:
+   - The user mark is pronounced as "Ti-re-i-deo" (티-레이더).
+   - The compared prior mark is pronounced as "Ssi-aen-ti-re-i-deo" (씨앤티-레이더).
+   - Both marks share the four-syllable ending "re-i-deo" (레이더). In trademark examination, when the latter part of a mark is identical and carries a specific meaning, the phonetic similarity is considered high, as consumers often focus on the distinctive or common keyword "RADAR."
+
+3. **Comparison of Concept**:
+   - Both marks utilize the concept of "RADAR," which refers to a system for detecting and tracking objects.
+   - The user mark "T-RADAR" conveys the concept of "T-related tracking or searching," while the prior mark "CnTRadar" conveys "CnT-related tracking or control."
+   - Given that both marks evoke the idea of a detection or search tool, the underlying concept is highly similar, which may lead to confusion regarding the source of the goods or services.
+
+### 2. Similarity of Goods and Services
+1. **Relationship between Software and Services**:
+   - The compared prior mark is registered for "computer software" in Class 09, specifically focusing on control, tracking, and management (e.g., container chassis tracking).
+   - The user mark targets "trademark information retrieval research" (Class 45) and "retrieval services for internet data" (Class 35).
+   - In modern commerce, information retrieval and research services are almost exclusively delivered through specialized computer software or database platforms. Therefore, there is a strong functional relationship between the "software" (Class 09) and the "information retrieval services" (Class 35/45).
+
+2. **Overlap in Consumer Base and Purpose**:
+   - The purpose of the prior mark’s goods is "tracking and management," while the user mark’s services involve "information retrieval." Both belong to the broader category of data processing and search technologies.
+   - If the same or similar marks are used for both software and the services provided by that software, consumers are likely to believe that the services provided under "T-RADAR" originate from the same entity that produces "CnTRadar" software, leading to a risk of confusion.
+
+## 2. Prior Mark Refusal Reasons
+
+1. **Similarity to Pre-existing Marks (Article 34, Paragraph 1, Item 7)**:
+   - According to KIPO examination standards, a mark shall be refused registration if it is identical or similar to a prior registered trademark and is used on identical or similar goods. 
+   - In previous examination cases involving marks ending in "RADAR," the "RADAR" portion has often been recognized as a dominant part of the mark when the preceding letters (like 'T' or 'CnT') lack sufficient distinctiveness or act as simple identifiers.
+
+2. **Cross-Class Similarity between Class 09 and Classes 35/45**:
+   - Examination practice often recognizes the similarity between "recorded software" (Class 09) and "online data/information search services" (Class 35/42/45). This is because the software is the essential tool through which the search service is realized. Thus, even though the class numbers differ, the similarity of the goods/services can be established based on their interdependent relationship in the marketplace.
+[출원인]
+## 1. Reasoning
+
+### 1. Distinctiveness of Prefixes and Weakness of "RADAR"
+1. **Focus on Distinctive Components**: In trademark jurisprudence, when a mark consists of a common or suggestive term combined with a distinctive prefix, the prefix often serves as the primary identifier. The term "RADAR" is highly suggestive and commonly used in the fields of data processing, search, and detection to imply the "finding" or "tracking" of information. Therefore, the visual and phonetic focus of consumers naturally shifts to the prefixes "T-" and "CnT."
+2. **Visual Dissimilarity**: The user mark "T-RADAR" utilizes a single letter "T" separated by a hyphen, creating a concise, two-part structure. In contrast, the prior mark "CnTRadar" is a combined string of three letters "CnT" followed by "Radar." The difference in length, capitalization, and the presence of the hyphen in the user mark creates a clearly distinguishable visual impression.
+3. **Phonetic Dissimilarity**: The user mark is pronounced in three to four short syllables ("Ti-re-i-deo"), whereas the prior mark "CnTRadar" is significantly longer and more complex ("Ssi-aen-ti-re-i-deo"). The initial sounds ("T" vs. "S/C") are phonetically distinct, and the difference in the number of syllables ensures that the overall rhythm and cadence of the marks are not confusingly similar.
+
+### 2. Conceptual Differentiation and Specialized Fields
+1. **Specific Meanings**: The prefix "T" in "T-RADAR" is often associated with "Technology," "Trademark," or "Total," especially given the designated services. The prefix "CnT" in the prior mark is clearly an abbreviation related to its registered goods, such as "Container" or "Control." Consumers in the respective markets will perceive these marks as referring to entirely different technological applications.
+2. **Lack of Confusion**: Because "RADAR" is a metaphorical term for search/tracking, its use by multiple parties in different industries is common. Consumers are accustomed to seeing "RADAR" used in various software and service contexts and are unlikely to assume a common source based solely on this shared suffix.
+
+### 3. Dissimilarity of Goods and Services
+1. **Disparity in Purpose and Consumer Base**: The compared prior mark is strictly limited to "computer software for container chassis" (Class 09), which is a highly specialized logistics and transportation tool. The user mark, however, targets "trademark information retrieval" (Class 45) and "internet data retrieval" (Class 35). The target consumers for logistics software (shipping companies, port authorities) are entirely different from the users of trademark research and general internet search services (legal professionals, branding agencies, general internet users).
+2. **Functional Independence**: While the examiner suggests a link between "software" and "services," the specific software in the prior mark is an industrial tool for physical asset management (container chassis). This is fundamentally different from the information-based research services of the user mark. There is no logical reason for a consumer seeking trademark research to encounter or be confused by specialized shipping logistics software.
+3. **Overreliance on Cross-Class Similarity**: The examiner’s assertion of similarity between Class 09 and Classes 35/45 is an overgeneralization. Under Article 34, Paragraph 1, Item 7, similarity must be judged based on the risk of confusion in the actual marketplace. Given the vast difference between "container management" and "trademark research," the functional relationship is non-existent.
+
+## 2. Adjustment Directions
+
+1. **Clarification of Service Scope**: To further distance the user mark from the prior mark's "control and tracking" software, the descriptions in Class 35 and 45 can be refined. For example, explicitly specifying "trademark information retrieval research for legal and branding purposes" would highlight the professional and informational nature of the service, as opposed to the industrial/logistical nature of the prior mark.
+2. **Emphasizing the "T" Identifier**: In marketing and the application description, emphasizing the "T" as a specific brand identifier (e.g., representing "Trademark Radar") can reinforce the distinctiveness of the user mark's prefix compared to the "CnT" of the prior mark.
+3. **Argument of Coexistence**: Evidence can be provided showing that many "RADAR" prefixed or suffixed marks coexist across different classes when the accompanying prefixes are distinct and the fields of use are specialized. This supports the argument that "RADAR" should be treated as a weak element with a narrow scope of protection.
+
+Instruction: Accept reasonable parts of the applicant's rebuttal, but rebut weak or legally insufficient points and provide a final direction. Do not repeat prior dialogue. You must clearly state acceptance or rejection for each point and then give a final conclusion. Decide only on conflict assessment and do not provide mitigation or adjustment strategies. Follow these rules.
+**Important**: Respond in English only.
+1. Reasoning
+  - Explicitly accept reasonable arguments and summarize why.
+  - Rebut parts with weak legal basis or insufficient logic, and explain why they should stand.
+  - If you need to reference legal provisions, only cite provisions that appear in the provided context (office action/refusal decision). Do not introduce or infer any provisions not present in the input. If legal citations are unnecessary, you may omit them.
+  - Keep comparison consistent between [User mark] and [Compared prior mark]; prior marks in the office action may be used only as supporting evidence when needed.
+  - Do not mention adjustments or mitigation strategies.
+  - If the issue is clear, you may deliver a firm conclusion.
+
+2. Writing
+  - Markdown only.
+  - Use ## or ### headings with numbered lists and bullet lists where appropriate.
+
+3. Goal
+  - Clarify issues and provide a final direction by accepting or rejecting the applicant's points.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## 1. Reasoning
+
+### 1. Similarity of Marks
+1. **Partial Acceptance of Distinctiveness Argument**: It is partially accepted that the term "RADAR" is suggestive in the fields of searching, tracking, and data retrieval. Consequently, the distinctiveness of the marks relies heavily on the prefixes "T-" and "CnT."
+2. **Rejection of Phonetic and Visual Dissimilarity**: 
+   - While the applicant argues that "T-" and "CnT" are distinct, "T" is a single letter that often serves as a generic abbreviation (e.g., for Technology or Total), which carries weak inherent distinctiveness. 
+   - Both marks share the identical suffix "RADAR," which constitutes a significant portion of the visual and phonetic impression. In the Korean pronunciation "Ti-re-i-deo" and "Ssi-aen-ti-re-i-deo," the commonality of the four-syllable "re-i-deo" remains the most memorable element for consumers.
+   - The structural similarity—a short prefix followed by the word "RADAR"—is likely to lead consumers to perceive "T-RADAR" as a derivative or a specific version of a "RADAR" branded software/service line, especially given the common use of single-letter prefixes for branding.
+
+### 2. Similarity of Goods and Services
+1. **Rejection of Functional Independence Argument**: 
+   - The applicant argues that container chassis software (Class 09) and trademark/internet retrieval services (Class 35/45) are distinct. However, under trademark examination standards, "computer software" (Class 09) and "information retrieval services" (Class 35/45) are considered highly related. 
+   - Specifically, the prior mark includes "tracking" and "control" software. The user mark's "internet data retrieval services" (S123301) and "trademark information retrieval" (S120402) are fundamentally data-processing activities that are executed via specialized software. 
+   - Modern consumers do not clearly distinguish between the software itself and the service provided through that software. If a company provides "CnTRadar" for tracking physical assets, consumers may easily believe "T-RADAR" is a related service for searching digital assets (trademarks/data) provided by the same or a linked entity.
+2. **Overlap in Class 35**: The user mark’s selection of "retrieval services for internet data" (Class 35) is broad and targets general internet users and businesses. This overlaps significantly with the general data-processing nature of the prior mark’s software, increasing the likelihood of confusion in the marketplace.
+
+### 3. Conclusion on Conflict Assessment
+1. **Application of Article 34, Paragraph 1, Item 7**: The user mark "T-RADAR" is similar to the prior registered mark "CnTRadar" because they share the dominant "RADAR" component and follow a similar naming convention. 
+2. **Likelihood of Confusion**: Given the functional interdependence between software (Class 09) and information retrieval services (Class 35/45), there is a high risk that consumers will be confused about the source of the services. The applicant's argument regarding specialized consumer bases is insufficient to overcome the broader similarity between data tracking software and data retrieval services. 
+3. **Final Direction**: The refusal grounds based on the similarity to the prior registered mark stand. The marks are phonetically and conceptually similar, and the goods/services possess a strong functional relationship that outweighs the specific industrial application of the prior mark's software.
+
+[4] 역할: Reporter
+--- Prompt ---
+Case information:
+[심사관]
+## 1. Reasoning
+
+### 1. Similarity of Marks
+1. **Comparison of Appearance**: 
+   - The user mark "T-RADAR" consists of the English letter 'T' and the word 'RADAR' separated by a hyphen.
+   - The compared prior mark "CnTRadar" consists of the English letters 'CnT' and 'Radar' combined into a single string.
+   - Both marks share the common component "RADAR," which occupies a significant portion of each mark. Visually, the suffix "RADAR" is identical in both marks, creating a similar visual impression despite the difference in prefixes ('T-' vs. 'CnT').
+
+2. **Comparison of Pronunciation**:
+   - The user mark is pronounced as "Ti-re-i-deo" (티-레이더).
+   - The compared prior mark is pronounced as "Ssi-aen-ti-re-i-deo" (씨앤티-레이더).
+   - Both marks share the four-syllable ending "re-i-deo" (레이더). In trademark examination, when the latter part of a mark is identical and carries a specific meaning, the phonetic similarity is considered high, as consumers often focus on the distinctive or common keyword "RADAR."
+
+3. **Comparison of Concept**:
+   - Both marks utilize the concept of "RADAR," which refers to a system for detecting and tracking objects.
+   - The user mark "T-RADAR" conveys the concept of "T-related tracking or searching," while the prior mark "CnTRadar" conveys "CnT-related tracking or control."
+   - Given that both marks evoke the idea of a detection or search tool, the underlying concept is highly similar, which may lead to confusion regarding the source of the goods or services.
+
+### 2. Similarity of Goods and Services
+1. **Relationship between Software and Services**:
+   - The compared prior mark is registered for "computer software" in Class 09, specifically focusing on control, tracking, and management (e.g., container chassis tracking).
+   - The user mark targets "trademark information retrieval research" (Class 45) and "retrieval services for internet data" (Class 35).
+   - In modern commerce, information retrieval and research services are almost exclusively delivered through specialized computer software or database platforms. Therefore, there is a strong functional relationship between the "software" (Class 09) and the "information retrieval services" (Class 35/45).
+
+2. **Overlap in Consumer Base and Purpose**:
+   - The purpose of the prior mark’s goods is "tracking and management," while the user mark’s services involve "information retrieval." Both belong to the broader category of data processing and search technologies.
+   - If the same or similar marks are used for both software and the services provided by that software, consumers are likely to believe that the services provided under "T-RADAR" originate from the same entity that produces "CnTRadar" software, leading to a risk of confusion.
+
+## 2. Prior Mark Refusal Reasons
+
+1. **Similarity to Pre-existing Marks (Article 34, Paragraph 1, Item 7)**:
+   - According to KIPO examination standards, a mark shall be refused registration if it is identical or similar to a prior registered trademark and is used on identical or similar goods. 
+   - In previous examination cases involving marks ending in "RADAR," the "RADAR" portion has often been recognized as a dominant part of the mark when the preceding letters (like 'T' or 'CnT') lack sufficient distinctiveness or act as simple identifiers.
+
+2. **Cross-Class Similarity between Class 09 and Classes 35/45**:
+   - Examination practice often recognizes the similarity between "recorded software" (Class 09) and "online data/information search services" (Class 35/42/45). This is because the software is the essential tool through which the search service is realized. Thus, even though the class numbers differ, the similarity of the goods/services can be established based on their interdependent relationship in the marketplace.
+[출원인]
+## 1. Reasoning
+
+### 1. Distinctiveness of Prefixes and Weakness of "RADAR"
+1. **Focus on Distinctive Components**: In trademark jurisprudence, when a mark consists of a common or suggestive term combined with a distinctive prefix, the prefix often serves as the primary identifier. The term "RADAR" is highly suggestive and commonly used in the fields of data processing, search, and detection to imply the "finding" or "tracking" of information. Therefore, the visual and phonetic focus of consumers naturally shifts to the prefixes "T-" and "CnT."
+2. **Visual Dissimilarity**: The user mark "T-RADAR" utilizes a single letter "T" separated by a hyphen, creating a concise, two-part structure. In contrast, the prior mark "CnTRadar" is a combined string of three letters "CnT" followed by "Radar." The difference in length, capitalization, and the presence of the hyphen in the user mark creates a clearly distinguishable visual impression.
+3. **Phonetic Dissimilarity**: The user mark is pronounced in three to four short syllables ("Ti-re-i-deo"), whereas the prior mark "CnTRadar" is significantly longer and more complex ("Ssi-aen-ti-re-i-deo"). The initial sounds ("T" vs. "S/C") are phonetically distinct, and the difference in the number of syllables ensures that the overall rhythm and cadence of the marks are not confusingly similar.
+
+### 2. Conceptual Differentiation and Specialized Fields
+1. **Specific Meanings**: The prefix "T" in "T-RADAR" is often associated with "Technology," "Trademark," or "Total," especially given the designated services. The prefix "CnT" in the prior mark is clearly an abbreviation related to its registered goods, such as "Container" or "Control." Consumers in the respective markets will perceive these marks as referring to entirely different technological applications.
+2. **Lack of Confusion**: Because "RADAR" is a metaphorical term for search/tracking, its use by multiple parties in different industries is common. Consumers are accustomed to seeing "RADAR" used in various software and service contexts and are unlikely to assume a common source based solely on this shared suffix.
+
+### 3. Dissimilarity of Goods and Services
+1. **Disparity in Purpose and Consumer Base**: The compared prior mark is strictly limited to "computer software for container chassis" (Class 09), which is a highly specialized logistics and transportation tool. The user mark, however, targets "trademark information retrieval" (Class 45) and "internet data retrieval" (Class 35). The target consumers for logistics software (shipping companies, port authorities) are entirely different from the users of trademark research and general internet search services (legal professionals, branding agencies, general internet users).
+2. **Functional Independence**: While the examiner suggests a link between "software" and "services," the specific software in the prior mark is an industrial tool for physical asset management (container chassis). This is fundamentally different from the information-based research services of the user mark. There is no logical reason for a consumer seeking trademark research to encounter or be confused by specialized shipping logistics software.
+3. **Overreliance on Cross-Class Similarity**: The examiner’s assertion of similarity between Class 09 and Classes 35/45 is an overgeneralization. Under Article 34, Paragraph 1, Item 7, similarity must be judged based on the risk of confusion in the actual marketplace. Given the vast difference between "container management" and "trademark research," the functional relationship is non-existent.
+
+## 2. Adjustment Directions
+
+1. **Clarification of Service Scope**: To further distance the user mark from the prior mark's "control and tracking" software, the descriptions in Class 35 and 45 can be refined. For example, explicitly specifying "trademark information retrieval research for legal and branding purposes" would highlight the professional and informational nature of the service, as opposed to the industrial/logistical nature of the prior mark.
+2. **Emphasizing the "T" Identifier**: In marketing and the application description, emphasizing the "T" as a specific brand identifier (e.g., representing "Trademark Radar") can reinforce the distinctiveness of the user mark's prefix compared to the "CnT" of the prior mark.
+3. **Argument of Coexistence**: Evidence can be provided showing that many "RADAR" prefixed or suffixed marks coexist across different classes when the accompanying prefixes are distinct and the fields of use are specialized. This supports the argument that "RADAR" should be treated as a weak element with a narrow scope of protection.
+[심사관]
+## 1. Reasoning
+
+### 1. Similarity of Marks
+1. **Partial Acceptance of Distinctiveness Argument**: It is partially accepted that the term "RADAR" is suggestive in the fields of searching, tracking, and data retrieval. Consequently, the distinctiveness of the marks relies heavily on the prefixes "T-" and "CnT."
+2. **Rejection of Phonetic and Visual Dissimilarity**: 
+   - While the applicant argues that "T-" and "CnT" are distinct, "T" is a single letter that often serves as a generic abbreviation (e.g., for Technology or Total), which carries weak inherent distinctiveness. 
+   - Both marks share the identical suffix "RADAR," which constitutes a significant portion of the visual and phonetic impression. In the Korean pronunciation "Ti-re-i-deo" and "Ssi-aen-ti-re-i-deo," the commonality of the four-syllable "re-i-deo" remains the most memorable element for consumers.
+   - The structural similarity—a short prefix followed by the word "RADAR"—is likely to lead consumers to perceive "T-RADAR" as a derivative or a specific version of a "RADAR" branded software/service line, especially given the common use of single-letter prefixes for branding.
+
+### 2. Similarity of Goods and Services
+1. **Rejection of Functional Independence Argument**: 
+   - The applicant argues that container chassis software (Class 09) and trademark/internet retrieval services (Class 35/45) are distinct. However, under trademark examination standards, "computer software" (Class 09) and "information retrieval services" (Class 35/45) are considered highly related. 
+   - Specifically, the prior mark includes "tracking" and "control" software. The user mark's "internet data retrieval services" (S123301) and "trademark information retrieval" (S120402) are fundamentally data-processing activities that are executed via specialized software. 
+   - Modern consumers do not clearly distinguish between the software itself and the service provided through that software. If a company provides "CnTRadar" for tracking physical assets, consumers may easily believe "T-RADAR" is a related service for searching digital assets (trademarks/data) provided by the same or a linked entity.
+2. **Overlap in Class 35**: The user mark’s selection of "retrieval services for internet data" (Class 35) is broad and targets general internet users and businesses. This overlaps significantly with the general data-processing nature of the prior mark’s software, increasing the likelihood of confusion in the marketplace.
+
+### 3. Conclusion on Conflict Assessment
+1. **Application of Article 34, Paragraph 1, Item 7**: The user mark "T-RADAR" is similar to the prior registered mark "CnTRadar" because they share the dominant "RADAR" component and follow a similar naming convention. 
+2. **Likelihood of Confusion**: Given the functional interdependence between software (Class 09) and information retrieval services (Class 35/45), there is a high risk that consumers will be confused about the source of the services. The applicant's argument regarding specialized consumer bases is insufficient to overcome the broader similarity between data tracking software and data retrieval services. 
+3. **Final Direction**: The refusal grounds based on the similarity to the prior registered mark stand. The marks are phonetically and conceptually similar, and the goods/services possess a strong functional relationship that outweighs the specific industrial application of the prior mark's software.
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.817
+
+Instruction: Based on the dialogue between the examiner and the applicant's representative, write in Markdown only using the exact format below.
+**Important**: Respond in English only.
+
+## One-line summary
+- <Summarize whether the user mark conflicts with the prior mark in one sentence>
+
+## Key issues
+1. **<Issue name>** - <Explain the impact on the user's mark and KIPRIS evidence in 2+ sentences>
+2. **...** - ...
+3. **...** - ...
+
+
+
+All items must follow the format 'number. **<Issue name>** - description', and the entire '<Issue name>' must be bolded. Include critical risks and adjustment strategies without omission. Image similarity is the 0.5:0.5 ensemble of DINOv2 similarity and MetaCLIP2 similarity between [User mark] and [Compared prior mark]; text similarity is the MetaCLIP2 similarity between the mark names. These values must be mentioned only in the quantitative metrics section. Do not use internal abbreviations or code names (e.g., Track A/B). Do not add any intro or closing sentences beyond the titles and lists. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+## Quantitative metrics
+- Same mark name: <Copy exactly from the [Quantitative metrics] block>
+- Same image: <Copy exactly from the [Quantitative metrics] block>
+- Text similarity: <Copy exactly from the [Quantitative metrics] block>
+
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+## One-line summary
+- The user mark "T-RADAR" is likely to face refusal due to its phonetic and conceptual similarity to the prior mark "CnTRadar" and the functional interdependence between the registered software and the applied-for information retrieval services.
+
+## Key issues
+1. **Similarity of Dominant Components ("RADAR")** - Both marks share the identical suffix "RADAR," which creates a highly similar visual and phonetic impression for consumers. The common four-syllable phonetic ending "re-i-deo" (레이더) is considered a memorable element that outweighs the differences in the short prefixes, leading to a high risk of confusion according to KIPO standards.
+2. **Weakness of the Single-Letter Prefix "T-"** - The examiner contends that the prefix "T-" is a generic abbreviation with weak inherent distinctiveness, failing to sufficiently distinguish the user mark from "CnTRadar." This structural similarity, following a naming convention of a short prefix plus "RADAR," suggests to consumers that the marks may originate from the same entity or represent a specific version of a related product line.
+3. **Functional Interdependence of Goods and Services** - There is a recognized similarity between "computer software" (Class 09) and "information retrieval services" (Class 35/45) because the software is the essential tool through which the services are provided. Despite the applicant's argument regarding different industrial applications, the examiner maintains that modern consumers do not clearly distinguish between data-processing software and the retrieval services executed through it.
+4. **Broad Scope of Service Designations** - The inclusion of broad terms such as "retrieval services for internet data" in Class 35 increases the likelihood of overlap with the general data-processing nature of the prior mark’s software. To mitigate this, the applicant may need to narrow the service descriptions to highly specialized fields, such as "trademark information retrieval for legal purposes," to distance the mark from the logistical focus of the prior registration.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.817
+
+[5] 역할: Scorer
+--- Prompt ---
+Case information:
+## One-line summary
+- The user mark "T-RADAR" is likely to face refusal due to its phonetic and conceptual similarity to the prior mark "CnTRadar" and the functional interdependence between the registered software and the applied-for information retrieval services.
+
+## Key issues
+1. **Similarity of Dominant Components ("RADAR")** - Both marks share the identical suffix "RADAR," which creates a highly similar visual and phonetic impression for consumers. The common four-syllable phonetic ending "re-i-deo" (레이더) is considered a memorable element that outweighs the differences in the short prefixes, leading to a high risk of confusion according to KIPO standards.
+2. **Weakness of the Single-Letter Prefix "T-"** - The examiner contends that the prefix "T-" is a generic abbreviation with weak inherent distinctiveness, failing to sufficiently distinguish the user mark from "CnTRadar." This structural similarity, following a naming convention of a short prefix plus "RADAR," suggests to consumers that the marks may originate from the same entity or represent a specific version of a related product line.
+3. **Functional Interdependence of Goods and Services** - There is a recognized similarity between "computer software" (Class 09) and "information retrieval services" (Class 35/45) because the software is the essential tool through which the services are provided. Despite the applicant's argument regarding different industrial applications, the examiner maintains that modern consumers do not clearly distinguish between data-processing software and the retrieval services executed through it.
+4. **Broad Scope of Service Designations** - The inclusion of broad terms such as "retrieval services for internet data" in Class 35 increases the likelihood of overlap with the general data-processing nature of the prior mark’s software. To mitigate this, the applicant may need to narrow the service descriptions to highly specialized fields, such as "trademark information retrieval for legal purposes," to distance the mark from the logistical focus of the prior registration.
+
+## Quantitative metrics
+- Same mark name: Different
+- Same image: Different
+- Text similarity: 0.817
+
+[Quantitative metrics]
+Same mark name: Different
+Same image: Different
+Text similarity: 0.817
+
+Instruction: Below is the reporter's summary comparing the user mark vs. the prior mark. Based only on this summary, score conflict risk and registrability on a 0-100 scale. Assume the prior mark status and KIPRIS details are already reflected in the summary. Follow these two steps in order: 1) On the first line, output a JSON object {conflict_score, register_score, rationale, factors[]}. 2) Then write the evaluation using the exact [Markdown format] below.
+**Important**: Respond in English only.
+
+Use the following priorities: (1) whether pronunciation/concept/visual core are identical or effectively identical, (2) inherent distinctiveness of the user mark (less distinctive means stricter evaluation), (3) visual similarity of mark images, (4) proximity of goods/services classes and market context. If identical mark/image flags or extreme similarity values are provided, treat conflict risk as very high and registrability as very low. Assess each candidate strictly; if the conflict basis is clear, give a high conflict score, and if issues are minimal, give a low conflict score. When evidence is strong, avoid the 40-60 middle range and choose higher or lower values.
+
+[Markdown format]
+
+## Decision summary
+- **Conflict risk**: <number> pts
+- **Registrability**: <number> pts
+## Rationale
+- <Key reason 1>
+- <Key reason 2>
+## Recommended action
+- <Follow-up action or adjustment strategy>
+
+Headings must be exactly '## Decision summary', '## Rationale', '## Recommended action' in this order. Do not add any other headings or closing sentences. Do not write paragraphs; use bullets only. Fill all placeholders with real content. If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+[Constraints]
+- Do not include closing remarks, follow-up guidance, or extra sentences outside the required format.
+- Output only the headings/lists specified in the instructions. Do not add introductions or explanations.
+- Prior marks cited in office actions are for reference only; do not mention them in direct comparison between [User mark] and [Compared prior mark].
+- If you use numbered lists, only '1.', '2.' etc are allowed. Do not use '1)' or '2)'.
+
+--- Response ---
+{"conflict_score": 85, "register_score": 15, "rationale": "The dominant suffix 'RADAR' and the weak prefix 'T-' create a high likelihood of confusion with the prior mark, exacerbated by the functional link between the designated goods and services.", "factors": ["Dominant component similarity", "Weak prefix distinctiveness", "Functional interdependence of goods/services", "High text similarity score"]}
+
+## Decision summary
+- **Conflict risk**: 85 pts
+- **Registrability**: 15 pts
+
+## Rationale
+- Both marks share the identical dominant component "RADAR," leading to high phonetic similarity in the four-syllable Korean pronunciation "re-i-deo."
+- The single-letter prefix "T-" is considered a weak, generic abbreviation that fails to provide sufficient visual or conceptual distinction from the prior mark's structure.
+- There is a high degree of functional interdependence between the prior mark's computer software and the user mark's information retrieval services, as the former is the primary tool for delivering the latter.
+
+## Recommended action
+- 1. Narrow the broad service descriptions in Class 35 to highly specialized or niche fields to reduce the likelihood of overlap with general data-processing software.
+- 2. Consider adding a distinctive graphic element or a more unique prefix to the mark to overcome the perceived structural similarity with the prior registration.
