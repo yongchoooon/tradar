@@ -188,8 +188,10 @@ export const landingCopy = {
           default: 'Conversation',
         },
       },
+      rerunNotice: '❗ Update the trademark name, image, or goods/services, then run the re-simulation below.',
       buttons: {
         run: 'Run Simulation',
+        rerun: 'Re-simulation',
         cancel: 'Cancel',
       },
     },
@@ -383,8 +385,10 @@ export const landingCopy = {
           default: '대화',
         },
       },
+      rerunNotice: '❗ 상표명/이미지/상품·서비스류를 수정한 뒤 아래 버튼으로 재시뮬레이션하세요.',
       buttons: {
         run: '시뮬레이션 시작',
+        rerun: '재시뮬레이션',
         cancel: '실행 취소',
       },
     },

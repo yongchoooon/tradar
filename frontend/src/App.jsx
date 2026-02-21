@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, useId } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import {
@@ -199,8 +199,19 @@ const TOUR_CONTENT = {
       {
         key: 'simulation',
         title: '시뮬레이션',
-        body: '선택한 후보로 심사 시뮬레이션을 실행합니다. 이후 상표명/이미지/상품·서비스류를 바꾼 뒤 다시 실행해 비교할 수 있습니다.',
+        body: '선택한 후보로 심사 시뮬레이션을 실행합니다.',
         selector: '[data-tour="simulation-panel"]',
+      },
+      {
+        key: 'resimulation',
+        title: '재시뮬레이션',
+        body: '결과를 본 뒤 상표명/이미지/상품·서비스류를 바꾸고 다시 실행해 비교할 수 있습니다.',
+        selectors: [
+          '[data-tour="title-input"]',
+          '[data-tour="image-dropzone"]',
+          '[data-tour="goods-panel"]',
+          '[data-tour="simulation-run"]',
+        ],
       },
     ],
     controls: {
@@ -270,8 +281,19 @@ const TOUR_CONTENT = {
       {
         key: 'simulation',
         title: 'Simulation',
-        body: 'Run the examination simulation. After results, update title/image/goods and run again to compare.',
+        body: 'Run the examination simulation.',
         selector: '[data-tour="simulation-panel"]',
+      },
+      {
+        key: 'resimulation',
+        title: 'Re-simulation',
+        body: 'After results, update title/image/goods and run again to compare.',
+        selectors: [
+          '[data-tour="title-input"]',
+          '[data-tour="image-dropzone"]',
+          '[data-tour="goods-panel"]',
+          '[data-tour="simulation-run"]',
+        ],
       },
     ],
     controls: {
@@ -924,32 +946,40 @@ function GuidedTour({
   labels = {},
 }) {
   const step = steps[stepIndex] || steps[0];
-  const [highlight, setHighlight] = useState(null);
+  const [highlights, setHighlights] = useState([]);
   const overlayRef = useRef(null);
+  const maskId = useId();
 
   useEffect(() => {
-    if (!step?.selector) {
-      setHighlight(null);
+    if (!step?.selector && !Array.isArray(step?.selectors)) {
+      setHighlights([]);
       return;
     }
     const update = () => {
-      const element = document.querySelector(step.selector);
-      if (!element) {
-        setHighlight(null);
+      const elements = Array.isArray(step?.selectors)
+        ? step.selectors.map((selector) => document.querySelector(selector)).filter(Boolean)
+        : [document.querySelector(step.selector)].filter(Boolean);
+      if (!elements.length) {
+        setHighlights([]);
         return;
       }
-      const rect = element.getBoundingClientRect();
-      setHighlight({
-        top: Math.max(rect.top - 8, 8),
-        left: Math.max(rect.left - 8, 8),
-        width: Math.max(rect.width + 16, 0),
-        height: Math.max(rect.height + 16, 0),
+      const rects = elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          top: Math.max(rect.top - 8, 8),
+          left: Math.max(rect.left - 8, 8),
+          width: Math.max(rect.width + 16, 0),
+          height: Math.max(rect.height + 16, 0),
+        };
       });
+      setHighlights(rects.filter((rect) => rect.width > 0 && rect.height > 0));
     };
     update();
-    const element = document.querySelector(step.selector);
-    if (element?.scrollIntoView) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const scrollTarget = Array.isArray(step?.selectors)
+      ? document.querySelector(step.selectors[0])
+      : document.querySelector(step.selector);
+    if (scrollTarget?.scrollIntoView) {
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
@@ -965,8 +995,38 @@ function GuidedTour({
 
   return (
     <div className="tour-overlay" ref={overlayRef}>
-      {highlight && (
+      {highlights.length > 0 && (
+        <div className="tour-dim">
+          <svg width="100%" height="100%" aria-hidden="true">
+            <defs>
+              <mask id={maskId}>
+                <rect width="100%" height="100%" fill="white" />
+                {highlights.map((highlight, index) => (
+                  <rect
+                    key={`tour-mask-${index}`}
+                    x={highlight.left}
+                    y={highlight.top}
+                    width={highlight.width}
+                    height={highlight.height}
+                    rx="16"
+                    ry="16"
+                    fill="black"
+                  />
+                ))}
+              </mask>
+            </defs>
+            <rect
+              width="100%"
+              height="100%"
+              fill="rgba(15, 23, 42, 0.55)"
+              mask={`url(#${maskId})`}
+            />
+          </svg>
+        </div>
+      )}
+      {highlights.map((highlight, index) => (
         <div
+          key={`tour-spotlight-${index}`}
           className="tour-spotlight"
           style={{
             top: `${highlight.top}px`,
@@ -975,7 +1035,7 @@ function GuidedTour({
             height: `${highlight.height}px`,
           }}
         />
-      )}
+      ))}
       <div className="tour-card">
         <div className="tour-card__header">
           <span className="tour-card__step">{totalLabel}</span>
@@ -1521,6 +1581,7 @@ function SimulationPanel({
   const historyLabel = text.historyResultLabel || '결과';
   const historyActiveId = activeHistoryId || historyEntries[historyEntries.length - 1]?.id;
   const historyTitleText = historyTitle || '';
+  const hasSimulationResult = Boolean(result);
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const [expandedTranscripts, setExpandedTranscripts] = useState({});
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
@@ -1736,14 +1797,25 @@ function SimulationPanel({
             ) : guidanceBlock}
             {![ 'collecting', 'loading', 'cancelling' ].includes(status) && (
               <div className="simulation-panel__actions">
+                {hasSimulationResult && (
+                  <p className="simulation-panel__rerun-hint">
+                    {text.rerunNotice
+                      || '❗ 상표명/이미지/상품·서비스류를 수정한 뒤 아래 버튼으로 재시뮬레이션하세요.'}
+                  </p>
+                )}
                 <button
                   type="button"
-                  className="action-button action-button--primary simulation-panel__button"
+                  className={`action-button simulation-panel__button ${hasSimulationResult ? 'action-button--rerun' : 'action-button--primary'}`}
+                  data-tour="simulation-run"
                   onClick={() => onRun?.(true)}
                   disabled={buttonDisabled}
                 >
                   <FiPlayCircle aria-hidden="true" />
-                  <span>{text.buttons?.run || '시뮬레이션 시작'}</span>
+                  <span>
+                    {hasSimulationResult
+                      ? (text.buttons?.rerun || '재시뮬레이션')
+                      : (text.buttons?.run || '시뮬레이션 시작')}
+                  </span>
                 </button>
                 {/*
                 <button
@@ -2874,11 +2946,11 @@ function App() {
                   type="button"
                   className="github-link hero-tutorial"
                   onClick={handleTutorialOpen}
-                  aria-label={language === 'en' ? 'Tutorial' : '튜토리얼'}
-                  title={language === 'en' ? 'Tutorial' : '튜토리얼'}
+                  aria-label="Tutorial"
+                  title="Tutorial"
                 >
                   <span className="github-link__icon">?</span>
-                  <span className="github-link__label">{language === 'en' ? 'Tutorial' : '튜토리얼'}</span>
+                  <span className="github-link__label">Tutorial</span>
                 </button>
               </div>
               <a
