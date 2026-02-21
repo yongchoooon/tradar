@@ -163,7 +163,7 @@ export const landingCopy = {
       score: {
         riskTitle: 'Conflict risk',
         registerTitle: 'Registrability',
-        segmentLabels: ['Very low', 'Low', 'Mid-low', 'Mid-high', 'High', 'Very high'],
+        segmentLabels: ['Very low', 'Low', 'Mid low', 'Mid high', 'High', 'Very high'],
         avgLabel: 'Avg',
         maxLabel: 'Max',
         minLabel: 'Min',

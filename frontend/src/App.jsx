@@ -963,16 +963,24 @@ function GuidedTour({
         setHighlights([]);
         return;
       }
+      const viewportWidth = window.innerWidth || 0;
+      const viewportHeight = window.innerHeight || 0;
+      const padding = 8;
       const rects = elements.map((element) => {
         const rect = element.getBoundingClientRect();
+        const isVisible = rect.bottom >= 0
+          && rect.top <= viewportHeight
+          && rect.right >= 0
+          && rect.left <= viewportWidth;
+        if (!isVisible) return null;
         return {
-          top: Math.max(rect.top - 8, 8),
-          left: Math.max(rect.left - 8, 8),
-          width: Math.max(rect.width + 16, 0),
-          height: Math.max(rect.height + 16, 0),
+          top: rect.top - padding,
+          left: rect.left - padding,
+          width: rect.width + padding * 2,
+          height: rect.height + padding * 2,
         };
-      });
-      setHighlights(rects.filter((rect) => rect.width > 0 && rect.height > 0));
+      }).filter(Boolean);
+      setHighlights(rects);
     };
     update();
     const scrollTarget = Array.isArray(step?.selectors)
@@ -980,9 +988,7 @@ function GuidedTour({
       : document.querySelector(step.selector);
     if (scrollTarget?.scrollIntoView) {
       const isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-      const selectors = Array.isArray(step?.selectors) ? step.selectors : [step?.selector].filter(Boolean);
-      const isSimulationStep = selectors.some((selector) => selector && selector.includes('simulation-panel'));
-      const block = isMobile && isSimulationStep ? 'start' : 'center';
+      const block = isMobile ? 'start' : 'center';
       scrollTarget.scrollIntoView({ behavior: 'smooth', block });
     }
     window.addEventListener('resize', update);
@@ -1383,7 +1389,37 @@ function Pagination({ current = 1, total = 1, onChange }) {
       onChange(clamped);
     }
   };
-  const pages = Array.from({ length: total }, (_, idx) => idx + 1);
+  const isMobile = typeof window !== 'undefined'
+    && window.matchMedia
+    && window.matchMedia('(max-width: 768px)').matches;
+  const maxButtons = isMobile ? 7 : total;
+  const buildPages = () => {
+    if (total <= maxButtons) {
+      return Array.from({ length: total }, (_, idx) => idx + 1);
+    }
+    const pages = [];
+    const leftCount = maxButtons - 3;
+    const rightStart = total - (maxButtons - 3) + 1;
+    if (current <= leftCount) {
+      for (let i = 1; i <= leftCount; i += 1) pages.push(i);
+      pages.push('ellipsis');
+      pages.push(total);
+      return pages;
+    }
+    if (current >= rightStart) {
+      pages.push(1);
+      pages.push('ellipsis');
+      for (let i = rightStart; i <= total; i += 1) pages.push(i);
+      return pages;
+    }
+    pages.push(1);
+    pages.push('ellipsis');
+    pages.push(current - 1, current, current + 1);
+    pages.push('ellipsis');
+    pages.push(total);
+    return pages;
+  };
+  const pages = buildPages();
   return (
     <nav className="pagination" aria-label="페이지 이동">
       <div className="pagination__controls">
@@ -1395,16 +1431,20 @@ function Pagination({ current = 1, total = 1, onChange }) {
         </button>
       </div>
       <div className="pagination__pages" role="group" aria-label="페이지 목록">
-        {pages.map((page) => (
-          <button
-            key={page}
-            type="button"
-            className={`pagination__page ${page === current ? 'is-active' : ''}`}
-            onClick={() => safeChange(page)}
-            aria-current={page === current ? 'page' : undefined}
-          >
-            {page}
-          </button>
+        {pages.map((page, index) => (
+          page === 'ellipsis' ? (
+            <span key={`ellipsis-${index}`} className="pagination__ellipsis">…</span>
+          ) : (
+            <button
+              key={page}
+              type="button"
+              className={`pagination__page ${page === current ? 'is-active' : ''}`}
+              onClick={() => safeChange(page)}
+              aria-current={page === current ? 'page' : undefined}
+            >
+              {page}
+            </button>
+          )
         ))}
       </div>
       <div className="pagination__controls">

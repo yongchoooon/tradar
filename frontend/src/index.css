@@ -17,6 +17,7 @@ html,
 body {
   font-size: 0.855rem;
   min-height: 100vh;
+  overflow-x: hidden;
   background: linear-gradient(135deg, #edf2ff 0%, #f8faff 35%, #e9f1ff 100%),
     radial-gradient(circle at 20% 20%, rgba(79, 109, 223, 0.16), transparent 45%),
     radial-gradient(circle at 80% 0%, rgba(110, 165, 255, 0.12), transparent 40%);
@@ -400,7 +401,6 @@ main.container {
   color: #fff;
   font-weight: 600;
   letter-spacing: 0.02em;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   text-decoration: none;
 }
@@ -437,12 +437,10 @@ main.container {
 
 .github-link__icon {
   font-size: 1rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 .github-link:hover {
   transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.22);
 }
 
 .github-link:active {
@@ -1056,11 +1054,36 @@ main.container {
   justify-content: center;
 }
 
+.pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
 .pagination__page.is-active {
   background: var(--brand);
   color: var(--brand-contrast);
   border-color: var(--brand);
   font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .pagination {
+    gap: 0.4rem;
+  }
+
+  .pagination button {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.75rem;
+    min-width: 1.6rem;
+  }
+
+  .pagination__pages {
+    gap: 0.25rem;
+  }
 }
 
 
@@ -1553,6 +1576,13 @@ main.container {
     padding: 0.3rem 0.65rem;
     font-size: 0.8rem;
     white-space: nowrap;
+    box-shadow: none;
+  }
+
+  .github-link:hover,
+  .github-link:active {
+    box-shadow: none;
+    transform: none;
   }
 
   .language-toggle {
@@ -1566,12 +1596,7 @@ main.container {
   }
 
   .tutorial-hint-bubble {
-    position: static;
-    transform: none;
-    margin-bottom: 0;
-    margin-right: 0.35rem;
-    max-width: 100%;
-    white-space: normal;
+    display: none;
   }
 
   .tutorial-hint-bubble::before,
@@ -2408,6 +2433,14 @@ main.container {
 }
 
 @media (max-width: 640px) {
+  .simulation-panel__summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .simulation-panel__summary-card {
+    text-align: left;
+  }
+
   .simulation-panel__result-metrics {
     gap: 0.5rem;
   }
@@ -2423,6 +2456,18 @@ main.container {
   .simulation-panel__risk-banner {
     flex: 1 1 auto;
     max-width: none;
+  }
+
+  .simulation-panel__risk-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .simulation-panel__risk-banner,
+  .risk-average-toggle {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .simulation-panel__risk-actions {
@@ -2541,7 +2586,7 @@ main.container {
   }
 
   .simulation-score-bar__track {
-    min-height: 48px;
+    min-height: 34px;
   }
 
   .simulation-score-bar__segment span {
@@ -2998,6 +3043,24 @@ main.container {
     justify-content: space-between;
     margin-top: 0.5rem;
     justify-self: stretch;
+  }
+
+  .simulation-panel__score-pill {
+    flex: 1 1 0;
+    max-width: none;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .simulation-panel__score-pill label,
+  .simulation-panel__score-pill strong {
+    padding: 0;
+    text-align: left;
+    white-space: nowrap;
   }
 }
 
