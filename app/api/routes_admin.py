@@ -139,6 +139,7 @@ def _parse_ai_agent_log(payload: Dict[str, Any]) -> Dict[str, Any]:
         "total_calls": payload.get("total_calls") or len(events),
         "total_cost_usd": float(total_cost or 0),
         "client_ip": payload.get("client_ip") or "",
+        "user_agent": payload.get("user_agent") or "",
     }
 
 
@@ -163,6 +164,11 @@ def _parse_debug_key(key: str) -> Dict[str, Any]:
     match = re.match(r"(.+?)_(\d+)_([a-z]+)\.(json|txt)$", filename)
     if match:
         run_tag, app_no, file_type = match.group(1), match.group(2), match.group(3)
+    else:
+        overall_match = re.match(r"(.+?)_overall_([a-z]+)\.(json|txt)$", filename)
+        if overall_match:
+            run_tag, file_type = overall_match.group(1), overall_match.group(2)
+            app_no = "overall"
     return {
         "run_tag": run_tag,
         "app_no": app_no,
@@ -272,6 +278,9 @@ def admin_home(request: Request) -> Response:
       .detail-row td { background:#f8fafc; }
       .detail-box { white-space:pre-wrap; font-size:0.85rem; color:#0f172a; }
       .clickable { cursor:pointer; }
+      .sortable { cursor:pointer; user-select:none; }
+      .sortable::after { content:""; display:inline-block; margin-left:0.25rem; }
+      .narrow { white-space:nowrap; width:1%; }
       a.button { text-decoration:none; padding:0.5rem 0.8rem; border-radius:10px; background:#e2e8f0; color:#0f172a; }
       .badge { display:inline-block; padding:0.2rem 0.5rem; border-radius:999px; background:#e2e8f0; font-size:0.75rem; color:#334155; }
     </style>
@@ -289,16 +298,17 @@ def admin_home(request: Request) -> Response:
       <table>
         <thead>
           <tr>
-            <th>날짜</th>
-            <th>run_id</th>
+            <th class="sortable narrow" data-table="ai" data-key="last_modified">날짜</th>
+            <th class="narrow">run_id</th>
             <th>상표명</th>
             <th>호출 수</th>
             <th>총 비용</th>
             <th>IP</th>
+            <th>user_agent</th>
           </tr>
         </thead>
         <tbody id="ai-table">
-          <tr><td colspan="6" class="muted">로딩 중...</td></tr>
+          <tr><td colspan="7" class="muted">로딩 중...</td></tr>
         </tbody>
       </table>
       <div class="summary muted" id="ai-note"></div>
@@ -312,7 +322,7 @@ def admin_home(request: Request) -> Response:
       <table>
         <thead>
           <tr>
-            <th>시간</th>
+            <th class="sortable narrow" data-table="variants" data-key="timestamp">시간</th>
             <th>검색어</th>
             <th>모델</th>
             <th>토큰</th>
@@ -335,10 +345,10 @@ def admin_home(request: Request) -> Response:
       <table>
         <thead>
           <tr>
+            <th class="sortable narrow" data-table="debug" data-key="last_modified">수정 시간</th>
             <th>run_tag</th>
             <th>출원번호</th>
             <th>파일 종류</th>
-            <th>수정 시간</th>
             <th>크기</th>
           </tr>
         </thead>
@@ -349,6 +359,7 @@ def admin_home(request: Request) -> Response:
     </section>
 
     <script>
+      const MAX_ROWS = 30;
       const formatCost = (value) => {
         if (value === null || value === undefined || Number.isNaN(value)) return "-";
         return "$" + Number(value).toFixed(6);
@@ -374,41 +385,64 @@ def admin_home(request: Request) -> Response:
         return res.json();
       };
 
-      const renderAiAgent = (data) => {
+      const state = {
+        ai: { items: [], total_cost_usd: 0, sortKey: "last_modified", sortDir: "desc" },
+        variants: { items: [], total_cost_usd: 0, sortKey: "timestamp", sortDir: "desc" },
+        debug: { items: [], sortKey: "last_modified", sortDir: "desc" },
+      };
+
+      const sortItems = (items, key, dir) => {
+        const copy = items.slice();
+        copy.sort((a, b) => {
+          const ta = new Date(a[key] || 0).getTime();
+          const tb = new Date(b[key] || 0).getTime();
+          const av = Number.isNaN(ta) ? 0 : ta;
+          const bv = Number.isNaN(tb) ? 0 : tb;
+          return dir === "asc" ? av - bv : bv - av;
+        });
+        return copy;
+      };
+
+      const renderAiAgent = () => {
         const body = document.getElementById("ai-table");
         body.innerHTML = "";
-        if (!data.items.length) {
-          body.innerHTML = '<tr><td colspan="6" class="muted">데이터가 없습니다.</td></tr>';
+        const items = sortItems(state.ai.items, state.ai.sortKey, state.ai.sortDir).slice(0, MAX_ROWS);
+        if (!items.length) {
+          body.innerHTML = '<tr><td colspan="7" class="muted">데이터가 없습니다.</td></tr>';
           return;
         }
-        data.items.forEach((item) => {
+        items.forEach((item) => {
           const row = document.createElement("tr");
+          row.classList.add("clickable");
           row.innerHTML = `
-            <td>${formatDate(item.last_modified)}</td>
-            <td>${item.run_id || "-"}</td>
+            <td class="narrow">${formatDate(item.last_modified)}</td>
+            <td class="narrow">${item.run_id || "-"}</td>
             <td>${item.query_title || "-"}</td>
             <td>${item.total_calls ?? "-"}</td>
             <td>${formatCost(item.total_cost_usd)}</td>
             <td>${item.client_ip || "-"}</td>
+            <td>${item.user_agent || "-"}</td>
           `;
+          row.addEventListener("click", () => toggleDetail(row, item.key, 7));
           body.appendChild(row);
         });
         document.getElementById("ai-summary").textContent =
-          `총 비용 합계: ${formatCost(data.total_cost_usd)}`;
-        document.getElementById("ai-note").textContent = data.note || "";
+          `총 비용 합계: ${formatCost(state.ai.total_cost_usd)}`;
+        document.getElementById("ai-note").textContent = state.ai.note || "";
       };
 
-      const renderVariants = (data) => {
+      const renderVariants = () => {
         const body = document.getElementById("variants-table");
         body.innerHTML = "";
-        if (!data.items.length) {
+        const items = sortItems(state.variants.items, state.variants.sortKey, state.variants.sortDir).slice(0, MAX_ROWS);
+        if (!items.length) {
           body.innerHTML = '<tr><td colspan="6" class="muted">데이터가 없습니다.</td></tr>';
           return;
         }
-        data.items.forEach((item) => {
+        items.forEach((item) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${formatDate(item.timestamp)}</td>
+            <td class="narrow">${formatDate(item.timestamp)}</td>
             <td>${item.query_text || "-"}</td>
             <td>${item.model || "-"}</td>
             <td>${item.total_tokens ?? "-"}</td>
@@ -418,33 +452,34 @@ def admin_home(request: Request) -> Response:
           body.appendChild(row);
         });
         document.getElementById("variants-summary").textContent =
-          `총 비용 합계: ${formatCost(data.total_cost_usd)}`;
-        document.getElementById("variants-note").textContent = data.note || "";
+          `총 비용 합계: ${formatCost(state.variants.total_cost_usd)}`;
+        document.getElementById("variants-note").textContent = state.variants.note || "";
       };
 
-      const renderDebug = (data) => {
+      const renderDebug = () => {
         const body = document.getElementById("debug-table");
         body.innerHTML = "";
-        if (!data.items.length) {
+        const items = sortItems(state.debug.items, state.debug.sortKey, state.debug.sortDir).slice(0, MAX_ROWS);
+        if (!items.length) {
           body.innerHTML = '<tr><td colspan="5" class="muted">데이터가 없습니다.</td></tr>';
           return;
         }
-        data.items.forEach((item) => {
+        items.forEach((item) => {
           const row = document.createElement("tr");
           row.classList.add("clickable");
           row.innerHTML = `
+            <td class="narrow">${formatDate(item.last_modified)}</td>
             <td>${item.run_tag || "-"}</td>
             <td>${item.app_no || "-"}</td>
             <td><span class="badge">${item.file_type || "-"}</span></td>
-            <td>${formatDate(item.last_modified)}</td>
             <td>${formatSize(item.size)}</td>
           `;
-          row.addEventListener("click", () => toggleDetail(row, item.key));
+          row.addEventListener("click", () => toggleDetail(row, item.key, 5));
           body.appendChild(row);
         });
       };
 
-      const toggleDetail = async (row, key) => {
+      const toggleDetail = async (row, key, colspan) => {
         const next = row.nextElementSibling;
         if (next && next.classList.contains("detail-row")) {
           next.remove();
@@ -452,7 +487,7 @@ def admin_home(request: Request) -> Response:
         }
         const detailRow = document.createElement("tr");
         detailRow.classList.add("detail-row");
-        detailRow.innerHTML = `<td colspan="5"><div class="detail-box">로딩 중...</div></td>`;
+        detailRow.innerHTML = `<td colspan="${colspan}"><div class="detail-box">로딩 중...</div></td>`;
         row.parentNode.insertBefore(detailRow, row.nextSibling);
         try {
           const res = await fetch(`/admin/api/logs/detail?key=${encodeURIComponent(key)}`);
@@ -467,27 +502,58 @@ def admin_home(request: Request) -> Response:
         }
       };
 
+      const bindSorting = () => {
+        document.querySelectorAll(".sortable").forEach((th) => {
+          th.addEventListener("click", () => {
+            const table = th.dataset.table;
+            const key = th.dataset.key;
+            if (!table || !key || !state[table]) return;
+            const st = state[table];
+            if (st.sortKey === key) {
+              st.sortDir = st.sortDir === "asc" ? "desc" : "asc";
+            } else {
+              st.sortKey = key;
+              st.sortDir = "desc";
+            }
+            if (table === "ai") renderAiAgent();
+            if (table === "variants") renderVariants();
+            if (table === "debug") renderDebug();
+          });
+        });
+      };
+
       const init = async () => {
         try {
-          renderAiAgent(await fetchLogs("ai_agent"));
+          const data = await fetchLogs("ai_agent");
+          state.ai.items = data.items || [];
+          state.ai.total_cost_usd = data.total_cost_usd || 0;
+          state.ai.note = data.note || "";
+          renderAiAgent();
         } catch (err) {
           document.getElementById("ai-table").innerHTML =
-            `<tr><td colspan="6" class="muted">불러오기 실패</td></tr>`;
+            `<tr><td colspan="7" class="muted">불러오기 실패</td></tr>`;
         }
         try {
-          renderVariants(await fetchLogs("variants"));
+          const data = await fetchLogs("variants");
+          state.variants.items = data.items || [];
+          state.variants.total_cost_usd = data.total_cost_usd || 0;
+          state.variants.note = data.note || "";
+          renderVariants();
         } catch (err) {
           document.getElementById("variants-table").innerHTML =
             `<tr><td colspan="6" class="muted">불러오기 실패</td></tr>`;
         }
         try {
-          renderDebug(await fetchLogs("debug"));
+          const data = await fetchLogs("debug");
+          state.debug.items = data.items || [];
+          renderDebug();
         } catch (err) {
           document.getElementById("debug-table").innerHTML =
             `<tr><td colspan="5" class="muted">불러오기 실패</td></tr>`;
         }
       };
 
+      bindSorting();
       init();
     </script>
   </body>
