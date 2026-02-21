@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import {
@@ -955,12 +956,14 @@ function GuidedTour({
       setHighlights([]);
       return;
     }
+    let rafId;
+    let resizeTimer;
     const update = () => {
       const elements = Array.isArray(step?.selectors)
         ? step.selectors.map((selector) => document.querySelector(selector)).filter(Boolean)
         : [document.querySelector(step.selector)].filter(Boolean);
       if (!elements.length) {
-        setHighlights([]);
+        setHighlights((prev) => (prev.length ? [] : prev));
         return;
       }
       const viewportWidth = window.innerWidth || 0;
@@ -973,16 +976,41 @@ function GuidedTour({
           && rect.right >= 0
           && rect.left <= viewportWidth;
         if (!isVisible) return null;
+        const scaleX = rect.width && element.offsetWidth ? rect.width / element.offsetWidth : 1;
+        const scaleY = rect.height && element.offsetHeight ? rect.height / element.offsetHeight : 1;
+        const padX = scaleX ? padding / scaleX : padding;
+        const padY = scaleY ? padding / scaleY : padding;
         return {
-          top: rect.top - padding,
-          left: rect.left - padding,
-          width: rect.width + padding * 2,
-          height: rect.height + padding * 2,
+          top: (scaleY ? rect.top / scaleY : rect.top) - padY,
+          left: (scaleX ? rect.left / scaleX : rect.left) - padX,
+          width: (scaleX ? rect.width / scaleX : rect.width) + padX * 2,
+          height: (scaleY ? rect.height / scaleY : rect.height) + padY * 2,
         };
       }).filter(Boolean);
-      setHighlights(rects);
+      setHighlights((prev) => {
+        if (prev.length === rects.length && prev.every((item, index) => {
+          const next = rects[index];
+          return next
+            && Math.abs(item.top - next.top) < 0.5
+            && Math.abs(item.left - next.left) < 0.5
+            && Math.abs(item.width - next.width) < 0.5
+            && Math.abs(item.height - next.height) < 0.5;
+        })) {
+          return prev;
+        }
+        return rects;
+      });
     };
-    update();
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(update);
+    };
+    const handleResize = () => {
+      scheduleUpdate();
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(update, 160);
+    };
+    scheduleUpdate();
     const scrollTarget = Array.isArray(step?.selectors)
       ? document.querySelector(step.selectors[0])
       : document.querySelector(step.selector);
@@ -996,11 +1024,22 @@ function GuidedTour({
         scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', scheduleUpdate, true);
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', handleResize);
+      visualViewport.addEventListener('scroll', scheduleUpdate);
+    }
     return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
+      cancelAnimationFrame(rafId);
+      clearTimeout(resizeTimer);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', scheduleUpdate, true);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', handleResize);
+        visualViewport.removeEventListener('scroll', scheduleUpdate);
+      }
     };
   }, [step]);
 
@@ -1008,7 +1047,7 @@ function GuidedTour({
   const hasPrev = stepIndex > 0;
   const totalLabel = steps.length ? `${stepIndex + 1} / ${steps.length}` : '';
 
-  return (
+  const overlay = (
     <div className="tour-overlay" ref={overlayRef}>
       <div className="tour-dim">
         <svg width="100%" height="100%" aria-hidden="true">
@@ -1103,6 +1142,7 @@ function GuidedTour({
       </div>
     </div>
   );
+  return createPortal(overlay, document.body);
 }
 
 function PreviewImage({
