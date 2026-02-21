@@ -1383,6 +1383,26 @@ main.container {
   border-color: #1d4ed8;
 }
 
+.hero-tutorial-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tutorial-hint {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #b45309;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .tour-btn--secondary {
   background: #fff;
   color: #1d4ed8;

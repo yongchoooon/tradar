@@ -2115,6 +2115,7 @@ function App() {
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialDontShow, setTutorialDontShow] = useState(false);
+  const [showTutorialHint, setShowTutorialHint] = useState(false);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -2285,10 +2286,7 @@ function App() {
     } catch {
       dismissed = false;
     }
-    if (!dismissed) {
-      setTutorialActive(true);
-      setTutorialStep(0);
-    }
+    setShowTutorialHint(!dismissed);
   }, []);
 
   useEffect(() => {
@@ -2307,6 +2305,7 @@ function App() {
       } catch {
         // ignore storage issues
       }
+      setShowTutorialHint(false);
     }
     setTutorialActive(false);
     setTutorialStep(0);
@@ -2314,6 +2313,7 @@ function App() {
   }, [tutorialDontShow]);
 
   const handleTutorialOpen = () => {
+    setShowTutorialHint(false);
     setTutorialDontShow(false);
     setTutorialStep(0);
     setTutorialActive(true);
@@ -2844,6 +2844,34 @@ function App() {
           <div className="hero-heading">
             <h1 className="title">T-RADAR</h1>
             <div className="hero-actions">
+              <div className="hero-tutorial-wrap">
+                <button
+                  type="button"
+                  className="github-link hero-tutorial"
+                  onClick={handleTutorialOpen}
+                  aria-label={language === 'en' ? 'Tutorial' : '튜토리얼'}
+                  title={language === 'en' ? 'Tutorial' : '튜토리얼'}
+                >
+                  <span className="github-link__icon">?</span>
+                  <span className="github-link__label">{language === 'en' ? 'Tutorial' : '튜토리얼'}</span>
+                </button>
+                {showTutorialHint && (
+                  <span className="tutorial-hint" aria-hidden="true">
+                    {language === 'en' ? 'Start here' : '처음이면 눌러보세요'}
+                  </span>
+                )}
+              </div>
+              <a
+                className="github-link hero-github"
+                href="https://github.com/yongchoooon/tradar"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={copy.hero?.githubLabel || 'GitHub 저장소'}
+                title={copy.hero?.githubLabel || 'GitHub 저장소'}
+              >
+                <span className="github-link__icon">⭐</span>
+                <span className="github-link__label">GitHub</span>
+              </a>
               <button
                 type="button"
                 className="github-link language-toggle"
@@ -2860,27 +2888,6 @@ function App() {
                   <span className={`language-toggle__item ${language === 'ko' ? 'is-active' : ''}`}>한</span>
                 </span>
               </button>
-              <button
-                type="button"
-                className="github-link hero-tutorial"
-                onClick={handleTutorialOpen}
-                aria-label={language === 'en' ? 'Tutorial' : '튜토리얼'}
-                title={language === 'en' ? 'Tutorial' : '튜토리얼'}
-              >
-                <span className="github-link__icon">?</span>
-                <span className="github-link__label">{language === 'en' ? 'Tutorial' : '튜토리얼'}</span>
-              </button>
-              <a
-                className="github-link hero-github"
-                href="https://github.com/yongchoooon/tradar"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={copy.hero?.githubLabel || 'GitHub 저장소'}
-                title={copy.hero?.githubLabel || 'GitHub 저장소'}
-              >
-                <span className="github-link__icon">⭐</span>
-                <span className="github-link__label">GitHub</span>
-              </a>
             </div>
           </div>
           <p className="subtitle">{copy.hero?.subtitle || '멀티모달 검색과 심사 시뮬레이션으로 상표 충돌 위험을 판단하는 서비스'}</p>
