@@ -1979,7 +1979,13 @@ function SimulationPanel({
                 {showProgressDetail && (
                   <div className="simulation-panel__progress-detail" aria-live="polite">
                     {progressEntries.map((entry) => (
-                      <p key={entry.role} className="simulation-panel__progress-line">
+                      <p
+                        key={entry.role}
+                        className={[
+                          'simulation-panel__progress-line',
+                          entry.isComplete ? 'is-complete' : 'is-waiting',
+                        ].filter(Boolean).join(' ')}
+                      >
                         • {entry.label} ({entry.done}/{entry.total})
                       </p>
                     ))}
@@ -2350,6 +2356,14 @@ function App() {
   const [goodsPreset, setGoodsPreset] = useState({ term: '', nonce: 0 });
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
+  const simulationColumnRef = useRef(null);
+  const simulationDockBaseTopRef = useRef(null);
+  const simulationDockOffsetRef = useRef(null);
+  const simulationDockRafRef = useRef(null);
+  const simulationDockTickingRef = useRef(false);
+  const simulationDockCurrentTopRef = useRef(null);
+  const simulationDockTargetTopRef = useRef(null);
+  const simulationDockAnimatingRef = useRef(false);
   const copy = useMemo(() => getLandingCopy(language), [language]);
   const tourCopy = useMemo(() => TOUR_CONTENT[language] || TOUR_CONTENT.ko, [language]);
   const tourSteps = tourCopy.steps || [];
@@ -2393,6 +2407,108 @@ function App() {
     fetchConfig();
     return () => {
       ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateDockMetrics = (recalcBase = false) => {
+      const column = simulationColumnRef.current;
+      if (!column) {
+        return;
+      }
+      const rect = column.getBoundingClientRect();
+      const root = document.documentElement;
+      const container = column.closest('main.container') || document.querySelector('main.container');
+      let top = 32;
+      if (recalcBase || simulationDockBaseTopRef.current == null) {
+        simulationDockBaseTopRef.current = rect.top;
+        if (container) {
+          const containerRect = container.getBoundingClientRect();
+          simulationDockOffsetRef.current = rect.top - containerRect.top;
+        } else {
+          simulationDockOffsetRef.current = rect.top;
+        }
+      }
+      const baseTop = simulationDockBaseTopRef.current ?? rect.top;
+      const baseOffset = simulationDockOffsetRef.current ?? 0;
+      const viewportHeight = window.visualViewport?.height || window.innerHeight || rect.height;
+      const centeredTop = Math.round((viewportHeight - rect.height) / 2);
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        const minTop = Number.isFinite(containerRect.top)
+          ? containerRect.top + baseOffset
+          : top;
+        const maxTop = Number.isFinite(containerRect.bottom)
+          ? containerRect.bottom - rect.height - baseOffset
+          : minTop;
+        if (maxTop < minTop) {
+          top = minTop;
+        } else {
+          const targetTop = containerRect.top < 0 ? centeredTop : baseTop;
+          top = Math.min(Math.max(targetTop, minTop), maxTop);
+        }
+      } else {
+        top = baseTop;
+      }
+      root.style.setProperty('--sim-panel-left', `${rect.left}px`);
+      root.style.setProperty('--sim-panel-width', `${rect.width}px`);
+      root.style.setProperty('--sim-panel-height', `${rect.height}px`);
+      simulationDockTargetTopRef.current = top;
+      if (simulationDockCurrentTopRef.current == null) {
+        simulationDockCurrentTopRef.current = top;
+      }
+      if (!simulationDockAnimatingRef.current) {
+        simulationDockAnimatingRef.current = true;
+        const animate = () => {
+          const current = simulationDockCurrentTopRef.current ?? top;
+          const target = simulationDockTargetTopRef.current ?? top;
+          const delta = target - current;
+          if (Math.abs(delta) < 0.5) {
+            simulationDockCurrentTopRef.current = target;
+            root.style.setProperty('--sim-panel-top', `${Math.round(target)}px`);
+            simulationDockAnimatingRef.current = false;
+            return;
+          }
+          const next = current + delta * 0.35;
+          simulationDockCurrentTopRef.current = next;
+          root.style.setProperty('--sim-panel-top', `${Math.round(next)}px`);
+          simulationDockRafRef.current = requestAnimationFrame(animate);
+        };
+        simulationDockRafRef.current = requestAnimationFrame(animate);
+      }
+    };
+    const handleResize = () => {
+      requestAnimationFrame(() => updateDockMetrics(true));
+    };
+    const handleScroll = () => {
+      if (simulationDockTickingRef.current) {
+        return;
+      }
+      simulationDockTickingRef.current = true;
+      simulationDockRafRef.current = requestAnimationFrame(() => {
+        updateDockMetrics(false);
+        simulationDockTickingRef.current = false;
+      });
+    };
+    updateDockMetrics(true);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', handleResize);
+      visualViewport.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', handleResize);
+        visualViewport.removeEventListener('scroll', handleScroll);
+      }
+      if (simulationDockRafRef.current) {
+        cancelAnimationFrame(simulationDockRafRef.current);
+      }
+      simulationDockAnimatingRef.current = false;
     };
   }, []);
 
@@ -3355,7 +3471,7 @@ function App() {
         </div>
       </section>
       </div>
-      <div className="simulation-column">
+      <div className="simulation-column" ref={simulationColumnRef}>
         <SimulationPanel
           hasResults={Boolean(response)}
           imageCount={selectedImageCount}

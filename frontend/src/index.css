@@ -11,6 +11,10 @@
   --card-bg: rgba(255, 255, 255, 0.97);
   --muted-border-color: rgba(32, 58, 123, 0.12);
   --logo-size: 118px;
+  --sim-panel-left: 0px;
+  --sim-panel-width: 100%;
+  --sim-panel-height: auto;
+  --sim-panel-top: 2rem;
 }
 
 html,
@@ -2019,7 +2023,7 @@ main.container {
   box-shadow: 0 18px 32px rgba(32, 58, 123, 0.16);
   padding: 1rem 1.2rem 1.25rem;
   width: 100%;
-  transition: all 0.25s ease;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
@@ -2031,8 +2035,11 @@ main.container {
 }
 
 .simulation-panel--dock {
-  position: sticky;
-  top: 2vh;
+  position: fixed;
+  top: var(--sim-panel-top, 2rem);
+  left: var(--sim-panel-left, 0px);
+  width: var(--sim-panel-width, 100%);
+  height: var(--sim-panel-height, auto);
 }
 
 .simulation-panel.is-visible {
@@ -2274,6 +2281,35 @@ main.container {
   margin: 0;
   font-size: 0.82rem;
   color: #1f2937;
+}
+
+.simulation-panel__progress-line.is-waiting {
+  background-image: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.45) 0%,
+    rgba(15, 23, 42, 0.9) 35%,
+    rgba(15, 23, 42, 0.45) 70%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: progressShimmer 1.6s ease-in-out infinite;
+}
+
+.simulation-panel__progress-line.is-complete {
+  color: #1f2937;
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: 120% 50%;
+  }
+  100% {
+    background-position: -120% 50%;
+  }
 }
 
 .simulation-panel__elapsed {
@@ -3581,7 +3617,7 @@ main.container {
   font-size: 0.95rem;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 768px) {
   .simulation-panel--dock {
     position: static;
     width: 100%;
