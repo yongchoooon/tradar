@@ -208,6 +208,22 @@ def _parse_debug_key(key: str) -> Dict[str, Any]:
     }
 
 
+def _extract_titles_from_context(context: str) -> Tuple[str, str]:
+    if not context:
+        return "", ""
+    user_title = ""
+    candidate_title = ""
+    user_match = re.search(r"-\s*명칭:\s*(.+)", context)
+    if user_match:
+        user_title = user_match.group(1).strip()
+    candidate_match = re.search(r"-\s*제목:\s*(.+)", context)
+    if candidate_match:
+        candidate_title = candidate_match.group(1).strip()
+        if " (출원번호" in candidate_title:
+            candidate_title = candidate_title.split(" (출원번호", 1)[0].strip()
+    return user_title, candidate_title
+
+
 @router.get("/admin/login", response_class=HTMLResponse)
 def admin_login_page(request: Request) -> str:
     error = request.query_params.get("error")
@@ -274,6 +290,17 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
     if type == "debug":
         for obj in scan_objects:
             parsed = _parse_debug_key(obj["key"])
+            user_title = ""
+            candidate_title = ""
+            if parsed.get("file_type") == "context":
+                try:
+                    text, _ = _get_object_text(obj["key"])
+                    payload = json.loads(text)
+                    context_text = payload.get("context") or ""
+                    user_title, candidate_title = _extract_titles_from_context(context_text)
+                except Exception:
+                    user_title = ""
+                    candidate_title = ""
             items.append(
                 {
                     "key": obj["key"],
@@ -284,6 +311,8 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
                     "run_tag": parsed.get("run_tag"),
                     "app_no": parsed.get("app_no"),
                     "file_type": parsed.get("file_type"),
+                    "user_title": user_title,
+                    "candidate_title": candidate_title,
                 }
             )
         return JSONResponse({"items": items})
