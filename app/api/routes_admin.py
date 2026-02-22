@@ -76,6 +76,7 @@ def _render_template(name: str, **replacements: str) -> str:
 
 _LOG_TYPES = {
     "ai_agent": "openai_ai_agent_usage/",
+    "search": "search_usage/",
     "variants": "variants_openai_usage/",
     "debug": "simulation_debug/",
 }
@@ -163,6 +164,27 @@ def _parse_variants_log(payload: Dict[str, Any]) -> Dict[str, Any]:
         "client_ip": payload.get("client_ip") or "",
         "language_mode": payload.get("language_mode") or "",
         "variants_count": payload.get("variants_count") or 0,
+    }
+
+
+def _parse_search_log(payload: Dict[str, Any]) -> Dict[str, Any]:
+    query = payload.get("query") or {}
+    result_counts = payload.get("result_counts") or {}
+    total_results = (
+        (result_counts.get("image_top") or 0)
+        + (result_counts.get("image_misc") or 0)
+        + (result_counts.get("text_top") or 0)
+        + (result_counts.get("text_misc") or 0)
+    )
+    return {
+        "timestamp": payload.get("timestamp") or "",
+        "search_id": payload.get("search_id") or "",
+        "query_text": query.get("text") or "",
+        "goods_classes": ", ".join(query.get("goods_classes") or []),
+        "group_codes": ", ".join(query.get("group_codes") or []),
+        "total_results": total_results,
+        "client_ip": payload.get("client_ip") or "",
+        "user_agent": payload.get("user_agent") or "",
     }
 
 
@@ -296,6 +318,17 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
                     **parsed,
                 }
             )
+        elif type == "search":
+            parsed = _parse_search_log(payload)
+            items.append(
+                {
+                    "key": obj["key"],
+                    "last_modified": obj["last_modified"].isoformat()
+                    if obj.get("last_modified")
+                    else "",
+                    **parsed,
+                }
+            )
 
     note = ""
     if truncated:
@@ -304,7 +337,7 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
     return JSONResponse(
         {
             "items": items,
-            "total_cost_usd": total_cost,
+            "total_cost_usd": total_cost if type in {"ai_agent", "variants"} else 0,
             "note": note,
         }
     )

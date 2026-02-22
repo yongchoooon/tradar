@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import time
 import uuid
+import threading
+from dataclasses import asdict
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.schemas.search import (
@@ -19,6 +23,7 @@ from app.schemas.search import (
 )
 from app.services.s3_storage import ImageRef, ImageTransferError, build_image_ref
 from app.services.request_meta import get_request_meta
+from app.services.log_storage import upload_text, s3_logs_enabled
 from app.services.worker_registry import (
     WorkerDisconnectedError,
     WorkerTimeoutError,
@@ -30,6 +35,79 @@ from app.services.worker_settings import get_worker_settings
 
 
 logger = logging.getLogger(__name__)
+
+
+def _upload_text_async(key_suffix: str, text: str, content_type: str) -> None:
+    thread = threading.Thread(
+        target=upload_text,
+        args=(key_suffix, text, content_type),
+        daemon=True,
+    )
+    thread.start()
+
+
+def _serialize_result(result: SearchResult) -> Dict[str, Any]:
+    payload = asdict(result)
+    return {
+        "trademark_id": payload.get("trademark_id") or "",
+        "title": payload.get("title") or "",
+        "status": payload.get("status") or "",
+        "class_codes": payload.get("class_codes") or [],
+        "app_no": payload.get("app_no") or "",
+        "image_sim": float(payload.get("image_sim") or 0.0),
+        "text_sim": float(payload.get("text_sim") or 0.0),
+        "thumb_url": payload.get("thumb_url"),
+        "doi": payload.get("doi"),
+        "image_path": payload.get("image_path"),
+        "goods_services": payload.get("goods_services"),
+    }
+
+
+def _build_search_log_payload(
+    req: SearchRequest,
+    response: SearchResponse,
+    *,
+    job_id: str,
+    worker_id: str,
+    elapsed_ms: int,
+) -> Dict[str, Any]:
+    meta = get_request_meta()
+    query = response.query
+    payload = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "search_id": response.search_id or "",
+        "job_id": job_id,
+        "worker_id": worker_id,
+        "elapsed_ms": elapsed_ms,
+        "query": {
+            "text": query.text,
+            "language": req.language,
+            "goods_classes": list(query.goods_classes or []),
+            "group_codes": list(query.group_codes or []),
+            "variants": list(query.variants or []),
+            "k": query.k,
+            "use_llm_variants": bool(req.use_llm_variants),
+            "debug": bool(req.debug),
+        },
+        "result_counts": {
+            "image_top": len(response.image_top or []),
+            "image_misc": len(response.image_misc or []),
+            "text_top": len(response.text_top or []),
+            "text_misc": len(response.text_misc or []),
+        },
+        "image_top": [_serialize_result(item) for item in response.image_top or []],
+        "image_misc": [_serialize_result(item) for item in response.image_misc or []],
+        "text_top": [_serialize_result(item) for item in response.text_top or []],
+        "text_misc": [_serialize_result(item) for item in response.text_misc or []],
+        "client_id": meta.client_id if meta else "",
+        "client_ip": meta.client_ip if meta else "",
+        "user_agent": meta.user_agent if meta else "",
+        "request_id": meta.request_id if meta else "",
+        "origin": meta.origin if meta else "",
+        "referer": meta.referer if meta else "",
+        "accept_language": meta.accept_language if meta else "",
+    }
+    return payload
 
 
 class WorkerSearchError(Exception):
@@ -298,4 +376,21 @@ async def run_worker_search(req: SearchRequest) -> SearchResponse:
         worker_id,
         elapsed_ms,
     )
+    if s3_logs_enabled():
+        try:
+            payload = _build_search_log_payload(
+                req,
+                response,
+                job_id=job_id,
+                worker_id=worker_id,
+                elapsed_ms=elapsed_ms,
+            )
+            date_tag = datetime.utcnow().strftime("%Y/%m/%d")
+            _upload_text_async(
+                f"search_usage/{date_tag}/{uuid.uuid4().hex}.json",
+                json.dumps(payload, ensure_ascii=False),
+                content_type="application/json",
+            )
+        except Exception:
+            logger.exception("Failed to enqueue search log upload")
     return response
