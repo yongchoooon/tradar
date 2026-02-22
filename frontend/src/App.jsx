@@ -2408,9 +2408,30 @@ function App() {
   const displaySimulationTitle = activeSimulationEntry?.title || '';
   const displaySimulationStatus = activeSimulationEntry?.status || simulationStatus;
   const displaySimulationProgress = activeSimulationEntry?.progress || simulationProgress;
-  const displaySimulationElapsed = (
-    activeSimulationEntry?.elapsedSeconds ?? simulationElapsed
-  );
+  const displaySimulationElapsed = (() => {
+    const entryElapsed = Number.isFinite(activeSimulationEntry?.elapsedSeconds)
+      ? activeSimulationEntry.elapsedSeconds
+      : null;
+    const isActiveJob = activeSimulationEntry?.id
+      && simulationJobId
+      && activeSimulationEntry.id === simulationJobId;
+    if (isActiveJob) {
+      if (entryElapsed !== null && entryElapsed > 0) {
+        return entryElapsed;
+      }
+      return simulationElapsed;
+    }
+    if (activeSimulationEntry) {
+      if (entryElapsed !== null && entryElapsed > 0) {
+        return entryElapsed;
+      }
+      if (activeSimulationEntry.status === 'complete' && simulationElapsed > 0) {
+        return simulationElapsed;
+      }
+      return entryElapsed ?? simulationElapsed;
+    }
+    return simulationElapsed;
+  })();
 
   useEffect(() => {
     let ignore = false;
