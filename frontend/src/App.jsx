@@ -1892,15 +1892,6 @@ function SimulationPanel({
               })}
             </div>
             {statusContent}
-            {showProgressDetail && (
-              <div className="simulation-panel__progress-detail" aria-live="polite">
-                {progressEntries.map((entry) => (
-                  <p key={entry.role} className="simulation-panel__progress-line">
-                    {entry.label} ({entry.done}/{entry.total})
-                  </p>
-                ))}
-              </div>
-            )}
             {hasResults ? (
               <div className="simulation-panel__summary-grid">
                 <div className="simulation-panel__summary-card">
@@ -1985,6 +1976,15 @@ function SimulationPanel({
                 {historyTitleText ? (
                   <div className="simulation-panel__history-title">{historyTitleText}</div>
                 ) : null}
+                {showProgressDetail && (
+                  <div className="simulation-panel__progress-detail" aria-live="polite">
+                    {progressEntries.map((entry) => (
+                      <p key={entry.role} className="simulation-panel__progress-line">
+                        • {entry.label} ({entry.done}/{entry.total})
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </section>
@@ -2372,6 +2372,9 @@ function App() {
   const displaySimulationTitle = activeSimulationEntry?.title || '';
   const displaySimulationStatus = activeSimulationEntry?.status || simulationStatus;
   const displaySimulationProgress = activeSimulationEntry?.progress || simulationProgress;
+  const displaySimulationElapsed = (
+    activeSimulationEntry?.elapsedSeconds ?? simulationElapsed
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -2549,13 +2552,25 @@ function App() {
         setSimulationStartTime(baseStart);
         setSimulationElapsed(0);
       } else {
-        setSimulationElapsed(Math.floor((Date.now() - baseStart) / 1000));
+        const nextElapsed = Math.floor((Date.now() - baseStart) / 1000);
+        setSimulationElapsed(nextElapsed);
+        if (simulationJobId) {
+          updateSimulationHistoryEntry(simulationJobId, { elapsedSeconds: nextElapsed });
+        }
       }
       timer = window.setInterval(() => {
-        setSimulationElapsed(Math.floor((Date.now() - (simulationStartTime ?? baseStart)) / 1000));
+        const nextElapsed = Math.floor((Date.now() - (simulationStartTime ?? baseStart)) / 1000);
+        setSimulationElapsed(nextElapsed);
+        if (simulationJobId) {
+          updateSimulationHistoryEntry(simulationJobId, { elapsedSeconds: nextElapsed });
+        }
       }, 1000);
     } else if (simulationStartTime !== null && finishedStatuses.includes(simulationStatus)) {
-      setSimulationElapsed(Math.floor((Date.now() - simulationStartTime) / 1000));
+      const nextElapsed = Math.floor((Date.now() - simulationStartTime) / 1000);
+      setSimulationElapsed(nextElapsed);
+      if (simulationJobId) {
+        updateSimulationHistoryEntry(simulationJobId, { elapsedSeconds: nextElapsed });
+      }
       setSimulationStartTime(null);
     }
 
@@ -2564,7 +2579,7 @@ function App() {
         window.clearInterval(timer);
       }
     };
-  }, [simulationStatus, simulationStartTime]);
+  }, [simulationStatus, simulationStartTime, simulationJobId]);
 
   const toggleGroup = ({ key, checked, classCode, className, groupCode, names }) => {
     setSelectedGroups((prev) => {
@@ -2781,6 +2796,7 @@ function App() {
         index: nextIndex,
         status: 'collecting',
         progress: null,
+        elapsedSeconds: 0,
       };
       const next = [...prev, nextEntry];
       return next.length > 5 ? next.slice(next.length - 5) : next;
@@ -2834,6 +2850,9 @@ function App() {
         || pendingSimulationTitle
         || fallbackTitle
         || '(no title)';
+      const finalElapsed = simulationStartTime
+        ? Math.floor((Date.now() - simulationStartTime) / 1000)
+        : simulationElapsed;
       setSimulationHistory((prev) => {
         const existingIndex = prev.findIndex((entry) => entry.id === entryId);
         if (existingIndex >= 0) {
@@ -2843,6 +2862,7 @@ function App() {
             title: entryTitle,
             result: data.result,
             status: 'complete',
+            elapsedSeconds: finalElapsed,
           };
           return next;
         }
@@ -2854,6 +2874,7 @@ function App() {
           index: nextIndex,
           status: 'complete',
           progress: data.progress || null,
+          elapsedSeconds: finalElapsed,
         }];
         return next.length > 5 ? next.slice(next.length - 5) : next;
       });
@@ -3347,7 +3368,7 @@ function App() {
           )}
           result={displaySimulationResult}
           error={simulationError}
-          elapsedSeconds={simulationElapsed}
+          elapsedSeconds={displaySimulationElapsed}
           modelName={simulationModel}
           progress={displaySimulationProgress}
           docked

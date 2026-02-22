@@ -162,6 +162,7 @@ class LangGraphOrchestrator:
         }
         response = await self._run_llm(
             role=bundle.roles["final_reporter"],
+            role_key="final_reporter",
             instruction=instruction,
             state=state,
         )
@@ -178,6 +179,7 @@ class LangGraphOrchestrator:
         image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
             role=bundle.roles["examiner"],
+            role_key="examiner",
             instruction=bundle.examiner,
             state=state,
             image_inputs=image_payloads,
@@ -189,6 +191,7 @@ class LangGraphOrchestrator:
         image_payloads = self._collect_image_payloads(state)
         response = await self._run_llm(
             role=bundle.roles["applicant"],
+            role_key="applicant",
             instruction=bundle.applicant,
             state=state,
             image_inputs=image_payloads,
@@ -199,6 +202,7 @@ class LangGraphOrchestrator:
         bundle = state["prompt_bundle"]
         response = await self._run_llm(
             role=bundle.roles["examiner_reply"],
+            role_key="examiner_reply",
             instruction=bundle.examiner_reply,
             state=state,
         )
@@ -227,6 +231,7 @@ class LangGraphOrchestrator:
             reporter_context += f"\n\n[{bundle.quant_label}]\n" + metrics_block
         summary = await self._run_llm(
             role=bundle.roles["reporter"],
+            role_key="reporter",
             instruction=bundle.reporter.format(
                 image_line=image_line,
                 text_line=text_line,
@@ -272,6 +277,7 @@ class LangGraphOrchestrator:
             scorer_context += f"\n\n[{bundle.quant_label}]\n" + metrics_block
         response = await self._run_llm(
             role=bundle.roles["scorer"],
+            role_key="scorer",
             instruction=bundle.scorer,
             state=summary_only_state,
             context_override=scorer_context,
@@ -341,6 +347,7 @@ class LangGraphOrchestrator:
         self,
         *,
         role: str,
+        role_key: Optional[str] = None,
         instruction: str,
         state: AgentState,
         context_override: str | None = None,
@@ -393,11 +400,6 @@ class LangGraphOrchestrator:
         if progress_callback:
             try:
                 meta = state.get("progress_meta") or {}
-                role_key = None
-                for key, label in bundle.roles.items():
-                    if label == role:
-                        role_key = key
-                        break
                 progress_callback({
                     "type": "role_complete",
                     "role": role_key or role,

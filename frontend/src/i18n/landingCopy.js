@@ -113,31 +113,31 @@ export const landingCopy = {
         complete: 'Summary ready',
         detail: {
           waiting: 'Output pending...',
-          complete: 'Output complete...',
+          complete: 'Output complete.',
           roles: {
             examiner: {
-              waiting: 'Examiner refusal draft pending...',
-              complete: 'Examiner refusal draft complete...',
+              waiting: 'Examiner objections pending...',
+              complete: 'Examiner objections complete.',
             },
             applicant: {
-              waiting: 'Applicant rebuttal/revision pending...',
-              complete: 'Applicant rebuttal/revision complete...',
+              waiting: 'Applicant rebuttal pending...',
+              complete: 'Applicant rebuttal complete.',
             },
             examiner_reply: {
-              waiting: 'Examiner follow-up pending...',
-              complete: 'Examiner follow-up complete...',
+              waiting: 'Examiner decision pending...',
+              complete: 'Examiner decision complete.',
             },
             reporter: {
               waiting: 'Reporter summary pending...',
-              complete: 'Reporter summary complete...',
+              complete: 'Reporter summary complete.',
             },
             scorer: {
               waiting: 'Scoring pending...',
-              complete: 'Scoring complete...',
+              complete: 'Scoring complete.',
             },
             final_reporter: {
               waiting: 'Final report pending...',
-              complete: 'Final report complete...',
+              complete: 'Final report complete.',
             },
           },
         },
@@ -340,31 +340,31 @@ export const landingCopy = {
         complete: '요약 완료',
         detail: {
           waiting: '출력 대기중...',
-          complete: '출력 완료...',
+          complete: '출력 완료.',
           roles: {
             examiner: {
               waiting: '심사관의 거절사유 출력 대기중...',
-              complete: '심사관의 거절사유 출력 완료...',
+              complete: '심사관의 거절사유 출력 완료.',
             },
             applicant: {
               waiting: '출원인의 반박/보정 의견 출력 대기중...',
-              complete: '출원인의 반박/보정 의견 출력 완료...',
+              complete: '출원인의 반박/보정 의견 출력 완료.',
             },
             examiner_reply: {
               waiting: '심사관의 재반박 출력 대기중...',
-              complete: '심사관의 재반박 출력 완료...',
+              complete: '심사관의 재반박 출력 완료.',
             },
             reporter: {
               waiting: '리포터 요약 출력 대기중...',
-              complete: '리포터 요약 출력 완료...',
+              complete: '리포터 요약 출력 완료.',
             },
             scorer: {
               waiting: '채점자 점수 산출 대기중...',
-              complete: '채점자 점수 산출 완료...',
+              complete: '채점자 점수 산출 완료.',
             },
             final_reporter: {
               waiting: '최종 리포터 요약 출력 대기중...',
-              complete: '최종 리포터 요약 출력 완료...',
+              complete: '최종 리포터 요약 출력 완료.',
             },
           },
         },
