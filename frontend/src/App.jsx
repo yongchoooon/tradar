@@ -2394,6 +2394,7 @@ function App() {
   const searchErrors = copy.search?.errors || {};
   const simulationAlerts = copy.simulation?.alerts || {};
   const simulationErrors = copy.simulation?.errors || {};
+  const footerCopy = copy.footer || {};
   const textDisplayVariants = response?.query?.variants || [];
   const simulationLocked = ['collecting', 'loading', 'cancelling'].includes(simulationStatus);
   const activeSimulationEntry = useMemo(() => {
@@ -3358,7 +3359,12 @@ function App() {
     </div>
   );
 
+  const footerRoot = typeof document !== 'undefined'
+    ? document.getElementById('footer-root')
+    : null;
+
   return (
+    <>
     <div className={`app-shell ${language === 'en' ? 'is-lang-en' : 'is-lang-ko'}`}>
       <div className="search-column">
       <section className="hero" data-tour="hero-area">
@@ -3564,6 +3570,17 @@ function App() {
         />
       )}
     </div>
+    {footerRoot && createPortal(
+      <footer className="site-footer">
+        <span>{footerCopy.notice || '이 서비스는 데모 버전이며 아직 미완성이라 버그가 있을 수 있습니다. 오류가 발생하면'}</span>{' '}
+        <a href="https://github.com/yongchoooon/tradar/issues" target="_blank" rel="noopener noreferrer">
+          {footerCopy.issueLabel || 'GitHub Issues'}
+        </a>
+        <span>{footerCopy.noticeTail || '에 남겨주세요.'}</span>
+      </footer>,
+      footerRoot,
+    )}
+    </>
   );
 }
 

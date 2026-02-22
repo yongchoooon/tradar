@@ -227,6 +227,11 @@ export const landingCopy = {
         cancel: 'Cancel',
       },
     },
+    footer: {
+      notice: 'This service is a demo and still in progress; bugs may occur. Please report issues at',
+      issueLabel: 'GitHub Issues',
+      noticeTail: '.',
+    },
   },
   ko: {
     toggleLabel: 'English',
@@ -455,6 +460,11 @@ export const landingCopy = {
         rerun: '재시뮬레이션',
         cancel: '실행 취소',
       },
+    },
+    footer: {
+      notice: '이 서비스는 데모 버전이며 아직 미완성이라 버그가 있을 수 있습니다. 오류가 발생하면',
+      issueLabel: 'GitHub Issues',
+      noticeTail: '에 남겨주세요.',
     },
   },
 };

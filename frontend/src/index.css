@@ -288,8 +288,22 @@ select:disabled {
   width: 85vw;
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 3.2rem;
+  margin-bottom: 1.5rem;
   max-width: none !important;
+}
+
+.site-footer {
+  width: 85vw;
+  margin: 1rem auto 1.4rem;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.site-footer a {
+  color: #2563eb;
+  text-decoration: underline;
 }
 
 @media (max-width: 992px) {
@@ -298,6 +312,18 @@ select:disabled {
     margin-left: auto;
     margin-right: auto;
     max-width: none !important;
+  }
+
+  .site-footer {
+    width: 100%;
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .site-footer {
+    font-size: 0.75rem;
+    text-align: left;
   }
 }
 
