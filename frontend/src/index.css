@@ -2137,23 +2137,12 @@ main.container {
   flex: 1;
   padding: 0.55rem 0.5rem 0.35rem 0.9rem;
   border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
   font-size: 0.78rem;
   color: #94a3b8;
   display: flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-.simulation-panel__progress-step::before {
-  content: '';
-  position: absolute;
-  inset: 0.65rem 0 auto 0.95rem;
-  border-left: 1px solid rgba(15, 23, 42, 0.15);
-  height: calc(100% - 1.2rem);
-}
-
-.simulation-panel__progress-step:first-child::before {
-  display: none;
 }
 
 .simulation-panel__progress-dot {

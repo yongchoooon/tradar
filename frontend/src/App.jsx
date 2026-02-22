@@ -2661,6 +2661,34 @@ function App() {
     tutorialSnapshotRef.current = null;
   }, []);
 
+  const resetAfterTutorial = useCallback(() => {
+    setResponse(null);
+    setSimulationResult(null);
+    setSimulationStatus('idle');
+    setSimulationError('');
+    setSimulationStartTime(null);
+    setSimulationElapsed(0);
+    setSimulationHistory([]);
+    setActiveSimulationId(null);
+    setSimulationSelection({ image: {}, text: {} });
+    setSimulationDefaults({ image: {}, text: {} });
+    setSimulationProgress(null);
+    setSimulationJobId(null);
+    setPendingSimulationTitle('');
+    simulationTitleRef.current.clear();
+    setSelectedGroups({});
+    setGoodsResultsReady(false);
+    setGoodsPreset({ term: '', nonce: Date.now() });
+    setTitle('');
+    setImageFile(null);
+    setLastImageRef(null);
+    setLastSearchId(null);
+    setPlaceholderNotice('');
+    setLoading(false);
+    setLoadingState({ image: false, text: false });
+    setError('');
+  }, []);
+
   useEffect(() => {
     let dismissed = false;
     try {
@@ -2693,10 +2721,12 @@ function App() {
         // ignore storage issues
       }
     }
+    tutorialSnapshotRef.current = null;
+    resetAfterTutorial();
     setTutorialActive(false);
     setTutorialStep(0);
     setTutorialDontShow(false);
-  }, [tutorialDontShow]);
+  }, [tutorialDontShow, resetAfterTutorial]);
 
   const handleTutorialOpen = () => {
     setTutorialDontShow(false);
