@@ -2109,9 +2109,8 @@ main.container {
 .simulation-panel__progress-step {
   position: relative;
   flex: 1;
-  padding: 0.55rem 0.5rem 0.35rem 1.45rem;
+  padding: 0.55rem 0.5rem 0.35rem 0.9rem;
   border-radius: 12px;
-  border: 1px dashed rgba(15, 23, 42, 0.15);
   font-size: 0.78rem;
   color: #94a3b8;
   display: flex;
