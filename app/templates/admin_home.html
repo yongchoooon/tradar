@@ -24,6 +24,7 @@
       .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
       .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
       .narrow { white-space:nowrap; width:1%; }
+      .col-user-agent { max-width:220px; width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       a.button { text-decoration:none; padding:0.5rem 0.8rem; border-radius:10px; background:#e2e8f0; color:#0f172a; }
       .badge { display:inline-block; padding:0.2rem 0.5rem; border-radius:999px; background:#e2e8f0; font-size:0.75rem; color:#334155; }
       .pagination { display:flex; align-items:center; gap:0.35rem; margin-top:0.8rem; flex-wrap:wrap; }
@@ -51,7 +52,7 @@
             <th>호출 수</th>
             <th>총 비용</th>
             <th>IP</th>
-            <th>user_agent</th>
+            <th class="col-user-agent">user_agent</th>
           </tr>
         </thead>
         <tbody id="ai-table">
@@ -235,7 +236,7 @@
             <td>${item.total_calls ?? "-"}</td>
             <td>${formatCost(item.total_cost_usd)}</td>
             <td>${item.client_ip || "-"}</td>
-            <td>${item.user_agent || "-"}</td>
+            <td class="col-user-agent">${item.user_agent || "-"}</td>
           `;
           row.addEventListener("click", () => toggleDetail(row, item.key, 7));
           body.appendChild(row);

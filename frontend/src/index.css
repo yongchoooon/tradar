@@ -2155,7 +2155,7 @@ main.container {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  margin-bottom: 0.95rem;
+  margin-bottom: 0.75rem;
 }
 
 .simulation-panel__status-card--waiting {

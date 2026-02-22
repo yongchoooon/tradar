@@ -2853,6 +2853,8 @@ function App() {
       const finalElapsed = simulationStartTime
         ? Math.floor((Date.now() - simulationStartTime) / 1000)
         : simulationElapsed;
+      setSimulationElapsed(finalElapsed);
+      setSimulationStartTime(null);
       setSimulationHistory((prev) => {
         const existingIndex = prev.findIndex((entry) => entry.id === entryId);
         if (existingIndex >= 0) {
