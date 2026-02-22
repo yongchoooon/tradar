@@ -184,6 +184,8 @@ export const landingCopy = {
         '- The top 5 image and text candidates are preselected; you can expand up to {maxSelection}.',
         '- After clicking “Run Simulation,” you can track steps and elapsed time in real time.',
         '- On completion, each candidate includes a summary, rationale, and dialogue log.',
+        '- Conflict risk and registrability scores are heuristic prioritization signals, not legal judgments.',
+        '- LLM outputs can vary across runs, so scores and content may change.',
       ],
       summary: {
         image: 'Image candidates',
@@ -411,6 +413,8 @@ export const landingCopy = {
         '- 이미지/텍스트 상위 5건이 기본 선택되며 최대 {maxSelection}건까지 확장할 수 있습니다.',
         '- “시뮬레이션 실행” 후 진행 단계와 경과 시간을 실시간으로 확인할 수 있습니다.',
         '- 완료 시 후보별 요약과 근거, 대화 로그가 제공됩니다.',
+        '- 충돌 위험도·등록 가능성 점수는 법적 판단이 아닌 우선순위 판단 신호입니다.',
+        '- LLM 출력은 실행마다 달라져 내용과 점수가 변동될 수 있습니다.',
       ],
       summary: {
         image: '이미지 후보',
