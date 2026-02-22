@@ -13,7 +13,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
-from typing import Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import httpx
 
@@ -60,7 +60,7 @@ class SimulationEngine:
         self,
         request: SimulationRequest,
         cancel_checker: Optional[Callable[[], bool]] = None,
-        progress_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         job_id: Optional[str] = None,
     ) -> SimulationResponse:
         if not request.selections:
@@ -91,7 +91,7 @@ class SimulationEngine:
         )
         if progress_callback:
             try:
-                progress_callback("collecting")
+                progress_callback({"type": "phase", "status": "collecting"})
             except Exception:  # pragma: no cover - defensive
                 pass
         doc_map = await self._gather_documents(trimmed)
@@ -99,7 +99,7 @@ class SimulationEngine:
             raise SimulationCancelled()
         if progress_callback:
             try:
-                progress_callback("simulating")
+                progress_callback({"type": "phase", "status": "simulating"})
             except Exception:  # pragma: no cover - defensive
                 pass
         sem = asyncio.Semaphore(self.MAX_WORKERS)
@@ -125,6 +125,7 @@ class SimulationEngine:
                     worker_id=worker_id,
                     language=language,
                     cancel_checker=cancel_checker,
+                    progress_callback=progress_callback,
                 )
 
         tasks = []
@@ -187,6 +188,7 @@ class SimulationEngine:
                     for c in candidates
                 ],
                 language=language,
+                progress_callback=progress_callback,
             )
             if debug_enabled and debug_tag and overall_logs:
                 self._log_debug_llm(debug_tag, "overall", overall_logs)
@@ -367,6 +369,7 @@ class SimulationEngine:
         worker_id: int,
         language: str = "ko",
         cancel_checker: Optional[Callable[[], bool]] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> tuple[SimulationCandidateResult, List[Dict[str, Any]]]:
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
@@ -413,6 +416,11 @@ class SimulationEngine:
             metrics=metrics,
             worker_id=worker_id,
             language=language,
+            progress_callback=progress_callback,
+            progress_meta={
+                "application_number": selection.application_number,
+                "variant": selection.variant,
+            },
         )
         if cancel_checker and cancel_checker():
             raise SimulationCancelled()
@@ -813,7 +821,7 @@ async def run_simulation_async(
     request: SimulationRequest,
     job_id: Optional[str] = None,
     cancel_checker: Optional[Callable[[], bool]] = None,
-    progress_callback: Optional[Callable[[str], None]] = None,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> SimulationResponse:
     return await _engine.run(
         request,

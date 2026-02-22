@@ -1651,6 +1651,7 @@ function SimulationPanel({
   error,
   elapsedSeconds = 0,
   modelName = '',
+  progress = null,
   docked = false,
   history = [],
   activeHistoryId = null,
@@ -1669,6 +1670,7 @@ function SimulationPanel({
   const historyActiveId = activeHistoryId || historyEntries[historyEntries.length - 1]?.id;
   const historyTitleText = historyTitle || '';
   const hasSimulationResult = Boolean(result);
+  const hasAnySimulationResult = hasSimulationResult || historyEntries.some((entry) => entry?.result);
   const isProcessing = ['collecting', 'loading', 'cancelling'].includes(status);
   const [expandedTranscripts, setExpandedTranscripts] = useState({});
   const buttonDisabled = !hasResults || !totalCount || isProcessing;
@@ -1689,6 +1691,30 @@ function SimulationPanel({
   const shouldShowElapsed =
     ['collecting', 'loading', 'cancelling'].includes(status)
     || (status === 'complete' && elapsedSeconds >= 0);
+
+  const progressRoleOrder = ['examiner', 'applicant', 'examiner_reply', 'reporter', 'scorer', 'final_reporter'];
+  const progressCopy = progressText.detail || {};
+  const progressRoleTemplates = progressCopy.roles || {};
+  const progressWaitingFallback = progressCopy.waiting || '출력 대기중...';
+  const progressCompleteFallback = progressCopy.complete || '출력 완료...';
+  const progressEntries = progressRoleOrder.map((role) => {
+    const roleProgress = progress?.roles?.[role];
+    if (!roleProgress || !roleProgress.total || roleProgress.done <= 0) {
+      return null;
+    }
+    const isComplete = roleProgress.done >= roleProgress.total;
+    const template = isComplete
+      ? (progressRoleTemplates?.[role]?.complete || progressCompleteFallback)
+      : (progressRoleTemplates?.[role]?.waiting || progressWaitingFallback);
+    return {
+      role,
+      label: template,
+      done: roleProgress.done,
+      total: roleProgress.total,
+      isComplete,
+    };
+  }).filter(Boolean);
+  const showProgressDetail = isProcessing && progressEntries.length > 0;
 
   const progressSteps = [
     { key: 'collecting', label: progressText.collecting || '데이터 불러오는 중' },
@@ -1866,6 +1892,15 @@ function SimulationPanel({
               })}
             </div>
             {statusContent}
+            {showProgressDetail && (
+              <div className="simulation-panel__progress-detail" aria-live="polite">
+                {progressEntries.map((entry) => (
+                  <p key={entry.role} className="simulation-panel__progress-line">
+                    {entry.label} ({entry.done}/{entry.total})
+                  </p>
+                ))}
+              </div>
+            )}
             {hasResults ? (
               <div className="simulation-panel__summary-grid">
                 <div className="simulation-panel__summary-card">
@@ -1884,7 +1919,7 @@ function SimulationPanel({
             ) : guidanceBlock}
             {![ 'collecting', 'loading', 'cancelling' ].includes(status) && (
               <div className="simulation-panel__actions">
-                {hasSimulationResult && (
+                {hasAnySimulationResult && (
                   <p className="simulation-panel__rerun-hint">
                     {text.rerunNotice
                       || '❗ 상표명/이미지/상품·서비스류를 수정한 뒤 아래 버튼으로 재시뮬레이션하세요.'}
@@ -1892,14 +1927,14 @@ function SimulationPanel({
                 )}
                 <button
                   type="button"
-                  className={`action-button simulation-panel__button ${hasSimulationResult ? 'action-button--rerun' : 'action-button--primary'}`}
+                  className={`action-button simulation-panel__button ${hasAnySimulationResult ? 'action-button--rerun' : 'action-button--primary'}`}
                   data-tour="simulation-run"
                   onClick={() => onRun?.(true)}
                   disabled={buttonDisabled}
                 >
                   <FiPlayCircle aria-hidden="true" />
                   <span>
-                    {hasSimulationResult
+                    {hasAnySimulationResult
                       ? (text.buttons?.rerun || '재시뮬레이션')
                       : (text.buttons?.run || '시뮬레이션 시작')}
                   </span>
@@ -2306,6 +2341,7 @@ function App() {
   const [simulationStartTime, setSimulationStartTime] = useState(null);
   const [simulationElapsed, setSimulationElapsed] = useState(0);
   const [simulationModel, setSimulationModel] = useState('');
+  const [simulationProgress, setSimulationProgress] = useState(null);
   const [simulationHistory, setSimulationHistory] = useState([]);
   const [activeSimulationId, setActiveSimulationId] = useState(null);
   const [pendingSimulationTitle, setPendingSimulationTitle] = useState('');
@@ -2330,8 +2366,12 @@ function App() {
       : null;
     return byId || simulationHistory[simulationHistory.length - 1];
   }, [simulationHistory, activeSimulationId]);
-  const displaySimulationResult = activeSimulationEntry?.result || simulationResult;
+  const displaySimulationResult = activeSimulationEntry
+    ? activeSimulationEntry.result
+    : simulationResult;
   const displaySimulationTitle = activeSimulationEntry?.title || '';
+  const displaySimulationStatus = activeSimulationEntry?.status || simulationStatus;
+  const displaySimulationProgress = activeSimulationEntry?.progress || simulationProgress;
 
   useEffect(() => {
     let ignore = false;
@@ -2728,18 +2768,60 @@ function App() {
     }
   };
 
+  const appendSimulationHistoryEntry = (jobId, entryTitle) => {
+    setSimulationHistory((prev) => {
+      if (prev.some((entry) => entry.id === jobId)) {
+        return prev;
+      }
+      const nextIndex = (prev[prev.length - 1]?.index || 0) + 1;
+      const nextEntry = {
+        id: jobId,
+        title: entryTitle,
+        result: null,
+        index: nextIndex,
+        status: 'collecting',
+        progress: null,
+      };
+      const next = [...prev, nextEntry];
+      return next.length > 5 ? next.slice(next.length - 5) : next;
+    });
+  };
+
+  const updateSimulationHistoryEntry = (jobId, patch) => {
+    if (!jobId) return;
+    setSimulationHistory((prev) => {
+      const index = prev.findIndex((entry) => entry.id === jobId);
+      if (index < 0) {
+        return prev;
+      }
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        ...patch,
+      };
+      return next;
+    });
+  };
+
   const handleSimulationStatusPayload = (data) => {
     const status = (data?.status || '').toLowerCase();
+    if (data?.progress) {
+      setSimulationProgress(data.progress);
+      updateSimulationHistoryEntry(data.job_id, { progress: data.progress });
+    }
     if (status === 'pending' || status === 'queued') {
       setSimulationStatus('collecting');
+      updateSimulationHistoryEntry(data.job_id, { status: 'collecting' });
       return false;
     }
     if (status === 'collecting') {
       setSimulationStatus('collecting');
+      updateSimulationHistoryEntry(data.job_id, { status: 'collecting' });
       return false;
     }
     if (status === 'simulating' || status === 'running') {
       setSimulationStatus('loading');
+      updateSimulationHistoryEntry(data.job_id, { status: 'loading' });
       return false;
     }
     if (status === 'complete' && data?.result) {
@@ -2753,12 +2835,25 @@ function App() {
         || fallbackTitle
         || '(no title)';
       setSimulationHistory((prev) => {
+        const existingIndex = prev.findIndex((entry) => entry.id === entryId);
+        if (existingIndex >= 0) {
+          const next = [...prev];
+          next[existingIndex] = {
+            ...next[existingIndex],
+            title: entryTitle,
+            result: data.result,
+            status: 'complete',
+          };
+          return next;
+        }
         const nextIndex = (prev[prev.length - 1]?.index || 0) + 1;
         const next = [...prev, {
           id: entryId,
           title: entryTitle,
           result: data.result,
           index: nextIndex,
+          status: 'complete',
+          progress: data.progress || null,
         }];
         return next.length > 5 ? next.slice(next.length - 5) : next;
       });
@@ -2772,6 +2867,7 @@ function App() {
       setSimulationStatus('error');
       setSimulationError(data?.error || simulationErrors.failed || 'Simulation failed.');
       setSimulationJobId(null);
+      updateSimulationHistoryEntry(data.job_id, { status: 'error' });
       return true;
     }
     if (status === 'cancelled') {
@@ -2779,12 +2875,14 @@ function App() {
       setSimulationResult((prev) => data.result || prev || null);
       setSimulationJobId(null);
       setSimulationError(simulationErrors.cancelled || 'Simulation was cancelled by the user.');
+      updateSimulationHistoryEntry(data.job_id, { status: 'cancelled' });
       return true;
     }
     if (status === 'not_found') {
       setSimulationStatus('error');
       setSimulationError(simulationErrors.notFound || 'Simulation job not found.');
       setSimulationJobId(null);
+      updateSimulationHistoryEntry(data.job_id, { status: 'error' });
       return true;
     }
     return false;
@@ -2928,6 +3026,9 @@ function App() {
       }
       setSimulationJobId(data.job_id);
       simulationTitleRef.current.set(data.job_id, runTitle);
+      appendSimulationHistoryEntry(data.job_id, runTitle || '(no title)');
+      setActiveSimulationId(data.job_id);
+      setSimulationProgress(null);
       startSimulationStream(data.job_id);
     } catch (err) {
       console.error(err);
@@ -3238,7 +3339,7 @@ function App() {
           textCount={selectedTextCount}
           totalCount={totalSimulationSelected}
           maxSelection={SIMULATION_MAX_SELECTION}
-          status={simulationStatus}
+          status={displaySimulationStatus}
           onRun={handleSimulationRun}
           onCancel={handleSimulationCancel}
           canCancel={Boolean(
@@ -3248,6 +3349,7 @@ function App() {
           error={simulationError}
           elapsedSeconds={simulationElapsed}
           modelName={simulationModel}
+          progress={displaySimulationProgress}
           docked
           history={simulationHistory}
           activeHistoryId={activeSimulationEntry?.id}

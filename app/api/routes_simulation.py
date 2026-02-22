@@ -90,6 +90,7 @@ def get_simulation_status(job_id: str) -> SimulationJobStatusResponse:
         status=record.status,
         result=record.result,
         error=record.error,
+        progress=record.progress,
     )
 
 
@@ -97,6 +98,7 @@ def get_simulation_status(job_id: str) -> SimulationJobStatusResponse:
 async def stream_simulation_status(job_id: str):
     async def event_generator():
         last_status = None
+        last_progress = None
         while True:
             record = job_manager.get(job_id)
             if record is None:
@@ -108,10 +110,21 @@ async def stream_simulation_status(job_id: str):
                 status=record.status,
                 result=record.result,
                 error=record.error,
+                progress=record.progress,
             )
-            if record.status != last_status or record.status in {"complete", "failed", "cancelled"}:
+            progress_snapshot = (
+                json.dumps(asdict(record.progress), sort_keys=True, default=str)
+                if record.progress
+                else None
+            )
+            if (
+                record.status != last_status
+                or record.status in {"complete", "failed", "cancelled"}
+                or progress_snapshot != last_progress
+            ):
                 yield _format_sse(payload)
                 last_status = record.status
+                last_progress = progress_snapshot
             if record.status in {"complete", "failed", "cancelled"}:
                 break
             await asyncio.sleep(1)

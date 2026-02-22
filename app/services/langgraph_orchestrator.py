@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Dict, List, TypedDict, Any, Tuple, Optional
+from typing import Dict, List, TypedDict, Any, Tuple, Optional, Callable
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -43,6 +43,8 @@ class AgentState(TypedDict):
     timeline: List[Dict[str, Any]]
     language: str
     prompt_bundle: PromptBundle
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]]
+    progress_meta: Dict[str, Any]
 
 
 logger = logging.getLogger("simulation")
@@ -88,6 +90,8 @@ class LangGraphOrchestrator:
         metrics: Optional[Dict[str, Any]] = None,
         worker_id: Optional[int] = None,
         language: str = "ko",
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        progress_meta: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         self._refresh_llm_if_needed()
         bundle = get_prompt_bundle(language)
@@ -105,6 +109,8 @@ class LangGraphOrchestrator:
             "timeline": [],
             "language": bundle.lang,
             "prompt_bundle": bundle,
+            "progress_callback": progress_callback,
+            "progress_meta": progress_meta or {},
         }
         result = await self.graph.ainvoke(state)
         return {
@@ -125,7 +131,8 @@ class LangGraphOrchestrator:
         avg_register: float,
         items: List[Dict[str, Any]],
         language: str = "ko",
-    ) -> Tuple[str, List[Dict[str, str]]]:
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> Tuple[str, List[Dict[str, str]], List[Dict[str, Any]]]:
         self._refresh_llm_if_needed()
         bundle = get_prompt_bundle(language)
         context = self._build_overall_context(
@@ -150,6 +157,8 @@ class LangGraphOrchestrator:
             "timeline": [],
             "language": bundle.lang,
             "prompt_bundle": bundle,
+            "progress_callback": progress_callback,
+            "progress_meta": {"application_number": "overall", "variant": "overall"},
         }
         response = await self._run_llm(
             role=bundle.roles["final_reporter"],
@@ -255,6 +264,8 @@ class LangGraphOrchestrator:
             "timeline": state.get("timeline", []),
             "language": state.get("language", "ko"),
             "prompt_bundle": bundle,
+            "progress_callback": state.get("progress_callback"),
+            "progress_meta": state.get("progress_meta", {}),
         }
         scorer_context = reporter_markdown
         if metrics_block:
@@ -378,6 +389,22 @@ class LangGraphOrchestrator:
             end_time=end_time,
             usage_counts=usage_counts,
         )
+        progress_callback = state.get("progress_callback")
+        if progress_callback:
+            try:
+                meta = state.get("progress_meta") or {}
+                role_key = None
+                for key, label in bundle.roles.items():
+                    if label == role:
+                        role_key = key
+                        break
+                progress_callback({
+                    "type": "role_complete",
+                    "role": role_key or role,
+                    **meta,
+                })
+            except Exception:  # pragma: no cover - defensive
+                pass
         return response.content.strip() if hasattr(response, "content") else str(response)
 
     @staticmethod
@@ -406,6 +433,8 @@ class LangGraphOrchestrator:
             "metrics": state.get("metrics", {}),
             "worker_id": state.get("worker_id"),
             "timeline": state.get("timeline", []),
+            "progress_callback": state.get("progress_callback"),
+            "progress_meta": state.get("progress_meta", {}),
         }
         return new_state
 

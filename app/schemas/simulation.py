@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 from app.schemas.search import ImageRefPayload
 
@@ -96,11 +96,25 @@ class SimulationJobCreateResponse:
 
 
 @pydantic_dataclass
+class SimulationProgressRole:
+    done: int = 0
+    total: int = 0
+
+
+@pydantic_dataclass
+class SimulationProgress:
+    total_candidates: int = 0
+    roles: Dict[str, SimulationProgressRole] = field(default_factory=dict)
+    updated_at: Optional[str] = None
+
+
+@pydantic_dataclass
 class SimulationJobStatusResponse:
     job_id: str
     status: str
     result: Optional[SimulationResponse] = None
     error: Optional[str] = None
+    progress: Optional[SimulationProgress] = None
 
 
 @pydantic_dataclass
