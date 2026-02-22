@@ -6,15 +6,15 @@
     <title>T-RADAR 관리자</title>
     <style>
       * { box-sizing:border-box; }
-      body { font-family: system-ui, sans-serif; background:#f6f8fc; margin:0; padding:2rem; }
+      body { font-family: system-ui, sans-serif; background:#f6f8fc; margin:0; padding:2rem; overflow-x:hidden; }
       header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
       h1 { margin:0; }
-      .section { background:#fff; padding:1.5rem; border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,0.08); margin-bottom:1.5rem; }
+      .section { background:#fff; padding:1.5rem; border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,0.08); margin-bottom:1.5rem; overflow-x:auto; }
       .section h2 { margin:0; font-size:1.1rem; }
       .section-header { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:0.75rem; }
       .summary { color:#475569; font-size:0.9rem; }
-      table { width:100%; border-collapse:collapse; font-size:0.85rem; }
-      th, td { text-align:left; padding:0.6rem 0.5rem; border-bottom:1px solid #e2e8f0; vertical-align:top; font-size:0.82rem; }
+      table { width:max-content; min-width:100%; border-collapse:collapse; font-size:0.85rem; }
+      th, td { text-align:left; padding:0.6rem 0.5rem; border-bottom:1px solid #e2e8f0; vertical-align:top; font-size:0.82rem; overflow-wrap:anywhere; word-break:break-word; }
       th { color:#64748b; font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
       tbody tr:hover { background:#f8fafc; }
       .muted { color:#64748b; font-size:0.8rem; }
@@ -24,7 +24,7 @@
       .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
       .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
       .narrow { white-space:nowrap; width:1%; }
-      .col-user-agent { max-width:clamp(240px, 24vw, 320px); width:clamp(240px, 24vw, 320px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .col-user-agent { max-width:clamp(260px, 40vw, 700px); width:clamp(260px, 40vw, 700px); white-space:normal; overflow:visible; text-overflow:unset; }
       a.button { text-decoration:none; padding:0.5rem 0.8rem; border-radius:10px; background:#e2e8f0; color:#0f172a; }
       .badge { display:inline-block; padding:0.2rem 0.5rem; border-radius:999px; background:#e2e8f0; font-size:0.75rem; color:#334155; }
       .pagination { display:flex; align-items:center; gap:0.35rem; margin-top:0.8rem; flex-wrap:wrap; }
@@ -32,14 +32,14 @@
       .page-btn.is-active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
       .page-btn:disabled { cursor:default; opacity:0.4; }
       @media (max-width: 768px) {
-        body { padding:0.75rem; }
-        .section { padding:0.85rem; border-radius:12px; }
+        body { padding:0.5rem; }
+        .section { padding:0.6rem; border-radius:12px; }
         header { flex-direction:column; align-items:flex-start; gap:0.6rem; }
-        table { font-size:0.68rem; }
-        th, td { padding:0.35rem 0.3rem; font-size:0.65rem; }
-        .summary { font-size:0.78rem; }
-        .muted { font-size:0.7rem; }
-        .col-user-agent { max-width:clamp(140px, 34vw, 200px); width:clamp(140px, 34vw, 200px); }
+        table { font-size:0.6rem; }
+        th, td { padding:0.3rem 0.25rem; font-size:0.58rem; }
+        .summary { font-size:0.68rem; }
+        .muted { font-size:0.62rem; }
+        .col-user-agent { max-width:clamp(140px, 44vw, 240px); width:clamp(140px, 44vw, 240px); }
       }
     </style>
   </head>
