@@ -436,6 +436,28 @@ const buildScoreSegments = (labels = []) => {
   }));
 };
 
+const formatScoreSegmentLabel = (label) => {
+  if (typeof label !== 'string') {
+    return label;
+  }
+  const normalized = label.trim();
+  const twoLineLabels = new Set([
+    '매우 낮음',
+    '약간 낮음',
+    '약간 높음',
+    '매우 높음',
+    'Very low',
+    'Mid low',
+    'Mid high',
+    'Very high',
+    'Very High',
+  ]);
+  if (!twoLineLabels.has(normalized) || !normalized.includes(' ')) {
+    return label;
+  }
+  return normalized.replace(' ', '\n');
+};
+
 const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
 
 const formatScorePill = (value) => {
@@ -514,7 +536,7 @@ const renderScoreBar = (title, value, secondary, labels = {}) => {
                 idx === segmentIndex ? 'is-active' : '',
               ].filter(Boolean).join(' ')}
             >
-              <span>{segment.label}</span>
+              <span>{formatScoreSegmentLabel(segment.label)}</span>
             </div>
           ))}
         </div>

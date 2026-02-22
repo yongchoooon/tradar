@@ -2697,8 +2697,10 @@ main.container {
   border-radius: 999px;
   font-size: clamp(0.62rem, 0.75vw, 0.76rem);
   font-weight: 700;
-  height: 1.25rem;
-  white-space: nowrap;
+  height: auto;
+  min-height: 1.35rem;
+  line-height: 1.05;
+  white-space: pre-line;
   text-align: center;
 }
 
