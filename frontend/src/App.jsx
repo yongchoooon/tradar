@@ -2418,6 +2418,8 @@ function App() {
       }
       const rect = column.getBoundingClientRect();
       const root = document.documentElement;
+      const zoomValue = parseFloat(window.getComputedStyle(document.body).zoom || '1');
+      const zoom = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
       const container = column.closest('main.container') || document.querySelector('main.container');
       let top = 32;
       if (recalcBase || simulationDockBaseTopRef.current == null) {
@@ -2450,9 +2452,9 @@ function App() {
       } else {
         top = baseTop;
       }
-      root.style.setProperty('--sim-panel-left', `${rect.left}px`);
-      root.style.setProperty('--sim-panel-width', `${rect.width}px`);
-      root.style.setProperty('--sim-panel-height', `${rect.height}px`);
+      root.style.setProperty('--sim-panel-left', `${rect.left / zoom}px`);
+      root.style.setProperty('--sim-panel-width', `${rect.width / zoom}px`);
+      root.style.setProperty('--sim-panel-height', `${rect.height / zoom}px`);
       simulationDockTargetTopRef.current = top;
       if (simulationDockCurrentTopRef.current == null) {
         simulationDockCurrentTopRef.current = top;
@@ -2465,13 +2467,13 @@ function App() {
           const delta = target - current;
           if (Math.abs(delta) < 0.5) {
             simulationDockCurrentTopRef.current = target;
-            root.style.setProperty('--sim-panel-top', `${Math.round(target)}px`);
+            root.style.setProperty('--sim-panel-top', `${Math.round(target / zoom)}px`);
             simulationDockAnimatingRef.current = false;
             return;
           }
           const next = current + delta * 0.35;
           simulationDockCurrentTopRef.current = next;
-          root.style.setProperty('--sim-panel-top', `${Math.round(next)}px`);
+          root.style.setProperty('--sim-panel-top', `${Math.round(next / zoom)}px`);
           simulationDockRafRef.current = requestAnimationFrame(animate);
         };
         simulationDockRafRef.current = requestAnimationFrame(animate);

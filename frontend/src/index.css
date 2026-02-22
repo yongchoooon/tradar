@@ -3617,12 +3617,14 @@ main.container {
   font-size: 0.95rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
   .simulation-panel--dock {
     position: static;
     width: 100%;
     margin-top: 1.5rem;
     height: auto;
+    left: auto;
+    top: auto;
   }
 }
 
