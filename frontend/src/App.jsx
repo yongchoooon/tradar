@@ -2379,6 +2379,7 @@ function App() {
   const simulationEventRef = useRef(null);
   const simulationPollRef = useRef(null);
   const simulationColumnRef = useRef(null);
+  const simulationStartTimeRef = useRef(null);
   const simulationDockBaseTopRef = useRef(null);
   const simulationDockOffsetRef = useRef(null);
   const simulationDockRafRef = useRef(null);
@@ -2712,6 +2713,7 @@ function App() {
       if (simulationStartTime === null) {
         setSimulationStartTime(baseStart);
         setSimulationElapsed(0);
+        simulationStartTimeRef.current = baseStart;
       } else {
         const nextElapsed = Math.floor((Date.now() - baseStart) / 1000);
         setSimulationElapsed(nextElapsed);
@@ -2720,19 +2722,22 @@ function App() {
         }
       }
       timer = window.setInterval(() => {
-        const nextElapsed = Math.floor((Date.now() - (simulationStartTime ?? baseStart)) / 1000);
+        const startRef = simulationStartTimeRef.current ?? baseStart;
+        const nextElapsed = Math.floor((Date.now() - startRef) / 1000);
         setSimulationElapsed(nextElapsed);
         if (simulationJobId) {
           updateSimulationHistoryEntry(simulationJobId, { elapsedSeconds: nextElapsed });
         }
       }, 1000);
     } else if (simulationStartTime !== null && finishedStatuses.includes(simulationStatus)) {
-      const nextElapsed = Math.floor((Date.now() - simulationStartTime) / 1000);
+      const startRef = simulationStartTimeRef.current ?? simulationStartTime;
+      const nextElapsed = Math.floor((Date.now() - startRef) / 1000);
       setSimulationElapsed(nextElapsed);
       if (simulationJobId) {
         updateSimulationHistoryEntry(simulationJobId, { elapsedSeconds: nextElapsed });
       }
       setSimulationStartTime(null);
+      simulationStartTimeRef.current = null;
     }
 
     return () => {
@@ -2778,6 +2783,7 @@ function App() {
     setSimulationError('');
     setSimulationStartTime(null);
     setSimulationElapsed(0);
+    simulationStartTimeRef.current = null;
     closeSimulationStream();
   };
 
@@ -3011,11 +3017,13 @@ function App() {
         || pendingSimulationTitle
         || fallbackTitle
         || '(no title)';
-      const finalElapsed = simulationStartTime
-        ? Math.floor((Date.now() - simulationStartTime) / 1000)
+      const startRef = simulationStartTimeRef.current ?? simulationStartTime;
+      const finalElapsed = startRef
+        ? Math.floor((Date.now() - startRef) / 1000)
         : simulationElapsed;
       setSimulationElapsed(finalElapsed);
       setSimulationStartTime(null);
+      simulationStartTimeRef.current = null;
       setSimulationHistory((prev) => {
         const existingIndex = prev.findIndex((entry) => entry.id === entryId);
         if (existingIndex >= 0) {
@@ -3167,7 +3175,9 @@ function App() {
       setSimulationStatus('collecting');
       setSimulationError('');
       setSimulationJobId(null);
-      setSimulationStartTime(Date.now());
+      const startTime = Date.now();
+      setSimulationStartTime(startTime);
+      simulationStartTimeRef.current = startTime;
       setSimulationElapsed(0);
       const runTitle = (title ?? '').trim() || (response?.query?.text ?? '').trim();
       setPendingSimulationTitle(runTitle);
