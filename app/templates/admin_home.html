@@ -24,7 +24,7 @@
       .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
       .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
       .narrow { white-space:nowrap; width:1%; }
-      .col-user-agent { max-width:clamp(260px, 40vw, 700px); width:clamp(260px, 40vw, 700px); white-space:normal; overflow:visible; text-overflow:unset; }
+      .col-user-agent { max-width:clamp(260px, 35vw, 600px); width:clamp(260px, 35vw, 600px); white-space:normal; overflow:visible; text-overflow:unset; }
       a.button { text-decoration:none; padding:0.5rem 0.8rem; border-radius:10px; background:#e2e8f0; color:#0f172a; }
       .badge { display:inline-block; padding:0.2rem 0.5rem; border-radius:999px; background:#e2e8f0; font-size:0.75rem; color:#334155; }
       .pagination { display:flex; align-items:center; gap:0.35rem; margin-top:0.8rem; flex-wrap:wrap; }
@@ -303,7 +303,6 @@
         }
         items.forEach((item) => {
           const row = document.createElement("tr");
-          row.classList.add("clickable");
           row.innerHTML = `
             <td class="narrow">${formatDate(item.timestamp)}</td>
             <td class="narrow">${item.search_id || "-"}</td>
@@ -314,7 +313,6 @@
             <td>${item.client_ip || "-"}</td>
             <td class="col-user-agent">${item.user_agent || "-"}</td>
           `;
-          row.addEventListener("click", () => toggleDetail(row, item.key, 8));
           body.appendChild(row);
         });
         document.getElementById("search-summary").textContent =
