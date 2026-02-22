@@ -24,13 +24,23 @@
       .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
       .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
       .narrow { white-space:nowrap; width:1%; }
-      .col-user-agent { max-width:220px; width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .col-user-agent { max-width:clamp(240px, 24vw, 320px); width:clamp(240px, 24vw, 320px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       a.button { text-decoration:none; padding:0.5rem 0.8rem; border-radius:10px; background:#e2e8f0; color:#0f172a; }
       .badge { display:inline-block; padding:0.2rem 0.5rem; border-radius:999px; background:#e2e8f0; font-size:0.75rem; color:#334155; }
       .pagination { display:flex; align-items:center; gap:0.35rem; margin-top:0.8rem; flex-wrap:wrap; }
       .page-btn { border:1px solid #e2e8f0; background:#fff; color:#0f172a; padding:0.25rem 0.55rem; border-radius:8px; cursor:pointer; font-size:0.85rem; }
       .page-btn.is-active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
       .page-btn:disabled { cursor:default; opacity:0.4; }
+      @media (max-width: 768px) {
+        body { padding:0.75rem; }
+        .section { padding:0.85rem; border-radius:12px; }
+        header { flex-direction:column; align-items:flex-start; gap:0.6rem; }
+        table { font-size:0.68rem; }
+        th, td { padding:0.35rem 0.3rem; font-size:0.65rem; }
+        .summary { font-size:0.78rem; }
+        .muted { font-size:0.7rem; }
+        .col-user-agent { max-width:clamp(140px, 34vw, 200px); width:clamp(140px, 34vw, 200px); }
+      }
     </style>
   </head>
   <body>
