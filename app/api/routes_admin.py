@@ -272,7 +272,7 @@ def admin_home(request: Request) -> Response:
 
 
 @router.get("/admin/api/logs")
-def admin_logs(request: Request, type: str) -> JSONResponse:
+def admin_logs(request: Request, type: str, limit: int | None = None) -> JSONResponse:
     if not _require_admin(request):
         raise HTTPException(status_code=403, detail="Unauthorized")
     if type not in _LOG_TYPES:
@@ -290,17 +290,6 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
     if type == "debug":
         for obj in scan_objects:
             parsed = _parse_debug_key(obj["key"])
-            user_title = ""
-            candidate_title = ""
-            if parsed.get("file_type") == "context":
-                try:
-                    text, _ = _get_object_text(obj["key"])
-                    payload = json.loads(text)
-                    context_text = payload.get("context") or ""
-                    user_title, candidate_title = _extract_titles_from_context(context_text)
-                except Exception:
-                    user_title = ""
-                    candidate_title = ""
             items.append(
                 {
                     "key": obj["key"],
@@ -311,10 +300,10 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
                     "run_tag": parsed.get("run_tag"),
                     "app_no": parsed.get("app_no"),
                     "file_type": parsed.get("file_type"),
-                    "user_title": user_title,
-                    "candidate_title": candidate_title,
                 }
             )
+        if limit:
+            items = items[:limit]
         return JSONResponse({"items": items})
 
     for obj in scan_objects:
@@ -358,6 +347,8 @@ def admin_logs(request: Request, type: str) -> JSONResponse:
                     **parsed,
                 }
             )
+        if limit and len(items) >= limit:
+            break
 
     note = ""
     if truncated:

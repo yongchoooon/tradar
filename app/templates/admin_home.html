@@ -178,8 +178,11 @@
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
       };
 
-      const fetchLogs = async (type) => {
-        const res = await fetch(`/admin/api/logs?type=${type}`);
+      const fetchLogs = async (type, limit) => {
+        const url = limit
+          ? `/admin/api/logs?type=${type}&limit=${limit}`
+          : `/admin/api/logs?type=${type}`;
+        const res = await fetch(url);
         if (!res.ok) {
           const msg = await res.text();
           throw new Error(msg || "Failed to load logs");
@@ -461,12 +464,21 @@
             `<tr><td colspan="6" class="muted">불러오기 실패</td></tr>`;
         }
         try {
-          const data = await fetchLogs("debug");
+          const data = await fetchLogs("debug", PAGE_SIZE);
           state.debug.items = data.items || [];
           renderDebug();
+          fetchLogs("debug")
+            .then((full) => {
+              const items = full.items || [];
+              if (items.length > state.debug.items.length) {
+                state.debug.items = items;
+                renderDebug();
+              }
+            })
+            .catch(() => {});
         } catch (err) {
           document.getElementById("debug-table").innerHTML =
-            `<tr><td colspan="7" class="muted">불러오기 실패</td></tr>`;
+            `<tr><td colspan="5" class="muted">불러오기 실패</td></tr>`;
         }
       };
 
