@@ -6,7 +6,15 @@
     <title>T-RADAR 관리자</title>
     <style>
       * { box-sizing:border-box; }
-      body { font-family: system-ui, sans-serif; background:#f6f8fc; margin:0; padding:2rem; overflow-x:hidden; }
+      body {
+        font-family: system-ui, sans-serif;
+        background:#f6f8fc;
+        margin:0;
+        padding:2rem;
+        overflow-x:hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
       h1 { margin:0; }
       .section { background:#fff; padding:1.5rem; border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,0.08); margin-bottom:1.5rem; overflow-x:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; }
@@ -14,13 +22,14 @@
       .section-header { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:0.75rem; }
       .summary { color:#475569; font-size:0.9rem; }
       table { width:max-content; min-width:100%; border-collapse:collapse; font-size:0.85rem; }
+      .table-fixed { width:100%; min-width:100%; table-layout: fixed; }
       th, td { text-align:left; padding:0.6rem 0.5rem; border-bottom:1px solid #e2e8f0; vertical-align:top; font-size:0.82rem; overflow-wrap:anywhere; word-break:break-word; }
       th { color:#64748b; font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
       tbody tr:hover { background:#f8fafc; }
       .muted { color:#64748b; font-size:0.8rem; }
       .detail-row td {
         background: #f8fafc;
-        font-size: inherit;
+        font-size: 0.82rem;
       }
       .detail-box {
         white-space: pre-wrap;
@@ -52,6 +61,7 @@
         header { flex-direction:column; align-items:flex-start; gap:0.6rem; }
         table { font-size:0.6rem; }
         th, td { padding:0.3rem 0.25rem; font-size:0.58rem; }
+        .detail-row td { font-size:0.58rem; }
         .summary { font-size:0.68rem; }
         .muted { font-size:0.62rem; }
         .col-user-agent { max-width:clamp(140px, 44vw, 240px); width:clamp(140px, 44vw, 240px); }
@@ -68,7 +78,7 @@
         <h2>시뮬레이션 AI Agent 로그</h2>
         <div class="summary" id="ai-summary">총 비용 합계: -</div>
       </div>
-      <table>
+      <table class="table-fixed">
         <thead>
           <tr>
             <th class="sortable narrow" data-table="ai" data-key="last_modified">날짜<span class="sort-indicator"></span></th>
@@ -143,7 +153,7 @@
         <h2>시뮬레이션 내용 로그</h2>
         <div class="summary muted">행을 클릭하면 상세 내용을 펼칩니다.</div>
       </div>
-      <table>
+      <table class="table-fixed">
         <thead>
           <tr>
             <th class="sortable narrow" data-table="debug" data-key="last_modified">수정 시간<span class="sort-indicator"></span></th>
