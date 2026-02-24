@@ -6,7 +6,16 @@
     <title>T-RADAR 관리자</title>
     <style>
       * { box-sizing:border-box; }
-      body { font-family: system-ui, sans-serif; background:#f6f8fc; margin:0; padding:2rem; overflow-x:hidden; }
+      html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+      body {
+        font-family: system-ui, sans-serif;
+        background:#f6f8fc;
+        margin:0;
+        padding:2rem;
+        overflow-x:hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
       h1 { margin:0; }
       .section { background:#fff; padding:1.5rem; border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,0.08); margin-bottom:1.5rem; overflow-x:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; }
@@ -20,17 +29,18 @@
       .muted { color:#64748b; font-size:0.8rem; }
       .detail-row td {
         background: #f8fafc;
-        font-size: inherit;
+        font-size: inherit !important;
       }
       .detail-box {
         white-space: pre-wrap;
-        font-size: inherit;
+        font-size: inherit !important;
         color: #0f172a;
         max-width: 100%;
         width: 100%;
         overflow-wrap: anywhere;
         word-break: break-word;
       }
+      .debug-table { max-width: 100%; }
       .clickable { cursor:pointer; }
       .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
       .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
@@ -52,6 +62,7 @@
         header { flex-direction:column; align-items:flex-start; gap:0.6rem; }
         table { font-size:0.6rem; }
         th, td { padding:0.3rem 0.25rem; font-size:0.58rem; }
+        .debug-table { max-width: 100%; }
         .summary { font-size:0.68rem; }
         .muted { font-size:0.62rem; }
         .col-user-agent { max-width:clamp(140px, 44vw, 240px); width:clamp(140px, 44vw, 240px); }
@@ -68,7 +79,7 @@
         <h2>시뮬레이션 AI Agent 로그</h2>
         <div class="summary" id="ai-summary">총 비용 합계: -</div>
       </div>
-      <table>
+      <table class="debug-table">
         <thead>
           <tr>
             <th class="sortable narrow" data-table="ai" data-key="last_modified">날짜<span class="sort-indicator"></span></th>
