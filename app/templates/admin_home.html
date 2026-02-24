@@ -41,6 +41,7 @@
         word-break: break-word;
       }
       .debug-table { max-width: 100%; }
+      .debug-table .badge { font-size: inherit; }
       .clickable { cursor:pointer; }
       .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
       .sort-indicator { margin-left:0.35rem; color:#94a3b8; font-size:0.75rem; }
@@ -161,11 +162,10 @@
             <th>run_tag</th>
             <th>출원번호</th>
             <th>파일 종류</th>
-            <th>크기</th>
           </tr>
         </thead>
         <tbody id="debug-table">
-          <tr><td colspan="5" class="muted">로딩 중...</td></tr>
+          <tr><td colspan="4" class="muted">로딩 중...</td></tr>
         </tbody>
       </table>
       <div class="pagination" id="debug-pagination"></div>
@@ -379,7 +379,7 @@
         const sorted = sortItems(state.debug.items, state.debug.sortKey, state.debug.sortDir);
         const items = paginateItems(sorted, state.debug.page);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="5" class="muted">데이터가 없습니다.</td></tr>';
+          body.innerHTML = '<tr><td colspan="4" class="muted">데이터가 없습니다.</td></tr>';
           return;
         }
         items.forEach((item) => {
@@ -390,9 +390,8 @@
             <td>${item.run_tag || "-"}</td>
             <td>${item.app_no || "-"}</td>
             <td><span class="badge">${item.file_type || "-"}</span></td>
-            <td>${formatSize(item.size)}</td>
           `;
-          row.addEventListener("click", () => toggleDetail(row, item.key, 5));
+          row.addEventListener("click", () => toggleDetail(row, item.key, 4));
           body.appendChild(row);
         });
         renderPagination("debug-pagination", "debug");
@@ -489,7 +488,7 @@
             .catch(() => {});
         } catch (err) {
           document.getElementById("debug-table").innerHTML =
-            `<tr><td colspan="5" class="muted">불러오기 실패</td></tr>`;
+            `<tr><td colspan="4" class="muted">불러오기 실패</td></tr>`;
         }
       };
 
