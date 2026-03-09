@@ -9,7 +9,7 @@ import time
 import uuid
 import threading
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from app.schemas.search import (
@@ -63,6 +63,10 @@ def _serialize_result(result: SearchResult) -> Dict[str, Any]:
     }
 
 
+def _now_kst() -> datetime:
+    return datetime.now(timezone(timedelta(hours=9)))
+
+
 def _build_search_log_payload(
     req: SearchRequest,
     response: SearchResponse,
@@ -70,11 +74,13 @@ def _build_search_log_payload(
     job_id: str,
     worker_id: str,
     elapsed_ms: int,
+    now: datetime | None = None,
 ) -> Dict[str, Any]:
     meta = get_request_meta()
     query = response.query
+    now = now or _now_kst()
     payload = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": now.isoformat(),
         "search_id": response.search_id or "",
         "job_id": job_id,
         "worker_id": worker_id,
@@ -378,14 +384,16 @@ async def run_worker_search(req: SearchRequest) -> SearchResponse:
     )
     if s3_logs_enabled():
         try:
+            now = _now_kst()
             payload = _build_search_log_payload(
                 req,
                 response,
                 job_id=job_id,
                 worker_id=worker_id,
                 elapsed_ms=elapsed_ms,
+                now=now,
             )
-            date_tag = datetime.utcnow().strftime("%Y/%m/%d")
+            date_tag = now.strftime("%Y/%m/%d")
             _upload_text_async(
                 f"search_usage/{date_tag}/{uuid.uuid4().hex}.json",
                 json.dumps(payload, ensure_ascii=False),
