@@ -4,10 +4,11 @@
 
 [![Project Page](https://img.shields.io/badge/Project-Page-1a73e8?logo=Google%20Chrome&logoColor=white)](https://yongchoooon.github.io/tradar/) [![Demo](https://img.shields.io/badge/Demo-T--RADAR-ffcc4d?&logoColor=white)](https://do7ajfzdgr22.cloudfront.net/)
 
-T-RADAR is an interactive trademark clearance system that pairs multimodal retrieval with protocol-driven examination simulation.
-
 ## 🎉 Congratulations!
 This repository is the official implementation of the paper accepted to the ACM SIGIR 2026 Demonstration Track: [Link](https://sigir2026.org/en-AU/pages/submissions/demonstrations-track)
+
+---
+T-RADAR is an interactive trademark clearance system that pairs multimodal retrieval with protocol-driven examination simulation.
 
 ![Main UI](figs/main.png)
 
