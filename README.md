@@ -71,6 +71,3 @@ Each selected pair follows a fixed examination protocol: Examiner raises objecti
 - **Backend**: API on ECS/Fargate behind ALB.
 - **Retrieval offload**: a desktop GPU worker connects to local Postgres/pgvector and OpenSearch; the backend communicates with the worker over WebSocket.
 - **Optional cloud retrieval**: the search stack can be migrated to RDS and OpenSearch Service.
-
-## License
-Unless otherwise stated, this project is for internal use within the Pukyong National University Industrial AI Laboratory.
