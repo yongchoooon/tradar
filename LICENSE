@@ -1,0 +1,28 @@
+Copyright (c) 2026 yongchoooon
+All rights reserved.
+
+This repository and its contents, including source code, UI assets,
+documentation, configuration, and bundled local data files, are proprietary
+unless a specific file states otherwise.
+
+No license is granted to use, copy, modify, distribute, sublicense, publish,
+create derivative works from, deploy, or commercially exploit any part of this
+repository without prior written permission from the copyright holder.
+
+Additional notes:
+
+1. Third-party datasets, APIs, models, trademarks, and other external
+   materials referenced by this repository remain subject to their own
+   licenses and terms.
+
+2. Proprietary trademark data obtained through paid or restricted licenses,
+   including data acquired from KIPRIS Plus, is not licensed by this
+   repository and may not be redistributed through it.
+
+3. Any accompanying paper version that is separately published under
+   CC BY 4.0 carries that license only for the paper version explicitly
+   distributed with such notice. That publication license does not apply to
+   this repository unless a specific file expressly says so.
+
+For permission requests, contact via the GitHub repository:
+https://github.com/yongchoooon/tradar

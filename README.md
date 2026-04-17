@@ -71,3 +71,37 @@ Each selected pair follows a fixed examination protocol: Examiner raises objecti
 - **Backend**: API on ECS/Fargate behind ALB.
 - **Retrieval offload**: a desktop GPU worker connects to local Postgres/pgvector and OpenSearch; the backend communicates with the worker over WebSocket.
 - **Optional cloud retrieval**: the search stack can be migrated to RDS and OpenSearch Service.
+
+## Reproducibility
+This public repository contains the application code, UI assets, and deployment definitions for T-RADAR. It does not contain everything needed to reproduce the production system end to end.
+
+The deployed system depends on:
+- a proprietary trademark corpus licensed from [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do),
+- prebuilt PostgreSQL/pgvector and OpenSearch indices,
+- AWS infrastructure, secrets, and deployment configuration,
+- a desktop GPU worker used for retrieval offloading.
+
+For legal, licensing, and operational reasons, the production data, search indices, and secrets are not redistributed in this repository. Full production reproduction is therefore not possible from this repository alone.
+
+## What You Can Run
+You can still inspect and run parts of the project locally:
+
+```bash
+pip install -r requirements.txt
+pytest
+
+cd frontend
+npm ci
+npm run build
+```
+
+If you want to adapt the system to your own data and infrastructure, use the following documents as the implementation reference:
+- `README_dev.md`
+- `markdown/tradar_setup_guide.md`
+- `markdown/search-pipeline.md`
+
+## Data Availability
+The production trademark corpus is not included in this repository. Part of the dataset was obtained through a paid [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do) license and cannot be publicly shared or redistributed here. The repository only includes materials that can be distributed directly, such as the goods/services support files under `app/data/goods_services/`.
+
+## Licensing
+The accompanying ACM SIGIR Demo paper is intended to be published under CC BY 4.0. That publication license does not automatically apply to the code, assets, or data in this repository. Repository-level rights are defined separately in `LICENSE`, and third-party or proprietary datasets remain subject to their own terms.

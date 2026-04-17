@@ -65,7 +65,7 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 
 ### 데이터
 - 상표 메타데이터 JSON과 이미지 경로를 기준으로 검색 데이터베이스를 구축합니다.
-- 2021년부터 2025년 10월까지의 상표 공보/거절 데이터를 수집했으며, KIPRIS Plus에서 구매하여 확보했습니다. (https://plus.kipris.or.kr/portal/main.do)
+- 2021년부터 2025년 10월까지의 상표 공보/거절 데이터를 수집했으며, [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do)에서 구매하여 확보했습니다.
 - 상품/서비스류 분류(약 30만 항목) TSV를 기반으로 검색 보조 패널을 구성합니다 (`app/data/goods_services/`).
 - 상품/서비스류 분류 원본은 지식재산처 고시 자료를 기반으로 합니다. (https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0201120)
 
@@ -129,6 +129,37 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 - LLM 사용량 로그, 시뮬레이션 디버그 아티팩트, 타임라인 로그가 `logs/`에 저장됩니다.
 - 운영 중 이슈 분석과 비용 추적을 위한 기본 관측 지표를 제공합니다.
 
+## 재현성 안내
+이 공개 레포에는 T-RADAR의 애플리케이션 코드, UI 자산, 배포 정의가 포함되어 있지만, 운영 시스템 전체를 그대로 재현하는 데 필요한 모든 구성요소가 들어 있지는 않습니다.
+
+운영 시스템은 다음 요소에 의존합니다.
+- [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do)에서 라이선스를 받아 확보한 유료 상표 코퍼스
+- 사전 구축된 PostgreSQL/pgvector, OpenSearch 인덱스
+- AWS 인프라, 시크릿, 배포 설정
+- 검색 오프로딩에 사용하는 데스크톱 GPU 워커
+
+법적, 라이선스, 운영상 이유로 운영 데이터, 검색 인덱스, 시크릿은 이 레포에 포함되어 있지 않습니다. 따라서 이 레포만으로 운영 환경 전체를 완전 재현할 수는 없습니다.
+
+## 실행 가능한 범위
+공개 레포 기준으로는 다음과 같은 수준의 실행과 검증이 가능합니다.
+
+```bash
+pip install -r requirements.txt
+pytest
+
+cd frontend
+npm ci
+npm run build
+```
+
+자체 데이터와 인프라로 시스템을 맞춰 보고 싶다면 아래 문서를 기준으로 구성하면 됩니다.
+- `README_dev.md`
+- `markdown/tradar_setup_guide.md`
+- `markdown/search-pipeline.md`
+
+## 데이터 공개 범위
+운영용 상표 코퍼스는 이 레포에 포함되어 있지 않습니다. 데이터의 일부는 [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do)에서 비용을 지불하고 확보한 라이선스 데이터이므로, 공개 레포에서 재배포할 수 없습니다. 대신 직접 배포 가능한 자료만 포함하며, 예를 들어 `app/data/goods_services/`의 상품/서비스류 보조 데이터는 레포에 포함되어 있습니다.
+
 ## 문서
 - `README_dev.md` — 개발/운영용 상세 가이드
 - `markdown/search-pipeline.md` — 검색 파이프라인 상세
@@ -138,4 +169,4 @@ T-RADAR는 상표 이미지와 명칭을 동시에 해석해 유사 선행상표
 - `markdown/tradar_cicd_guideline.md` — 인프라/CI-CD 개요
 
 ## 라이선스
-별도 고지가 없는 한 국립부경대학교 산업AI연구실 내부 용도로만 사용됩니다.
+연계된 ACM SIGIR Demo 논문은 CC BY 4.0으로 출판될 예정입니다. 다만 그 논문 라이선스가 이 레포의 코드, 자산, 데이터에 자동으로 적용되지는 않습니다. 레포 자체의 권리는 별도 `LICENSE`를 따르며, 제3자 데이터와 유료 라이선스 데이터는 각 원 권리자의 조건을 그대로 따릅니다.
