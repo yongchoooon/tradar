@@ -3406,6 +3406,9 @@ function App() {
               {renderHeroActions()}
             </div>
             <p className="subtitle">{copy.hero?.subtitle || '멀티모달 검색과 심사 시뮬레이션으로 상표 충돌 위험을 판단하는 서비스'}</p>
+            {copy.hero?.maintenanceNotice && (
+              <p className="hero-maintenance-notice">{copy.hero.maintenanceNotice}</p>
+            )}
           </div>
         </div>
         <div className="hero-mobile">
@@ -3417,6 +3420,9 @@ function App() {
             {renderHeroActions()}
           </div>
           <p className="subtitle">{copy.hero?.subtitle || '멀티모달 검색과 심사 시뮬레이션으로 상표 충돌 위험을 판단하는 서비스'}</p>
+          {copy.hero?.maintenanceNotice && (
+            <p className="hero-maintenance-notice">{copy.hero.maintenanceNotice}</p>
+          )}
         </div>
       </section>
       <TrademarkSearchForm

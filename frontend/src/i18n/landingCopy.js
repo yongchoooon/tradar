@@ -4,6 +4,7 @@ export const landingCopy = {
     toggleAria: 'Switch to Korean',
     hero: {
       subtitle: 'Multimodal trademark similarity search with conflict risk and registrability simulation',
+      maintenanceNotice: 'The page is under maintenance. It is scheduled to reopen on June 3.',
       githubLabel: 'GitHub repository',
     },
     search: {
@@ -238,6 +239,7 @@ export const landingCopy = {
     toggleAria: '영문으로 전환',
     hero: {
       subtitle: '멀티모달 유사 상표 검색과 충돌 위험 및 등록 가능성 시뮬레이션 서비스',
+      maintenanceNotice: '페이지 점검 중입니다. 6월 3일에 재오픈 예정입니다.',
       githubLabel: 'GitHub 저장소',
     },
     search: {
