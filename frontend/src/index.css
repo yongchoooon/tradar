@@ -1179,24 +1179,6 @@ main.container {
   color: rgba(15, 23, 42, 0.7);
 }
 
-.hero-maintenance-notice {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0.15rem 0 0;
-  padding: 0.45rem 0.8rem;
-  border: 1px solid rgba(220, 38, 38, 0.28);
-  border-radius: 10px;
-  background: rgba(254, 242, 242, 0.95);
-  color: #b91c1c;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.35;
-  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.1);
-  overflow-wrap: anywhere;
-}
-
 .hero-github {
   padding: 0.4rem 0.95rem;
   margin-left: 0;
@@ -1646,12 +1628,6 @@ main.container {
     max-width: 100%;
     margin: 1rem 0 0;
     overflow-wrap: anywhere;
-  }
-
-  .hero-mobile .hero-maintenance-notice {
-    width: 100%;
-    margin-top: 0.7rem;
-    font-size: 0.95rem;
   }
 
   .github-link,
