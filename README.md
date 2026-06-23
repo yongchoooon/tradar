@@ -4,6 +4,8 @@
 
 [![Project Page](https://img.shields.io/badge/Project-Page-1a73e8?logo=Google%20Chrome&logoColor=white)](https://yongchoooon.github.io/tradar/) [![Demo](https://img.shields.io/badge/Demo-T--RADAR-ffcc4d?&logoColor=white)](https://do7ajfzdgr22.cloudfront.net/)
 
+Korean version: [README_ko.md](README_ko.md)
+
 ## 🎉 Congratulations!
 This repository is the official implementation of the paper accepted to the ACM SIGIR 2026 Demonstration Track: [Link](https://sigir2026.org/en-AU/pages/program/accepted-papers#:~:text=%5Bde%5D%20T%2DRADAR%3A%20Simulating%20Trademark%20Examination%20as%20an%20Interactive%20Retrieval%20Interface%20for%20Conflict%20Risk%20Assessment)
 
