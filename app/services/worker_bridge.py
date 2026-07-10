@@ -31,6 +31,7 @@ from app.services.worker_registry import (
     worker_registry,
 )
 from app.services.search_cache import search_cache
+from app.services.title_utils import normalize_mark_title
 from app.services.worker_settings import get_worker_settings
 
 
@@ -187,7 +188,7 @@ def _candidate_to_result(candidate: Dict[str, Any]) -> SearchResult:
     extra_meta = candidate.get("extra_meta") or {}
     return SearchResult(
         trademark_id=str(candidate.get("doc_id") or ""),
-        title=str(candidate.get("title") or ""),
+        title=normalize_mark_title(str(candidate.get("title") or "")),
         status=str(candidate.get("status") or ""),
         class_codes=list(candidate.get("nc_codes") or []),
         app_no=str(extra_meta.get("app_no") or candidate.get("doc_id") or ""),

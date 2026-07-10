@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from app.schemas.search import SearchResponse, SearchResult
 from app.schemas.simulation import SimulationSelection
+from app.services.title_utils import normalize_mark_title
 
 
 @dataclass
@@ -73,7 +74,7 @@ class SearchCache:
     def _selection_from_result(item: SearchResult, variant: str) -> SimulationSelection:
         return SimulationSelection(
             application_number=item.app_no,
-            title=item.title,
+            title=normalize_mark_title(item.title),
             variant=variant,
             image_sim=item.image_sim,
             text_sim=item.text_sim,

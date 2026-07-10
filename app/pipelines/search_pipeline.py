@@ -26,6 +26,7 @@ from app.services.embedding_utils import normalize_accumulator
 from app.services.image_embed_service import ImageEmbedder
 from app.services.text_embed_service import TextEmbedder
 from app.services.text_variant_service import TextVariantService
+from app.services.title_utils import normalize_mark_title
 from app.services.vector_client import VectorClient
 
 
@@ -479,14 +480,14 @@ def _is_primary_status(status: str) -> bool:
 
 def _display_title(record: TrademarkRecord | None) -> str:
     if not record:
-        return '(상표명 없음)'
+        return ""
     title_ko = (record.title_korean or '').strip()
     if title_ko and title_ko == record.application_number:
         title_ko = ''
     title_en = (record.title_english or '').strip()
     if title_en and title_en == record.application_number:
         title_en = ''
-    return title_ko or title_en or '(상표명 없음)'
+    return normalize_mark_title(title_ko or title_en)
 
 
 def _normalize_text(value: Optional[str]) -> str:

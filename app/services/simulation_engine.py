@@ -27,6 +27,7 @@ from app.services.kipris_client import KiprisClient, format_document_context
 from app.services.langgraph_orchestrator import LangGraphOrchestrator
 from app.services.log_storage import upload_text, s3_logs_enabled
 from app.services.model_pricing import get_model_pricing
+from app.services.title_utils import localized_mark_title, normalize_mark_title
 from dotenv import load_dotenv
 
 logger = logging.getLogger("simulation")
@@ -274,7 +275,7 @@ class SimulationEngine:
                     if not cleaned:
                         continue
                     lines.append(f"  - {cleaned}")
-            prior_title = (selection.title or "").strip() or "(No name)"
+            prior_title = localized_mark_title(selection.title, language)
             lines += [
                 "",
                 "[Compared prior mark]",
@@ -317,7 +318,7 @@ class SimulationEngine:
                     if not cleaned:
                         continue
                     lines.append(f"  - {cleaned}")
-            prior_title = (selection.title or "").strip() or "(상표명 없음)"
+            prior_title = localized_mark_title(selection.title, language)
             lines += [
                 "",
                 "[비교 대상 유사 선행상표]",
@@ -467,7 +468,7 @@ class SimulationEngine:
 
         result = SimulationCandidateResult(
             application_number=selection.application_number,
-            title=selection.title,
+            title=localized_mark_title(selection.title, language),
             variant=selection.variant,
             conflict_score=final_conflict_score,
             register_score=final_register_score,
@@ -735,7 +736,7 @@ class SimulationEngine:
         user_image_b64: Optional[str],
     ) -> Dict[str, object]:
         user_norm = self._normalized_mark(user_mark)
-        candidate_norm = self._normalized_mark(selection.title)
+        candidate_norm = self._normalized_mark(normalize_mark_title(selection.title))
         same_title = bool(user_norm and candidate_norm and user_norm == candidate_norm)
         same_image = self._detect_same_image(user_image_b64, getattr(selection, "image_path", None))
         return {

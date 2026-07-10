@@ -25,6 +25,7 @@ except Exception:  # pragma: no cover - optional dependency
 from app.services.prompt_templates import get_prompt_bundle
 from app.services.prompt_templates_base import PromptBundle
 from app.services.model_pricing import get_model_pricing
+from app.services.title_utils import localized_mark_title
 
 load_dotenv(override=False)
 
@@ -313,8 +314,9 @@ class LangGraphOrchestrator:
             ]
             for idx, item in enumerate(items, start=1):
                 summary_line = (item.get("summary") or "").replace("\n", " ")
+                title = localized_mark_title(item.get("title"), bundle.lang)
                 context_lines.append(
-                    f"{idx}. Mark={item.get('title')} (Application No. {item.get('app_no')}) | "
+                    f"{idx}. Mark={title} (Application No. {item.get('app_no')}) | "
                     f"Final conflict risk={_fmt_score(item.get('conflict_score'), ' pts')} | "
                     f"Final registrability={_fmt_score(item.get('register_score'), ' pts')} | "
                     f"Summary={summary_line}"
@@ -330,8 +332,9 @@ class LangGraphOrchestrator:
             ]
             for idx, item in enumerate(items, start=1):
                 summary_line = (item.get("summary") or "").replace("\n", " ")
+                title = localized_mark_title(item.get("title"), bundle.lang)
                 context_lines.append(
-                    f"{idx}. 상표명={item.get('title')} (출원번호 {item.get('app_no')}) | "
+                    f"{idx}. 상표명={title} (출원번호 {item.get('app_no')}) | "
                     f"최종 충돌 위험도={_fmt_score(item.get('conflict_score'), '점')} | "
                     f"최종 등록 가능성={_fmt_score(item.get('register_score'), '점')} | "
                     f"요약={summary_line}"
@@ -435,6 +438,8 @@ class LangGraphOrchestrator:
             "metrics": state.get("metrics", {}),
             "worker_id": state.get("worker_id"),
             "timeline": state.get("timeline", []),
+            "language": state.get("language", "ko"),
+            "prompt_bundle": state["prompt_bundle"],
             "progress_callback": state.get("progress_callback"),
             "progress_meta": state.get("progress_meta", {}),
         }
