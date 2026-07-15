@@ -2,7 +2,7 @@
 
 > **Authors**: Yongdeuk Seo, Noah Lee, Hyun-seok Min, Sungchul Choi
 
-[![Project Page](https://img.shields.io/badge/Project-Page-1a73e8?logo=Google%20Chrome&logoColor=white)](https://yongchoooon.github.io/tradar/) [![Demo](https://img.shields.io/badge/Demo-T--RADAR-ffcc4d?&logoColor=white)](https://do7ajfzdgr22.cloudfront.net/)
+[![Project Page](https://img.shields.io/badge/Project-Page-1a73e8?logo=Google%20Chrome&logoColor=white)](https://yongchoooon.github.io/tradar/) [![Demo](https://img.shields.io/badge/Demo-T--RADAR-ffcc4d?&logoColor=white)](https://do7ajfzdgr22.cloudfront.net/) [![Paper](https://img.shields.io/badge/Paper-ACM-000000?logo=acm&logoColor=white)](https://dl.acm.org/doi/10.1145/3805712.3808379)
 
 Korean version: [README_ko.md](README_ko.md)
 
