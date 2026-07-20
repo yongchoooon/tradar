@@ -107,3 +107,25 @@ The production trademark corpus is not included in this repository. Part of the 
 
 ## Licensing
 The accompanying ACM SIGIR Demo paper is intended to be published under CC BY 4.0. That publication license does not automatically apply to the code, assets, or data in this repository. Repository-level rights are defined separately in `LICENSE`, and third-party or proprietary datasets remain subject to their own terms.
+
+## Citation
+
+```tex
+@inproceedings{10.1145/3805712.3808379,
+author = {Seo, Yongdeuk and Lee, Noah and Min, Hyun-seok and Choi, Sungchul},
+title = {T-RADAR: Simulating Trademark Examination as an Interactive Retrieval Interface for Conflict Risk Assessment},
+year = {2026},
+isbn = {9798400725999},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3805712.3808379},
+doi = {10.1145/3805712.3808379},
+abstract = {Ranked lists excel at finding candidates but provide no mechanism for judging them. In trademark clearance, where practitioners must assess likelihood of confusion across visual, phonetic, and conceptual dimensions under goods-and-services constraints, the core task is not retrieval but multi-criteria comparative judgment informed by examination practice. We propose agentic simulation as an IR interface and demonstrate it in T-RADAR, a trademark clearance system. Beyond retrieval, T-RADAR introduces simulation-driven adjudication: candidates retrieved via multimodal dual-encoder search are examined through an adversarial Examiner-versus-Applicant exchange that may cover appearance, pronunciation, concept, and goods/services factors, producing Conflict risk and Registrability scores that serve as review prioritization signals. When multiple candidates are simulated, a final aggregation step highlights high-risk pairs and produces an overall summary. The interaction proceeds in three steps. Query: users input a candidate mark and its goods designation to retrieve potentially conflicting registrations. Select and Simulate: users choose candidate pairs and launch simulated examination. Refine and Re-simulate: users adjust inputs such as the mark name or goods designation and re-run the simulation to compare how outcomes change.},
+booktitle = {Proceedings of the 49th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+pages = {5215–5219},
+numpages = {5},
+keywords = {trademark clearance, multimodal retrieval, agentic simulation, interactive information retrieval, decision support},
+location = {Australia},
+series = {SIGIR '26}
+}
+```
