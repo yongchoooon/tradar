@@ -1,30 +1,39 @@
-"""S3 image upload + presign helpers."""
+"""Cloudflare R2 image upload and presigned URL helpers."""
 
 from __future__ import annotations
 
 import base64
 import io
-import logging
 import mimetypes
 import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, Optional, Tuple
+from urllib.parse import urlparse
 
 from PIL import Image
 
-try:  # pragma: no cover - optional dependency
-    import boto3  # type: ignore
+try:  # pragma: no cover - dependency availability is environment-specific
     from botocore.exceptions import BotoCoreError, ClientError  # type: ignore
 except Exception:  # pragma: no cover
-    boto3 = None
     BotoCoreError = ClientError = Exception  # type: ignore
 
+from app.services.r2_client import (
+    R2ConfigurationError,
+    get_r2_client,
+    r2_bucket_name,
+    r2_enabled,
+)
 
-logger = logging.getLogger(__name__)
 
 DEFAULT_BASE64_MAX_BYTES = 200 * 1024
+ALLOWED_IMAGE_CONTENT_TYPES = {
+    "image/gif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
 
 
 def _truthy(value: Optional[str]) -> bool:
@@ -35,21 +44,18 @@ def _truthy(value: Optional[str]) -> bool:
 
 def _detect_image_format(data: bytes) -> Tuple[str, str]:
     if not data:
-        return "jpg", "image/jpeg"
+        raise ValueError("Empty image payload")
     try:
         with Image.open(io.BytesIO(data)) as img:
-            fmt = (img.format or "JPEG").lower()
-    except Exception:
-        return "jpg", "image/jpeg"
+            fmt = (img.format or "").lower()
+            img.verify()
+    except Exception as exc:
+        raise ValueError("Invalid image payload") from exc
     if fmt == "jpeg":
         return "jpg", "image/jpeg"
-    if fmt == "png":
-        return "png", "image/png"
-    if fmt == "webp":
-        return "webp", "image/webp"
-    if fmt == "gif":
-        return "gif", "image/gif"
-    return "jpg", "image/jpeg"
+    if fmt in {"png", "webp", "gif"}:
+        return fmt, f"image/{fmt}"
+    raise ValueError(f"Unsupported image format: {fmt or 'unknown'}")
 
 
 def _build_key(prefix: str, ext: str) -> str:
@@ -61,6 +67,31 @@ def _build_key(prefix: str, ext: str) -> str:
     return f"{timestamp}/{token}.{ext}"
 
 
+def validate_r2_presigned_url(url: str) -> None:
+    """Reject arbitrary URLs before a desktop worker fetches an image."""
+
+    endpoint = os.getenv("R2_ENDPOINT_URL", "").strip()
+    endpoint_host = (urlparse(endpoint).hostname or "").lower()
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError(
+            "image_ref URL must be a Cloudflare R2 presigned HTTPS URL"
+        ) from exc
+    if (
+        parsed.scheme != "https"
+        or not endpoint_host
+        or not host
+        or parsed.username
+        or parsed.password
+        or (port not in {None, 443})
+        or (host != endpoint_host and not host.endswith(f".{endpoint_host}"))
+    ):
+        raise ValueError("image_ref URL must be a Cloudflare R2 presigned HTTPS URL")
+
+
 @dataclass(frozen=True)
 class ImageTransferError(RuntimeError):
     def __init__(self, message: str, error_code: str) -> None:
@@ -68,7 +99,7 @@ class ImageTransferError(RuntimeError):
         self.error_code = error_code
 
 
-class S3UploadError(ImageTransferError):
+class R2UploadError(ImageTransferError):
     pass
 
 
@@ -97,24 +128,20 @@ class ImageRef:
         return payload
 
 
-class S3ImageStore:
+class R2ImageStore:
     def __init__(self) -> None:
-        self._bucket = os.getenv("TRADAR_DATA_BUCKET", "tradar-data")
-        self._prefix = os.getenv("TRADAR_IMAGE_PREFIX", "queries")
-        self._presign_ttl = int(os.getenv("TRADAR_PRESIGN_TTL_SECONDS", "600"))
-        self._endpoint_url = os.getenv("TRADAR_S3_ENDPOINT_URL")
-        self._region = os.getenv("AWS_REGION")
-
-        if boto3 is None:
-            raise RuntimeError("boto3 is not available for S3 uploads")
-
-        self._client = boto3.client(
-            "s3", region_name=self._region, endpoint_url=self._endpoint_url
-        )
+        if not r2_enabled():
+            raise R2ConfigurationError("R2 is disabled; set R2_ENABLED=true")
+        self._bucket = r2_bucket_name()
+        self._prefix = os.getenv("R2_IMAGE_PREFIX", "queries")
+        self._presign_ttl = int(os.getenv("R2_PRESIGN_TTL_SECONDS", "600"))
+        if not 1 <= self._presign_ttl <= 604800:
+            raise R2ConfigurationError(
+                "R2_PRESIGN_TTL_SECONDS must be between 1 and 604800"
+            )
+        self._client = get_r2_client()
 
     def upload_and_presign(self, image_bytes: bytes) -> ImageRef:
-        if not image_bytes:
-            raise ValueError("Empty image payload")
         ext, content_type = _detect_image_format(image_bytes)
         key = _build_key(self._prefix, ext)
         self._client.put_object(
@@ -128,16 +155,25 @@ class S3ImageStore:
             Params={"Bucket": self._bucket, "Key": key},
             ExpiresIn=self._presign_ttl,
         )
+        validate_r2_presigned_url(url)
         return ImageRef(type="presigned_url", url=url, bucket=self._bucket, key=key)
 
     def presign_upload(self, *, filename: str, content_type: str | None) -> dict:
         if not filename:
             raise ValueError("filename is required")
-        ext = _guess_extension(filename, content_type)
+        normalized_type = (content_type or "").split(";", 1)[0].strip().lower()
+        if normalized_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+            raise ValueError(
+                "content_type must be one of: "
+                + ", ".join(sorted(ALLOWED_IMAGE_CONTENT_TYPES))
+            )
+        ext = _guess_extension(filename, normalized_type)
         key = _build_key(self._prefix, ext)
-        params = {"Bucket": self._bucket, "Key": key}
-        if content_type:
-            params["ContentType"] = content_type
+        params = {
+            "Bucket": self._bucket,
+            "Key": key,
+            "ContentType": normalized_type,
+        }
         upload_url = self._client.generate_presigned_url(
             "put_object",
             Params=params,
@@ -148,24 +184,26 @@ class S3ImageStore:
             Params={"Bucket": self._bucket, "Key": key},
             ExpiresIn=self._presign_ttl,
         )
+        validate_r2_presigned_url(upload_url)
+        validate_r2_presigned_url(read_url)
         return {
             "upload_url": upload_url,
             "read_url": read_url,
             "bucket": self._bucket,
             "key": key,
-            "content_type": content_type or "application/octet-stream",
+            "content_type": normalized_type,
         }
 
 
-def _guess_extension(filename: str, content_type: str | None) -> str:
-    ext = ""
-    if filename:
-        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if not ext and content_type:
-        guessed = mimetypes.guess_extension(content_type.split(";")[0].strip())
-        if guessed:
-            ext = guessed.lstrip(".")
-    return ext or "bin"
+def _guess_extension(filename: str, content_type: str) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext == "jpeg":
+        ext = "jpg"
+    allowed_extensions = {"gif", "jpg", "png", "webp"}
+    if ext not in allowed_extensions:
+        guessed = mimetypes.guess_extension(content_type)
+        ext = (guessed or ".bin").lstrip(".")
+    return ext
 
 
 def _build_base64_ref(image_bytes: bytes, max_inline: int) -> ImageRef:
@@ -179,30 +217,29 @@ def _build_base64_ref(image_bytes: bytes, max_inline: int) -> ImageRef:
 
 
 def build_image_ref(image_bytes: bytes) -> ImageRef:
-    """Prefer S3 presigned URL; base64 fallback only when explicitly enabled."""
+    """Prefer an R2 presigned URL; use base64 only when explicitly enabled."""
+
     allow_base64 = _truthy(os.getenv("ALLOW_BASE64_FALLBACK", "false"))
     max_inline = int(
         os.getenv("BASE64_MAX_IMAGE_BYTES", str(DEFAULT_BASE64_MAX_BYTES))
     )
-    disable_s3 = _truthy(os.getenv("TRADAR_DISABLE_S3"))
 
-    if not disable_s3:
+    if r2_enabled():
         try:
-            store = S3ImageStore()
-            return store.upload_and_presign(image_bytes)
+            return R2ImageStore().upload_and_presign(image_bytes)
         except ClientError as exc:
-            error_code = "S3_UPLOAD_FAILED"
             response = getattr(exc, "response", {}) or {}
-            s3_code = (response.get("Error") or {}).get("Code")
-            if s3_code == "AccessDenied":
-                error_code = "S3_UPLOAD_DENIED"
-            raise S3UploadError("S3 upload failed", error_code) from exc
-        except (BotoCoreError, RuntimeError, ValueError) as exc:
-            raise S3UploadError("S3 upload failed", "S3_UPLOAD_FAILED") from exc
+            r2_code = (response.get("Error") or {}).get("Code")
+            error_code = (
+                "R2_UPLOAD_DENIED" if r2_code == "AccessDenied" else "R2_UPLOAD_FAILED"
+            )
+            raise R2UploadError("R2 upload failed", error_code) from exc
+        except (BotoCoreError, R2ConfigurationError, RuntimeError, ValueError) as exc:
+            raise R2UploadError("R2 upload failed", "R2_UPLOAD_FAILED") from exc
 
     if not allow_base64:
         raise Base64FallbackDisabledError(
-            "Image transfer failed (base64 fallback disabled)",
+            "Image transfer failed (R2 disabled and base64 fallback disabled)",
             "IMAGE_TRANSFER_FAILED",
         )
 

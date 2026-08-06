@@ -21,7 +21,7 @@ export const landingCopy = {
       llmToggle: 'LLM variants',
       errors: {
         noImageFile: 'No image file selected.',
-        presignMissing: 'Failed to receive an S3 upload URL.',
+        presignMissing: 'Failed to receive an R2 upload URL.',
         uploadFailed: 'Image upload failed.',
         general: 'Something went wrong during search.',
         requestFailed: 'Search request failed. Check the console.',
@@ -255,7 +255,7 @@ export const landingCopy = {
       llmToggle: 'LLM 유사어',
       errors: {
         noImageFile: '이미지 파일이 없습니다.',
-        presignMissing: 'S3 업로드 URL을 받지 못했습니다.',
+        presignMissing: 'R2 업로드 URL을 받지 못했습니다.',
         uploadFailed: '이미지 업로드에 실패했습니다.',
         general: '검색 중 문제가 발생했습니다.',
         requestFailed: '검색 요청 중 오류가 발생했습니다. 콘솔을 확인하세요.',

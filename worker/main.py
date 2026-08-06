@@ -1,4 +1,4 @@
-"""Desktop GPU worker that connects to the ECS backend via WebSocket."""
+"""Desktop GPU worker that connects to the local API via WebSocket."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from websockets.exceptions import ConnectionClosed
 from app.pipelines.search_pipeline import SearchPipeline
 from app.schemas.search import SearchRequest, SearchResponse, SearchResult
 from app.services.request_meta import RequestMeta, reset_request_meta, set_request_meta
+from app.services.r2_storage import validate_r2_presigned_url
 
 
 logger = logging.getLogger("desktop_worker")
@@ -340,6 +341,7 @@ class DesktopWorker:
             url = image_ref.get("url")
             if not url:
                 raise ValueError("image_ref.url is required")
+            validate_r2_presigned_url(url)
             # label = _shorten_url(url)
             # logger.info("Fetching image url=%s", _maybe_hyperlink(label, url))
             response = await self._http.get(url)

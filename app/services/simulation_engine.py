@@ -25,7 +25,7 @@ from app.schemas.simulation import (
 )
 from app.services.kipris_client import KiprisClient, format_document_context
 from app.services.langgraph_orchestrator import LangGraphOrchestrator
-from app.services.log_storage import upload_text, s3_logs_enabled
+from app.services.log_storage import r2_logs_enabled, upload_text
 from app.services.model_pricing import get_model_pricing
 from app.services.title_utils import localized_mark_title, normalize_mark_title
 from dotenv import load_dotenv
@@ -199,7 +199,7 @@ class SimulationEngine:
                         event.setdefault("application_number", "overall")
                         event.setdefault("variant", "overall")
                 usage_events.extend(overall_timeline)
-        if usage_events and s3_logs_enabled():
+        if usage_events and r2_logs_enabled():
             self._upload_usage_bundle(
                 usage_events,
                 run_tag,
@@ -642,7 +642,7 @@ class SimulationEngine:
         }
         text = json.dumps(payload, ensure_ascii=False, indent=2)
         path.write_text(text, encoding="utf-8")
-        if s3_logs_enabled():
+        if r2_logs_enabled():
             upload_text(
                 f"simulation_debug/{job_tag}/{job_tag}_{app_no}_context.json",
                 text,
@@ -670,7 +670,7 @@ class SimulationEngine:
             )
         text = "\n".join(chunks)
         path.write_text(text, encoding="utf-8")
-        if s3_logs_enabled():
+        if r2_logs_enabled():
             upload_text(
                 f"simulation_debug/{job_tag}/{job_tag}_{app_no}_llm.txt",
                 text,

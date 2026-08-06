@@ -82,25 +82,22 @@ _LOG_TYPES = {
 }
 
 
-def _ensure_s3_available() -> Tuple[str, Any]:
-    if not log_storage.s3_logs_enabled():
-        raise HTTPException(status_code=503, detail="S3 logging is disabled.")
-    bucket = log_storage._bucket_name()
-    if not bucket:
-        raise HTTPException(status_code=503, detail="S3 bucket is not configured.")
+def _ensure_r2_available() -> Tuple[str, Any]:
+    if not log_storage.r2_logs_enabled():
+        raise HTTPException(status_code=503, detail="R2 logging is disabled.")
     try:
-        client = log_storage._s3_client()
+        bucket, client = log_storage.get_log_storage()
     except Exception as exc:  # pragma: no cover - runtime guard
-        raise HTTPException(status_code=503, detail=f"S3 client unavailable: {exc}") from exc
+        raise HTTPException(status_code=503, detail=f"R2 client unavailable: {exc}") from exc
     return bucket, client
 
 
 def _list_objects(prefix: str) -> List[Dict[str, Any]]:
-    bucket, client = _ensure_s3_available()
+    bucket, client = _ensure_r2_available()
     objects: List[Dict[str, Any]] = []
     token: str | None = None
     while True:
-        params = {"Bucket": bucket, "Prefix": f"logs/{prefix}"}
+        params = {"Bucket": bucket, "Prefix": log_storage.build_log_key(prefix)}
         if token:
             params["ContinuationToken"] = token
         response = client.list_objects_v2(**params)
@@ -127,7 +124,7 @@ def _list_objects(prefix: str) -> List[Dict[str, Any]]:
 
 
 def _get_object_text(key: str) -> Tuple[str, str]:
-    bucket, client = _ensure_s3_available()
+    bucket, client = _ensure_r2_available()
     response = client.get_object(Bucket=bucket, Key=key)
     body = response.get("Body")
     raw = body.read() if body else b""

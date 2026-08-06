@@ -2,6 +2,10 @@ __pycache__/
 *.py[cod]
 *.egg-info
 .env
+.env.runtime
+.env.cloudflare
+.env.r2
+*.secret.env
 .venv/
 *.log
 .DS_Store

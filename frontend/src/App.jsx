@@ -1200,7 +1200,7 @@ async function requestPresignedUpload(file, errors = {}) {
     body: JSON.stringify(payload),
   });
   if (!data?.upload_url || !data?.read_url) {
-    throw new Error(errors.presignMissing || 'Failed to receive an S3 upload URL.');
+    throw new Error(errors.presignMissing || 'Failed to receive an R2 upload URL.');
   }
   const uploadRes = await fetch(data.upload_url, {
     method: 'PUT',
@@ -3136,7 +3136,10 @@ function App() {
 
   const startSimulationStream = (jobId) => {
     closeSimulationStream();
-    const source = new EventSource(buildApiUrl(`/simulation/stream/${jobId}`));
+    const source = new EventSource(
+      buildApiUrl(`/simulation/stream/${jobId}`),
+      { withCredentials: true },
+    );
     simulationEventRef.current = source;
     source.onmessage = (event) => {
       try {

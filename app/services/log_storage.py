@@ -1,19 +1,22 @@
-"""Helpers for writing logs locally and/or uploading them to S3."""
+"""Helpers for writing application logs to Cloudflare R2."""
 
 from __future__ import annotations
 
 import logging
 import os
-from functools import lru_cache
 from typing import Optional
 
-try:  # pragma: no cover - optional dependency
-    import boto3  # type: ignore
+try:  # pragma: no cover - dependency availability is environment-specific
     from botocore.exceptions import BotoCoreError, ClientError  # type: ignore
 except Exception:  # pragma: no cover
-    boto3 = None
     BotoCoreError = ClientError = Exception  # type: ignore
 
+from app.services.r2_client import (
+    R2ConfigurationError,
+    get_r2_client,
+    r2_enabled,
+    r2_log_bucket_name,
+)
 
 logger = logging.getLogger("log_storage")
 
@@ -32,48 +35,28 @@ def _truthy(value: Optional[str]) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
-def _bucket_name() -> Optional[str]:
-    return _env("TRADAR_DATA_BUCKET") or "tradar-data"
+def r2_logs_enabled() -> bool:
+    return r2_enabled() and _truthy(_env("R2_LOGS_ENABLED", "true"))
 
 
-def s3_logs_enabled() -> bool:
-    if _truthy(_env("TRADAR_DISABLE_S3")):
-        return False
-    return bool(_bucket_name())
+def get_log_storage():
+    if not r2_logs_enabled():
+        raise R2ConfigurationError("R2 log storage is disabled")
+    return r2_log_bucket_name(), get_r2_client()
 
 
-@lru_cache(maxsize=1)
-def _s3_client():
-    if boto3 is None:
-        raise RuntimeError("boto3 is not available for S3 logging")
-    region = _env("AWS_REGION")
-    endpoint_url = _env("TRADAR_S3_ENDPOINT_URL")
-    access_key = _env("DESKTOP_WORKER_AWS_ACCESS_KEY_ID")
-    secret_key = _env("DESKTOP_WORKER_AWS_SECRET_ACCESS_KEY")
-    kwargs = {
-        "region_name": region,
-        "endpoint_url": endpoint_url,
-    }
-    if access_key and secret_key:
-        kwargs["aws_access_key_id"] = access_key
-        kwargs["aws_secret_access_key"] = secret_key
-    return boto3.client("s3", **kwargs)
-
-
-def _build_key(key_suffix: str) -> str:
+def build_log_key(key_suffix: str) -> str:
     suffix = key_suffix.lstrip("/")
-    return f"logs/{suffix}"
+    prefix = (_env("R2_LOG_PREFIX", "logs") or "logs").strip("/")
+    return f"{prefix}/{suffix}" if prefix else suffix
 
 
 def upload_text(key_suffix: str, text: str, content_type: str = "text/plain") -> bool:
-    if not s3_logs_enabled():
+    if not r2_logs_enabled():
         return False
-    bucket = _bucket_name()
-    if not bucket:
-        return False
-    key = _build_key(key_suffix)
+    key = build_log_key(key_suffix)
     try:
-        client = _s3_client()
+        bucket, client = get_log_storage()
         client.put_object(
             Bucket=bucket,
             Key=key,
@@ -81,20 +64,17 @@ def upload_text(key_suffix: str, text: str, content_type: str = "text/plain") ->
             ContentType=content_type,
         )
         return True
-    except (ClientError, BotoCoreError, RuntimeError) as exc:
-        logger.warning("Failed to upload log to s3 key=%s: %s", key, exc)
+    except (ClientError, BotoCoreError, R2ConfigurationError, RuntimeError) as exc:
+        logger.warning("Failed to upload log to R2 key=%s: %s", key, exc)
         return False
 
 
 def upload_bytes(key_suffix: str, payload: bytes, content_type: str = "application/octet-stream") -> bool:
-    if not s3_logs_enabled():
+    if not r2_logs_enabled():
         return False
-    bucket = _bucket_name()
-    if not bucket:
-        return False
-    key = _build_key(key_suffix)
+    key = build_log_key(key_suffix)
     try:
-        client = _s3_client()
+        bucket, client = get_log_storage()
         client.put_object(
             Bucket=bucket,
             Key=key,
@@ -102,6 +82,6 @@ def upload_bytes(key_suffix: str, payload: bytes, content_type: str = "applicati
             ContentType=content_type,
         )
         return True
-    except (ClientError, BotoCoreError, RuntimeError) as exc:
-        logger.warning("Failed to upload log to s3 key=%s: %s", key, exc)
+    except (ClientError, BotoCoreError, R2ConfigurationError, RuntimeError) as exc:
+        logger.warning("Failed to upload log to R2 key=%s: %s", key, exc)
         return False

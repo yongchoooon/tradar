@@ -8,9 +8,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Optional, Set
 
-from app.services.ssm_params import resolve_param
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -51,30 +48,15 @@ class WorkerSettings:
 
 @lru_cache(maxsize=1)
 def get_worker_settings() -> WorkerSettings:
-    token = resolve_param(
-        "DESKTOP_WORKER_TOKEN",
-        "/tradar/prod/desktop-worker-token",
-        required=os.getenv("APP_ENV", "dev").lower() == "prod",
-    )
+    token = os.getenv("DESKTOP_WORKER_TOKEN", "").strip()
+    if os.getenv("APP_ENV", "dev").lower() == "prod" and not token:
+        raise RuntimeError("DESKTOP_WORKER_TOKEN is required in prod")
     if not token:
         logger.warning("Desktop worker token is not configured.")
-        token = ""
 
-    timeout_value = resolve_param(
-        "SEARCH_TIMEOUT_SECONDS",
-        "/tradar/prod/search-timeout-seconds",
-        default="30",
-    )
-    topk_value = resolve_param(
-        "TOPK_DEFAULT",
-        "/tradar/prod/topk-default",
-        default="20",
-    )
-    allowlist_raw = resolve_param(
-        "DESKTOP_WORKER_ID_ALLOWLIST",
-        "/tradar/prod/desktop-worker-id-allowlist",
-        default="",
-    )
+    timeout_value = os.getenv("SEARCH_TIMEOUT_SECONDS", "30")
+    topk_value = os.getenv("TOPK_DEFAULT", "20")
+    allowlist_raw = os.getenv("DESKTOP_WORKER_ID_ALLOWLIST", "")
 
     return WorkerSettings(
         token=token,

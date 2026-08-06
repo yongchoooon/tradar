@@ -21,9 +21,14 @@ from app.schemas.search import (
     SearchResponse,
     SearchResult,
 )
-from app.services.s3_storage import ImageRef, ImageTransferError, build_image_ref
+from app.services.r2_storage import (
+    ImageRef,
+    ImageTransferError,
+    build_image_ref,
+    validate_r2_presigned_url,
+)
 from app.services.request_meta import get_request_meta
-from app.services.log_storage import upload_text, s3_logs_enabled
+from app.services.log_storage import r2_logs_enabled, upload_text
 from app.services.worker_registry import (
     WorkerDisconnectedError,
     WorkerTimeoutError,
@@ -316,6 +321,10 @@ async def run_worker_search(req: SearchRequest) -> SearchResponse:
 
     try:
         if req.image_ref:
+            if req.image_ref.type == "presigned_url":
+                if not req.image_ref.url:
+                    raise ValueError("image_ref.url is required")
+                validate_r2_presigned_url(req.image_ref.url)
             image_ref = ImageRef(
                 type=req.image_ref.type,
                 url=req.image_ref.url,
@@ -383,7 +392,7 @@ async def run_worker_search(req: SearchRequest) -> SearchResponse:
         worker_id,
         elapsed_ms,
     )
-    if s3_logs_enabled():
+    if r2_logs_enabled():
         try:
             now = _now_kst()
             payload = _build_search_log_payload(

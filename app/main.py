@@ -76,6 +76,9 @@ def _first_header(request: Request, name: str) -> str | None:
 
 
 def _extract_client_ip(request: Request) -> str | None:
+    cloudflare_ip = _first_header(request, "cf-connecting-ip")
+    if cloudflare_ip:
+        return cloudflare_ip
     forwarded = _first_header(request, "x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip() or None
@@ -88,8 +91,7 @@ def _extract_client_ip(request: Request) -> str | None:
 async def request_meta_middleware(request: Request, call_next):
     request_id = (
         _first_header(request, "x-request-id")
-        or _first_header(request, "x-amzn-trace-id")
-        or _first_header(request, "x-amz-cf-id")
+        or _first_header(request, "cf-ray")
         or uuid4().hex
     )
     meta = RequestMeta(
@@ -118,7 +120,8 @@ def _configure_cors(app_: FastAPI) -> None:
         origins = ["http://localhost:5173"]
     if APP_ENV == "prod" and not origins:
         raise RuntimeError(
-            "CORS_ALLOWED_ORIGINS must be set in prod (e.g. https://your-cloudfront-domain)"
+            "CORS_ALLOWED_ORIGINS must be set in prod "
+            "(e.g. https://your-pages-domain)"
         )
     if origins:
         app_.add_middleware(
@@ -135,7 +138,7 @@ _configure_cors(app)
 
 @app.get("/health", tags=["infrastructure"])
 def health_check():
-    """Simple endpoint for ALB/ECS health checks."""
+    """Simple process health endpoint used by Docker and Cloudflare Tunnel."""
     return {"status": "ok"}
 
 app.include_router(search_router)

@@ -55,7 +55,7 @@ def _is_truthy(value: str | None) -> bool:
 
 
 def _should_upload_usage() -> bool:
-    return _is_truthy(os.getenv("TRADAR_UPLOAD_OPENAI_USAGE_S3"))
+    return _is_truthy(os.getenv("R2_UPLOAD_OPENAI_USAGE"))
 
 
 def _upload_text_async(key_suffix: str, text: str, content_type: str) -> None:

@@ -1,0 +1,21 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://tradar.example.com",
+      "http://localhost:5172",
+      "http://localhost:5173"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "PUT",
+      "HEAD"
+    ],
+    "AllowedHeaders": [
+      "Content-Type"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]

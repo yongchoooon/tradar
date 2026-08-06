@@ -52,7 +52,11 @@ export async function apiFetch(path: string, init?: RequestInit) {
   if (clientId) {
     headers.set('X-Client-Id', clientId);
   }
-  const response = await fetch(url, { ...init, headers });
+  const response = await fetch(url, {
+    ...init,
+    headers,
+    credentials: 'include',
+  });
   const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
   if (!response.ok) {

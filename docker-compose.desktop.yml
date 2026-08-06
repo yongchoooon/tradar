@@ -1,11 +1,10 @@
-version: "2.4"
-
 services:
   desktop-worker:
     build:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
+    restart: unless-stopped
     deploy:
       resources:
         reservations:
@@ -19,7 +18,7 @@ services:
       - .:/app
       - ${TRADAR_IMAGE_ROOT:-../tradar-data}:/data/images:ro
     env_file:
-      - .env
+      - ${TRADAR_RUNTIME_ENV_FILE:-.env.runtime}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

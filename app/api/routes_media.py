@@ -11,7 +11,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
 
-from app.services.s3_storage import S3UploadError, S3ImageStore
+from app.services.r2_client import R2ConfigurationError
+from app.services.r2_storage import R2ImageStore, R2UploadError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -77,18 +78,28 @@ class PresignRequest(BaseModel):
 @router.post("/media/presign")
 def presign_upload(req: PresignRequest):
     try:
-        store = S3ImageStore()
+        store = R2ImageStore()
         return store.presign_upload(
             filename=req.filename,
             content_type=req.content_type,
         )
-    except S3UploadError as exc:
+    except R2UploadError as exc:
         raise HTTPException(
             status_code=500,
             detail={"error_code": exc.error_code, "message": str(exc)},
         ) from exc
+    except R2ConfigurationError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"error_code": "R2_NOT_CONFIGURED", "message": str(exc)},
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"error_code": "INVALID_UPLOAD", "message": str(exc)},
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail={"error_code": "S3_UPLOAD_FAILED", "message": str(exc)},
+            detail={"error_code": "R2_UPLOAD_FAILED", "message": str(exc)},
         ) from exc
