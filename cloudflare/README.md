@@ -136,12 +136,13 @@ npm run build
 |---|---|
 | 이미지·텍스트·상품 검색 | 일반 HTTP 요청이므로 임시 테스트 가능 |
 | Desktop worker WebSocket | `ws://api:8000/ws/worker` Docker 내부 연결이므로 영향 없음 |
-| Simulation stream | SSE 기반이므로 Quick Tunnel에서는 지원되지 않음 |
-| 관리자 session | Pages와 API가 서로 다른 site이고 admin cookie가 `SameSite=Lax`이므로 정상 동작을 보장할 수 없음 |
+| Simulation 진행 상태 | SSE는 지원되지 않아 frontend가 2초 간격 HTTP polling으로 자동 전환 |
+| 관리자 페이지 | Quick Tunnel API 주소의 `/admin/login`으로 직접 접속 가능. Tunnel 재실행 시 주소도 변경됨 |
 
-따라서 Quick Tunnel은 화면 및 기본 검색 smoke test에만 사용한다. Simulation,
-관리자 기능, 고정 API 주소, Access 인증이 필요한 단계에서는 소유 도메인을
-Cloudflare에 연결하고 remotely-managed named Tunnel로 전환해야 한다.
+따라서 Quick Tunnel에서는 화면, 검색, HTTP polling 기반 Simulation, 관리자
+페이지를 임시 테스트할 수 있다. SSE, 고정 API 주소, Access 인증, 운영 가용성이
+필요한 단계에서는 소유 도메인을 Cloudflare에 연결하고 remotely-managed named
+Tunnel로 전환해야 한다.
 
 공식 문서:
 

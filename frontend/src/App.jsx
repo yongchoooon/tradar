@@ -3136,8 +3136,19 @@ function App() {
 
   const startSimulationStream = (jobId) => {
     closeSimulationStream();
+    const streamUrl = buildApiUrl(`/simulation/stream/${jobId}`);
+    let usePolling = false;
+    try {
+      usePolling = new URL(streamUrl, window.location.origin).hostname.endsWith('.trycloudflare.com');
+    } catch {
+      usePolling = false;
+    }
+    if (usePolling) {
+      startSimulationPolling(jobId);
+      return;
+    }
     const source = new EventSource(
-      buildApiUrl(`/simulation/stream/${jobId}`),
+      streamUrl,
       { withCredentials: true },
     );
     simulationEventRef.current = source;
