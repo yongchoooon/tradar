@@ -67,12 +67,48 @@ T-RADAR는 BM25 키워드 검색과 임베딩 기반 ANN 검색을 결합합니�
 </table>
 
 ## 배포 (참고)
+
+<details open>
+<summary><strong>v2 — Cloudflare Pages/R2 + 로컬 컴퓨팅 (26.08.07)</strong></summary>
+
+- **프런트엔드**: [Cloudflare Pages](https://t-radar.pages.dev)에 정적 빌드를 배포하며 GitHub Actions로 자동 배포합니다.
+- **백엔드 및 데이터베이스**: FastAPI, PostgreSQL/pgvector, OpenSearch는 로컬 Docker 컨테이너에서 실행합니다.
+- **검색 오프로딩**: 데스크톱 GPU 워커가 이미지 검색을 수행하고 WebSocket으로 백엔드와 통신합니다.
+- **스토리지 및 API**: R2에 작업 자산과 로그를 저장하며 Cloudflare Tunnel로 로컬 API를 공개합니다.
+
+</details>
+
+<details>
+<summary><strong>v1 — AWS 레거시 배포</strong></summary>
+
 - **프런트엔드**: S3 + CloudFront 기반 정적 빌드.
 - **백엔드**: ALB 뒤의 ECS/Fargate API.
 - **검색 오프로딩**: 데스크톱 GPU 워커가 로컬 Postgres/pgvector와 OpenSearch에 연결되며, 백엔드는 WebSocket으로 워커와 통신합니다.
 - **선택적 클라우드 검색**: 검색 스택은 RDS와 OpenSearch Service로 이전할 수 있습니다.
 
+</details>
+
 ## 재현성
+
+<details open>
+<summary><strong>v2 — Cloudflare Pages/R2 + 로컬 컴퓨팅 (26.08.07)</strong></summary>
+
+이 공개 레포지토리에는 T-RADAR의 애플리케이션 코드, UI 자산, 배포 정의가 포함되어 있습니다. 다만 현재 시스템을 처음부터 끝까지 재현하는 데 필요한 모든 요소를 포함하지는 않습니다.
+
+현재 시스템은 다음 요소에 의존합니다:
+- [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do)에서 라이선스를 받은 독점 상표 코퍼스,
+- 사전 구축된 PostgreSQL/pgvector 및 OpenSearch 인덱스,
+- 로컬 모델 아티팩트와 데스크톱 GPU 워커,
+- Cloudflare Pages, R2 및 Tunnel 리소스,
+- API 인증정보와 런타임 시크릿.
+
+법적, 라이선스, 운영상의 이유로 운영 데이터, 인덱스, 모델 아티팩트, 시크릿은 재배포하지 않습니다. 전체 환경을 재현하려면 데이터, 인프라, 인증정보를 별도로 준비해야 합니다.
+
+</details>
+
+<details>
+<summary><strong>v1 — AWS 레거시 재현성 안내</strong></summary>
+
 이 공개 레포지토리에는 T-RADAR의 애플리케이션 코드, UI 자산, 배포 정의가 포함되어 있습니다. 다만 운영 시스템을 처음부터 끝까지 재현하는 데 필요한 모든 요소를 포함하지는 않습니다.
 
 배포된 시스템은 다음 요소에 의존합니다:
@@ -82,6 +118,8 @@ T-RADAR는 BM25 키워드 검색과 임베딩 기반 ANN 검색을 결합합니�
 - 검색 오프로딩에 사용되는 데스크톱 GPU 워커.
 
 법적, 라이선스, 운영상의 이유로 운영 데이터, 검색 인덱스, 시크릿은 이 레포지토리에서 재배포하지 않습니다. 따라서 이 레포지토리만으로는 전체 운영 환경을 완전히 재현할 수 없습니다.
+
+</details>
 
 ## 실행 가능한 범위
 프로젝트의 일부는 로컬에서 확인하고 실행할 수 있습니다:

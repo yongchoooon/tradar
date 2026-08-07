@@ -69,12 +69,48 @@ Each selected pair follows a fixed examination protocol: Examiner raises objecti
 </table>
 
 ## Deployment (Reference)
+
+<details open>
+<summary><strong>v2 — Cloudflare Pages/R2 + Local Compute (26.08.07)</strong></summary>
+
+- **Frontend**: static build on [Cloudflare Pages](https://t-radar.pages.dev), automatically deployed through GitHub Actions.
+- **Backend and databases**: FastAPI, PostgreSQL/pgvector, and OpenSearch run in local Docker containers.
+- **Retrieval offload**: a desktop GPU worker performs image search and communicates with the backend over WebSocket.
+- **Storage and API**: R2 stores job assets and logs, while a Cloudflare Tunnel exposes the local API.
+
+</details>
+
+<details>
+<summary><strong>v1 — AWS Legacy Deployment</strong></summary>
+
 - **Frontend**: static build on S3 + CloudFront.
 - **Backend**: API on ECS/Fargate behind ALB.
 - **Retrieval offload**: a desktop GPU worker connects to local Postgres/pgvector and OpenSearch; the backend communicates with the worker over WebSocket.
 - **Optional cloud retrieval**: the search stack can be migrated to RDS and OpenSearch Service.
 
+</details>
+
 ## Reproducibility
+
+<details open>
+<summary><strong>v2 — Cloudflare Pages/R2 + Local Compute (26.08.07)</strong></summary>
+
+This public repository contains the application code, UI assets, and deployment definitions for T-RADAR. It does not contain everything needed to reproduce the current system end to end.
+
+The current system depends on:
+- a proprietary trademark corpus licensed from [KIPRIS Plus](https://plus.kipris.or.kr/portal/main.do),
+- prebuilt PostgreSQL/pgvector and OpenSearch indices,
+- local model artifacts and a desktop GPU worker,
+- Cloudflare Pages, R2, and Tunnel resources,
+- API credentials and runtime secrets.
+
+For legal, licensing, and operational reasons, the production data, indices, model artifacts, and secrets are not redistributed. Full reproduction therefore requires separately supplied data, infrastructure, and credentials.
+
+</details>
+
+<details>
+<summary><strong>v1 — AWS Legacy Reproducibility Notes</strong></summary>
+
 This public repository contains the application code, UI assets, and deployment definitions for T-RADAR. It does not contain everything needed to reproduce the production system end to end.
 
 The deployed system depends on:
@@ -84,6 +120,8 @@ The deployed system depends on:
 - a desktop GPU worker used for retrieval offloading.
 
 For legal, licensing, and operational reasons, the production data, search indices, and secrets are not redistributed in this repository. Full production reproduction is therefore not possible from this repository alone.
+
+</details>
 
 ## What You Can Run
 You can still inspect and run parts of the project locally:
